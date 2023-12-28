@@ -1,0 +1,117 @@
+#+title: some things to note
+
+* Wanting to use Pipewire but without Guix Home
+
+The pipewire service in pipewire.scm as of writing does the following:
+1) spawns several shepherd daemons
+2) installs pipewire and wireplumber
+3) creates ~/.config/alsa/asoundrc
+
+** 1. shepherd services
+#+begin_src scheme
+  
+  (shepherd-service
+   (requirement '(dbus))
+   (provision '(pipewire))
+   (stop  #~(make-kill-destructor))
+   (start #~(make-forkexec-constructor
+             (list #$(file-append pipewire "/bin/pipewire"))
+             #:log-file (string-append
+                         (or (getenv "XDG_LOG_HOME")
+                             (format #f "~a/.local/var/log"
+                                     (getenv "HOME")))
+                         "/pipewire.log")
+             #:environment-variables
+             (append (list "DISABLE_RTKIT=1")
+                     (default-environment-variables)))))
+  ;; Start Pipewire PulseAudio module
+  (shepherd-service
+   (requirement '(pipewire))
+   (provision '(pipewire-pulse))
+   (stop  #~(make-kill-destructor))
+   (start #~(make-forkexec-constructor
+             (list #$(file-append pipewire "/bin/pipewire-pulse"))
+             #:log-file (string-append
+                         (or (getenv "XDG_LOG_HOME")
+                             (format #f "~a/.local/var/log"
+                                     (getenv "HOME")))
+                         "/pipewire-pulse.log")
+             #:environment-variables
+             (append (list "DISABLE_RTKIT=1")
+                     (default-environment-variables)))))
+  ;; Start Wireplumber session manager
+  (shepherd-service
+   (requirement '(pipewire))
+   (provision '(wireplumber))
+   (stop  #~(make-kill-destructor))
+   (start #~(make-forkexec-constructor
+             (list #$(file-append wireplumber "/bin/wireplumber"))
+             #:log-file (string-append
+                         (or (getenv "XDG_LOG_HOME")
+                             (format #f "~a/.local/var/log"
+                                     (getenv "HOME")))
+                         "/wireplumber.log")
+             #:environment-variables
+             (append (list "DISABLE_RTKIT=1")
+                     (default-environment-variables)))))
+
+#+end_src
+
+** 2. Install pipewire and wireplumber
+
+Installing in any user profile should be fine, probably.
+
+** 3. Creating ~/.config/alsa/asoundrc
+
+Mine that was created from guix home looks like this:
+
+#+begin_src conf-unix
+  </gnu/store/nwiaykvnwzznidj57w5mf2263sbx3gcy-pipewire-1.0.0/share/alsa/alsa.conf.d/50-pipewire.conf>
+  </gnu/store/nwiaykvnwzznidj57w5mf2263sbx3gcy-pipewire-1.0.0/share/alsa/alsa.conf.d/99-pipewire-default.conf>
+
+  pcm_type.pipewire {
+    lib /gnu/store/nwiaykvnwzznidj57w5mf2263sbx3gcy-pipewire-1.0.0/lib/alsa-lib/libasound_module_pcm_pipewire.so
+  }
+  ctl_type.pipewire {
+    lib /gnu/store/nwiaykvnwzznidj57w5mf2263sbx3gcy-pipewire-1.0.0/lib/alsa-lib/libasound_module_ctl_pipewire.so
+  }
+
+#+end_src
+
+This was derived from the following code in guix home:
+
+#+begin_src scheme
+
+  `(("alsa/asoundrc"
+     ,(mixed-text-file
+       "asoundrc"
+       #~(string-append
+          "<"
+          #$(file-append
+             pipewire "/share/alsa/alsa.conf.d/50-pipewire.conf")
+          ">\n<"
+          #$(file-append
+             pipewire "/share/alsa/alsa.conf.d/99-pipewire-default.conf")
+          ">\n"
+          "
+  pcm_type.pipewire {
+    lib " #$(file-append pipewire "/lib/alsa-lib/libasound_module_pcm_pipewire.so")
+    "
+  }
+  ctl_type.pipewire {
+    lib " #$(file-append pipewire "/lib/alsa-lib/libasound_module_ctl_pipewire.so")
+    "
+  }
+  "))))
+
+#+end_src
+
+The main issue to get around if you want to use a standalone asoundrc file, is specifying all those paths to files in the gnu store. 
+
+For example, if you're trying to specify the first path =#$(file-append pipewire "/share/alsa/alsa.conf.d/50-pipewire.conf"=, you should be able to get the same results with
+~$PROFILE/share/alsa/alsa.conf.d/50.pipewire.conf~, wherein ~$PROFILE~ is the profile in which pipewire was installed in. So if you're creating the asoundrc file without guix home, just replace all the /gnu/store paths in my config with its more-appropriate path.
+
+** Etc
+
++ Make sure that all the shepherd daemons are run on login.
++ If you move the pipewire package to another profile, dont forget to update the asoundrc file to point to the files in the new profile.
