@@ -21,6 +21,7 @@
   #:use-module (gnu services virtualization) ; libvirt
   #:use-module (gnu services dbus) ; dbus-root
   #:use-module (gnu services mcron) ; mcron
+  #:use-module (gnu services ssh)
   ;; packages
   #:use-module (gnu packages wm)
   #:use-module (gnu packages fonts)
@@ -196,6 +197,10 @@ EndSection
     (service bluetooth-service-type
              (bluetooth-configuration
               (privacy 'network/on)))
+    ;; (service openssh-service-type
+    ;;          (openssh-configuration
+    ;;           ;; (openssh openssh-sans-x) ; no X ver
+    ;;           (port-number 2222)))
 
     ;; -- system services -------
     ;; polkit (dont exactly know what this does)
@@ -324,7 +329,8 @@ EndSection
  (bootloader (bootloader-configuration
               (bootloader grub-efi-bootloader)
               (targets '("/boot/efi"))
-              (keyboard-layout keyboard-layout)))
+              (keyboard-layout keyboard-layout)
+              (timeout 3)))
 
  ;; Specify a swap file for the system, which resides on the
  ;; root file system.

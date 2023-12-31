@@ -23,7 +23,6 @@
       "openbox"				; for running inside stumpwm
       "fluxbox"
 
-      ;; "renoise-full"
       ))))
 
 
