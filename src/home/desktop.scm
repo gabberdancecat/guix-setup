@@ -146,6 +146,10 @@
     
     "keepassxc"
 
+    "pinentry-emacs"
+
+    "openssh"
+
     "glibc"		 ; adding here bc also in root profile
     ;; note: firejail is declared in the system configuration
     ))

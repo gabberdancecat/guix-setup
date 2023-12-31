@@ -8,9 +8,11 @@
   (list
    (service home-gpg-agent-service-type
             (home-gpg-agent-configuration
+             ;; ssh support
              (pinentry-program
               (file-append pinentry-emacs "/bin/pinentry-emacs"))
              (ssh-support? #t)
+             ;; settings
              (default-cache-ttl 28800)
              (max-cache-ttl 28800)
              (default-cache-ttl-ssh 28800)

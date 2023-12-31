@@ -45,8 +45,8 @@
 	    bash-service
 	    pipewire-service
 	    ;; renoise-service
-	    dev-service
 	    nix-service
+	    dev-service
 	    ;; desktop-service ; now is packages
 	    ;; workstation-service
 	    ;; emacs-service
