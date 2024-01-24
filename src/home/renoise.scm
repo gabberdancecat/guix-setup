@@ -10,11 +10,11 @@
 (define transform-install-path
   (options->transformation
    '((with-source
-      . "renoise=/home/yui/Music/prod/misc/rns_343_linux_x86_64.tar.gz"))))
+      . "renoise@3.4.3=/home/yui/Music/prod/misc/rns_343_linux_x86_64.tar.gz"))))
 
 (define-public renoise-util-packages
   (cons*
-   (transform-install-path (specification->package "renoise"))
+   (transform-install-path (specification->package "renoise@3.4.3"))
    (specifications->packages
     '( ;; vv jack vv
       "jack" "jack2" "qjackctl"

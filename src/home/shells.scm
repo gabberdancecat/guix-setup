@@ -24,7 +24,18 @@
 		    ;; FIX for stumpwm???
 		    ;; ("SBCL_HOME" . "$HOME/.guix-home/profile/lib/sbcl")
 		    ;; no telemetry when compiling osu
-		    ("DOTNET_CLI_TELEMETRY_OPTOUT" . "1"))))
+		    ("DOTNET_CLI_TELEMETRY_OPTOUT" . "1")
+                    ;; wayland stuff
+                    ;; ("XDG_CURRENT_DESKTOP" . "sway")
+                    ;; ("XDG_SESSION_TYPE" . "wayland")
+                    ;; ("RTC_USE_PIPEWIRE" . "true")
+                    ;; ("SDL_VIDEODRIVER" . "wayland")
+                    ;; ("MOZ_ENABLE_WAYLAND" . "1")
+                    ;; ("CLUTTER_BACKEND" . "wayland")
+                    ;; ("ELM_ENGINE" . "wayland_egl")
+                    ;; ("ECORE_EVAS_ENGINE" . "wayland-egl")
+                    ;; ("QT_QPA_PLATFORM" . "wayland-egl")
+                    )))
 
 (define-public bash-service
   (list

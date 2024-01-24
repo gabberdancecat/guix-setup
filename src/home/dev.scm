@@ -10,7 +10,7 @@
             (home-gpg-agent-configuration
              ;; ssh support
              (pinentry-program
-              (file-append pinentry-emacs "/bin/pinentry-emacs"))
+              (file-append pinentry-rofi "/bin/pinentry-rofi"))
              (ssh-support? #t)
              ;; settings
              (default-cache-ttl 28800)

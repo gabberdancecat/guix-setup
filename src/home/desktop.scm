@@ -9,6 +9,30 @@
   '(;; Emacs EXWM
     "emacs-exwm"
     "emacs-desktop-environment"
+    
+    ;; Wayland
+    "sway"
+    "swayidle"
+    "swaylock"
+    "waybar"
+    "fuzzel"
+    "mako"
+    "gammastep"
+    "grimshot" ;; grimshot --notify copy area
+    "feh"
+    "wev"
+    "foot"
+    "bemenu"
+
+    "xorg-server-xwayland"
+    "xdg-desktop-portal-wlr"
+    "qtwayland"
+
+    "font-iosevka-aile"
+    "xlsclients" ; list xwayland clients
+    
+    "network-manager-applet"
+    "hicolor-icon-theme" ; needed for icons
 
     ;; either:
     ;; - stumpwm:lib and sbcl in same profile
@@ -55,6 +79,14 @@
     "kdeconnect"
     "extremetuxracer"		; game
     "supertuxkart"		; game
+
+    ;; fixing steam:
+    ;; "gstreamer"
+    ;; "gst-plugins-base"
+    ;; "gst-plugins-good"
+    ;; "gst-plugins-bad"
+    ;; "gst-plugins-ugly"
+    ;; "gst-libav"
     
     ;; "openssh" ; do i need this?
     "iptables"
@@ -75,7 +107,7 @@
     
     "glib:bin"	; gsettings (put this outside the manifest)
     
-    "nm-tray" ; maybe the reason why the icon's missing is bc NetworkManager is not in profile?
+    ;; "nm-tray" ; run nm-applet, not tray!
     ;; "network-manager"	       ; will this get things to work?
     
     "pasystray"
@@ -110,9 +142,12 @@
     "pulseaudio"
     "rust-cargo"	      ; ?
     "rust"	      ; ?
+    "rust-analyzer"
+    "rust-clippy"
     ;; "clang-toolchain" ; ? is gcc better ?
     "gcc-toolchain"
     "xorg-server"			; Xephyr
+    "valgrind"
     
     "xinit"
     "xev"
@@ -143,10 +178,14 @@
     "flatpak"
     "xdg-desktop-portal"		; ?
     "xdg-desktop-portal-gtk"	; for file manager
+    "shared-mime-info" ; what's this do?
+    "xdg-dbus-proxy" ; ?
     
     "keepassxc"
 
     "pinentry-emacs"
+    "pinentry-rofi" "rofi"
+    "pinentry-bemenu"
 
     "openssh"
 

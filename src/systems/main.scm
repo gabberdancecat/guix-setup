@@ -1,5 +1,5 @@
 (define-module (src systems main)
-  #:use-module (gnu)
+  #:use-module (gnu) ; use-package-modules
   #:use-module (gnu system) ; sudoers
   #:use-module (nongnu packages linux) ; import kernel
   #:use-module (nongnu packages video) ; intel-graphics
@@ -22,6 +22,7 @@
   #:use-module (gnu services dbus) ; dbus-root
   #:use-module (gnu services mcron) ; mcron
   #:use-module (gnu services ssh)
+  #:use-module (gnu services vpn) ; openvpn
   ;; packages
   #:use-module (gnu packages wm)
   #:use-module (gnu packages fonts)
@@ -31,7 +32,13 @@
   #:use-module (gnu packages suckless) ; slock
   #:use-module (gnu packages xdisorg) ; xscreensaver
   #:use-module (gnu packages glib) ; xdg-dbus-proxy
+  #:use-module (gnu packages gnome) ; network-manager-openvpn
+  ;; misc
+  #:use-module (srfi srfi-1)
   )
+
+(define ri/use-wayland #t)
+;; (define ri/use-wayland #f)
 
 ;; Fixes wifi issues with AX200:
 ;; Below has the same effect as running 'iw wlan0 set power_save off'.
@@ -135,6 +142,10 @@ EndSection
 	  "intel-media-driver-nonfree"
 	  ;; for dynamic linker hack
 	  "glibc"
+          ;; fonts
+          "font-terminus"
+          ;; graphics
+          "libva-utils" ; not sure if this does anything...
 	  ;; user mounts
 	  "gvfs"
 	  ;; https access
@@ -147,19 +158,61 @@ EndSection
 		(setuid-program (program (file-append xscreensaver "/bin/xscreensaver"))))
 	  %setuid-programs))
 
- ;; load wireguard kernel module
- ;; (kernel-loadable-modules (list wireguard-linux-compat))
-
- ;; + Consider using greetd for wayland login manager?
- ;; https://codeberg.org/daviwil/dotfiles/src/branch/guix-home/daviwil/systems/base.scm
-
  ;; services
  (services
   (append
    ;; list of services for iwlwifi
    %iwlwifi-fix-services
+   ;; modify %base-services
+   (let ((%my-base-services
+          (modify-services %base-services
+            (sysctl-service-type
+             config => (sysctl-configuration
+                        (settings (append '(("vm.swappiness" . "1"))
+                                          %default-sysctl-settings)))))))
+     (cond (ri/use-wayland ; use wayland
+            (modify-services %my-base-services
+              ;; greetd-service-type provides "greetd" PAM service
+              (delete login-service-type)
+              ;; and can be used in place of mingetty-service-type
+              (delete mingetty-service-type)
+              ;; dont use default
+              (delete console-font-service-type)))
+           (else
+            %my-base-services)))
    ;; services
-   (cons*
+   (list
+    ;; -- deps if wayland -------
+    (cond (ri/use-wayland
+           (service console-font-service-type
+                    (map (lambda (tty)
+                           ;; Use a larger font for HIDPI screens
+                           (cons tty (file-append
+                                      font-terminus
+                                      "/share/consolefonts/ter-132n")))
+                         '("tty1" "tty2" "tty3" "tty4")))
+           (service greetd-service-type
+                    (greetd-configuration
+                     (greeter-supplementary-groups (list "video" "input"))
+                     (terminals
+                      (list
+                       ;; TTY1 is the graphical login screen for Sway
+                       (greetd-terminal-configuration
+                        (terminal-vt "1")
+                        (terminal-switch #t))
+                       ;; Set up remaining TTYs for terminal use
+                       (greetd-terminal-configuration (terminal-vt "2"))
+                       (greetd-terminal-configuration (terminal-vt "3"))))))))
+    ;; -- nonguix substitute server -------
+    (simple-service 'nonguix-substitute-server
+                    guix-service-type
+                    (guix-extension
+                     (substitute-urls
+                      (append (list "https://substitutes.nonguix.org")
+                              %default-substitute-urls))
+                     (authorized-keys
+                      (append (list nonguix-substitute-server-key)
+                              %default-authorized-guix-keys))))
     ;; -- seat management --------
     ;; cant use seatd bc wireplumber depends on elogind
     (service elogind-service-type)
@@ -171,9 +224,9 @@ EndSection
               (keyboard-layout keyboard-layout)))
     ;; login manager
     (service slim-service-type (slim-configuration 
-				(display ":0")
-				(vt "vt7")
-				(xorg-configuration
+        			(display ":0")
+        			(vt "vt4")
+        			(xorg-configuration
                                  (xorg-configuration
                                   (keyboard-layout keyboard-layout)
                                   ;; IMPORTANT! Libinput.
@@ -190,17 +243,17 @@ EndSection
 
     ;; -- networking --------
     ;; network manager
-    (service network-manager-service-type)
+    (service network-manager-service-type
+             (network-manager-configuration
+              (vpn-plugins (list network-manager-openvpn))))
     ;; needed for network-manager backend
     (service wpa-supplicant-service-type)
+    ;; standalone openvpn client
+    (service openvpn-client-service-type)
     ;; bluetooth for filesharing
     (service bluetooth-service-type
              (bluetooth-configuration
               (privacy 'network/on)))
-    ;; (service openssh-service-type
-    ;;          (openssh-configuration
-    ;;           ;; (openssh openssh-sans-x) ; no X ver
-    ;;           (port-number 2222)))
 
     ;; -- system services -------
     ;; polkit (dont exactly know what this does)
@@ -243,7 +296,7 @@ EndSection
 
     ;; -- desktop -------
     ;; mpd basic setup
-    (service mpd-service-type)	    ; doesn't work, didnt pull depend?
+    (service mpd-service-type)          ; doesn't work, didnt pull depend?
     ;; auto mount usb devices
     (service udisks-service-type)
 
@@ -281,21 +334,7 @@ EndSection
     ;; -- Rest -------
     ;; returns list of services
     ;; modify %base-services
-    (modify-services
-     %base-services
-     (sysctl-service-type
-      config => (sysctl-configuration
-                 (settings (append '(("vm.swappiness" . "1"))
-                                   %default-sysctl-settings))))
-     (guix-service-type
-      config => (guix-configuration
-                 (inherit config)
-                 (substitute-urls
-                  (append (list "https://substitutes.nonguix.org")
-                          %default-substitute-urls))
-                 (authorized-keys
-                  (append (list nonguix-substitute-server-key)
-                          %default-authorized-guix-keys))))))))
+    )))
 
  ;; Nonfree kernel and firmware
  (kernel linux) ; nonfree kernel

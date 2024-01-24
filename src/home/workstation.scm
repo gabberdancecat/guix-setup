@@ -11,7 +11,9 @@
     "signal-desktop"
     "ungoogled-chromium"
     "godot"
-    "obs"))
+    "obs"
+    "wine64"
+    "steam"))
 
 ;; (define (home-workstation-profile-service config)
 ;;   (map specification->package+output
