@@ -22,7 +22,6 @@
       "alsa-utils"
       "openbox"				; for running inside stumpwm
       "fluxbox"
-
       ))))
 
 

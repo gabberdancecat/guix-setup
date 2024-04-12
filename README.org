@@ -1,0 +1,24 @@
+#+TITLE: notes to self
+
+
+* TODO before restarting:
+
+- backup home dir
+- backup ALL dots and code
+- backup keepassxc database
+- backup librewolf and arkenfox bookmarks
+- backup flatpak data
+
+* For reinstallation:
+
+create a install script for easy install (or rather a list of commands to read off of)
+
+follow rde installation tutorial
+
+* Post-installation
+
+make sure EVERYTHING is reproducible, in case this happens again
+
+make snapshotting and store integrity-checking system, daily, or at least very frequently
+
+is guix upgrade something that needs to be run? maybe that's the reason why it broke?

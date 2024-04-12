@@ -37,8 +37,8 @@
   #:use-module (srfi srfi-1)
   )
 
-(define ri/use-wayland #t)
-;; (define ri/use-wayland #f)
+;; (define ri/use-wayland #t)
+(define ri/use-wayland #f)
 
 ;; Fixes wifi issues with AX200:
 ;; Below has the same effect as running 'iw wlan0 set power_save off'.
@@ -170,39 +170,40 @@ EndSection
              config => (sysctl-configuration
                         (settings (append '(("vm.swappiness" . "1"))
                                           %default-sysctl-settings)))))))
-     (cond (ri/use-wayland ; use wayland
-            (modify-services %my-base-services
-              ;; greetd-service-type provides "greetd" PAM service
-              (delete login-service-type)
-              ;; and can be used in place of mingetty-service-type
-              (delete mingetty-service-type)
-              ;; dont use default
-              (delete console-font-service-type)))
-           (else
-            %my-base-services)))
+     ;; if use wayland:
+     ;; (cond (ri/use-wayland
+     ;;        (cons* (service console-font-service-type
+     ;;                        (map (lambda (tty)
+     ;;                               ;; Use a larger font for HIDPI screens
+     ;;                               (cons tty (file-append
+     ;;                                          font-terminus
+     ;;                                          "/share/consolefonts/ter-132n")))
+     ;;                             '("tty1" "tty2" "tty3")))
+     ;;               (service greetd-service-type
+     ;;                        (greetd-configuration
+     ;;                         (greeter-supplementary-groups (list "video" "input"))
+     ;;                         (terminals
+     ;;                          (list
+     ;;                           ;; TTY1 is the graphical login screen for Sway
+     ;;                           (greetd-terminal-configuration
+     ;;                            (terminal-vt "1")
+     ;;                            (terminal-switch #t))
+     ;;                           ;; Set up remaining TTYs for terminal use
+     ;;                           (greetd-terminal-configuration (terminal-vt "2"))
+     ;;                           (greetd-terminal-configuration (terminal-vt "3"))))))
+     ;;               (modify-services %my-base-services
+     ;;                 ;; greetd-service-type provides "greetd" PAM service
+     ;;                 (delete login-service-type)
+     ;;                 ;; and can be used in place of mingetty-service-type
+     ;;                 (delete mingetty-service-type)
+     ;;                 ;; dont use default
+     ;;                 (delete console-font-service-type))))
+     ;;       (else
+     ;;        %my-base-services))
+     %my-base-services
+     )
    ;; services
    (list
-    ;; -- deps if wayland -------
-    (cond (ri/use-wayland
-           (service console-font-service-type
-                    (map (lambda (tty)
-                           ;; Use a larger font for HIDPI screens
-                           (cons tty (file-append
-                                      font-terminus
-                                      "/share/consolefonts/ter-132n")))
-                         '("tty1" "tty2" "tty3" "tty4")))
-           (service greetd-service-type
-                    (greetd-configuration
-                     (greeter-supplementary-groups (list "video" "input"))
-                     (terminals
-                      (list
-                       ;; TTY1 is the graphical login screen for Sway
-                       (greetd-terminal-configuration
-                        (terminal-vt "1")
-                        (terminal-switch #t))
-                       ;; Set up remaining TTYs for terminal use
-                       (greetd-terminal-configuration (terminal-vt "2"))
-                       (greetd-terminal-configuration (terminal-vt "3"))))))))
     ;; -- nonguix substitute server -------
     (simple-service 'nonguix-substitute-server
                     guix-service-type
@@ -216,7 +217,7 @@ EndSection
     ;; -- seat management --------
     ;; cant use seatd bc wireplumber depends on elogind
     (service elogind-service-type)
-    
+
     ;; -- Xorg --------
     ;; NOTE: Requires (keyboard-layout):
     (service xorg-server-service-type	; maybe solves xinit?
