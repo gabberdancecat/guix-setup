@@ -3,18 +3,6 @@
   #:use-module (gnu services) ; service-type
   #:use-module (gnu home services)) ; service-extension
 
-(define-public workstation-packages
-  '("gimp"
-    "abiword"
-    "libreoffice"
-    "ardour"
-    "signal-desktop"
-    "ungoogled-chromium"
-    "godot"
-    "obs"
-    "wine64"
-    "steam"))
-
 ;; (define (home-workstation-profile-service config)
 ;;   (map specification->package+output
 ;;        '("gimp"

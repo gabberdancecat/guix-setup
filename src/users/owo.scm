@@ -28,15 +28,15 @@
  ;; https://hg.sr.ht/~yoctocell/guixrc/browse/yoctocell/users/yoctocell.scm?rev=tip
  ;; should the manifests be put in the extra-profiles? bc longer n louder installs?
  ;; maybe...
- (packages (map specification->package+output
-		(list "sed"
-                      "grep"
-                      "vscodium"
-                      "lolcat"
-                      ;; "font-bitstream-vera"
-                      ;; "font-adobe-source-sans-pro"
-                      "gvfs"
-                      "neovim")))
+ ;; (packages (map specification->package+output
+ ;;        	(list "sed"
+ ;;                      "grep"
+ ;;                      "vscodium"
+ ;;                      "lolcat"
+ ;;                      ;; "font-bitstream-vera"
+ ;;                      ;; "font-adobe-source-sans-pro"
+ ;;                      "gvfs"
+ ;;                      "neovim")))
 
  ;; Below is the list of Home services.  To search for available
  ;; services, run 'guix home search KEYWORD' in a terminal.

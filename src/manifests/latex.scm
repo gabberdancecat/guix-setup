@@ -50,4 +50,4 @@
 
 ;; disable the above with this below
 (specifications->manifest
- "rubber")
+ '("rubber"))

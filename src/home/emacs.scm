@@ -3,27 +3,6 @@
   #:use-module (gnu services) ; service-type
   #:use-module (gnu home services)) ; service-extension
 
-(define-public emacs-packages
-  '(;; putting this here fixed some stuff...
-    "emacs"
-    ;; vterm
-    "emacs-vterm"
-    "cmake"
-    "make"
-    "gcc-toolchain"
-    "libvterm"
-    "libtool"
-    "perl"
-    ;; fonts
-    "font-dejavu"
-    "fontconfig" ; for fc-list
-    ;; other
-    "ncurses" ; for eterm
-    "fd" ; for dirvish
-    "w3m" ; for w3m
-    ;; misc
-    "bear" ; put in dev instead?
-    ))
 
 ;; (define (home-emacs-profile-service config)
 ;;   (map specification->package+output
