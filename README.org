@@ -22,3 +22,10 @@ make sure EVERYTHING is reproducible, in case this happens again
 make snapshotting and store integrity-checking system, daily, or at least very frequently
 
 .guix-profile is never updated, only .guix-extra-profiles. edit the script to ensure that the default profile is being upgraded as well!
+
+remove x display manager replace with xinit
+https://lists.gnu.org/archive/html/help-guix/2018-07/msg00080.html
+remove gdm, then read the contents of %desktop-services if being used, using trick showed in rde video tutorial, reading contents of variable in system config file.
+- also, modify the guix-system-reconfigure script by showing the actual command that is run, so can learn.
+
+upload another elia track
