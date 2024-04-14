@@ -1,4 +1,4 @@
-(define-module (src systems main)
+(define-module (src systems nyanko)
   #:use-module (gnu) ; use-package-modules
   #:use-module (gnu system) ; sudoers
   #:use-module (nongnu packages linux) ; import kernel
@@ -47,7 +47,7 @@
 (define iwlwifi-config
   (plain-file "iwlwifi.conf"
               "options iwlwifi power_save=0
-                  options iwlmvm power_scheme=1"))  
+               options iwlmvm power_scheme=1"))  
 
 (define %iwlwifi-fix-services
   (list
@@ -289,7 +289,7 @@ EndSection
     ;; weekly SSD-trim
     (service fstrim-service-type
              (fstrim-configuration
-              (schedule "0 17 * * 5")))
+              (schedule "0 22 * * 4")))
     ;; upower, power consumption monitor?
     (service upower-service-type)
 
@@ -340,28 +340,78 @@ EndSection
  (initrd microcode-initrd) ; cpu microcode
  (firmware (list linux-firmware)) ; all linux firmware
 
+
+ ;; Encrypted LUKS mapped device
+ ;; Specify a mapped device for the encrypted root partition
+ ;; The UUID is that returned by 'cryptsetup luksUUID'
+ (mapped-devices (list (mapped-device
+                        (source (uuid ""))
+                        (target "enc")
+                        (type luks-device-mapping))))
+
  ;; list of file systems that get mounted.
  ;; (UUID can be obtained with 'blkid' or 'luksUUID')
- (file-systems (append
-                (list (file-system
-                       (mount-point "/")
-                       (device (file-system-label "my-root"))
-                       (type "btrfs"))
+ (file-systems (cons* (file-system
+                        (mount-point "/")
+                        (device "/dev/mapper/enc")
+                        (type "btrfs")
+                        (options
+                         "subvol=root,noatime,compress=zstd,space_cache=v2")
+                        (dependencies mapped-devices))
                       (file-system
-                       (mount-point "/home")
-                       (device (file-system-label "my-root"))
-                       (type "btrfs")
-                       (options "subvol=home"))
+                        (mount-point "/boot")
+                        (device "/dev/mapper/enc")
+                        (type "btrfs")
+                        (options
+                         "subvol=boot,noatime,compress=zstd,space_cache=v2")
+                        (dependencies mapped-devices))
                       (file-system
-                       (mount-point "/swap")
-                       (device (file-system-label "my-root"))
-                       (type "btrfs")
-                       (options "subvol=swap"))
+                        (mount-point "/gnu")
+                        (device "/dev/mapper/enc")
+                        (type "btrfs")
+                        (options
+                         "subvol=gnu,noatime,compress=zstd,space_cache=v2")
+                        (dependencies mapped-devices))
                       (file-system
-                       (mount-point "/boot/efi")
-                       (device (uuid "304B-6C1C" 'fat))
-                       (type "vfat")))
-                %base-file-systems))
+                        (mount-point "/home")
+                        (device "/dev/mapper/enc")
+                        (type "btrfs")
+                        (options
+                         "subvol=home,noatime,compress=zstd,space_cache=v2")
+                        (dependencies mapped-devices))
+                      (file-system
+                        (mount-point "/var/log")
+                        (device "/dev/mapper/enc")
+                        (type "btrfs")
+                        (options
+                         "subvol=log,noatime,compress=zstd,space_cache=v2")
+                        (dependencies mapped-devices))
+                      (file-system
+                        (mount-point "/data")
+                        (device "/dev/mapper/enc")
+                        (type "btrfs")
+                        (options
+                         "subvol=data,noatime,compress=zstd,space_cache=v2")
+                        (dependencies mapped-devices))
+                      (file-system
+                        (mount-point "/swap")
+                        (device "/dev/mapper/enc")
+                        (type "btrfs")
+                        (options
+                         "subvol=swap,noatime")
+                        (dependencies mapped-devices))
+                      (file-system
+                        (mount-point "/.snapshots")
+                        (device "/dev/mapper/enc")
+                        (type "btrfs")
+                        (options
+                         "subvol=snapshots,noatime,compress=zstd,space_cache=v2")
+                        (dependencies mapped-devices))
+                      (file-system
+                        (mount-point "/boot/efi")
+                        (type "vfat")
+                        (device (uuid "" 'fat32)))
+                      %base-file-systems))
 
  ;; bootloader
  (bootloader (bootloader-configuration
@@ -376,13 +426,15 @@ EndSection
   (list
    (swap-space
     (target "/swap/swapfile")
+    (discard? #t)
+    ;; (dependencies mapped-devices)
     (dependencies (filter (file-system-mount-point-predicate "/swap")
                           file-systems)))))
 
  ;; hibernation, blacklist modules
  (kernel-arguments
   (cons* "resume=/dev/nvme0n1p2"
-         "resume_offset=11543808"
+         ;; "resume_offset=" # use "sudo filefrag -e /swap/swapfile", beginning.
          "modprobe.blacklist=uvcvideo"
          %default-kernel-arguments))
  
