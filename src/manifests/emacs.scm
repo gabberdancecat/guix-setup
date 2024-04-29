@@ -5,6 +5,7 @@
 (specifications->manifest
  '(;; putting this here fixed some stuff...
    "emacs"
+   ;; "emacs-pgtk"
    ;; vterm
    "emacs-vterm"
    "cmake"

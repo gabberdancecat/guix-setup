@@ -29,3 +29,25 @@ remove gdm, then read the contents of %desktop-services if being used, using tri
 - also, modify the guix-system-reconfigure script by showing the actual command that is run, so can learn.
 
 upload another elia track
+
+* TODO Now
+
+- update system.org on other computer
+  - and other new things over on that system
+- auto guix upkeep script: verify store integrity, btrfs snapshotting with snapper, make sure guix default profile is being updated, not just the extra profiles (rewrite update script?).
+- Restore firefox bookmarks and add new ones from other laptop
+- save new nyanko.scm
+  - depend: gpg
+- complete river config
+- (NEXT WEEK) Create persist subvol from chroot, reconfigure, if work, try adding keyfile in /persist/key-file.cpio, hope it works.
+- test if zstd format works, only in root subvol (also noatime? what does that even do?)
+
+Long future:
+- improve and neaten arkenfox overrides into neater form
+  - arkenfox-updater, keep expected firefox version in file, compare to output of "firefox --version" | regex !
+- combine nya and channel repos in ~/src
+- improve look of nyanko.scm, split into modules maybe
+- Move some things in .dotfiles into guix-home
+- figure out a way to fix stumpwm root user (get river all set up beforehand)
+- vpn shuffle through mullvad vpns, set all to don't autoconnect except one random, will update next wake from sleep
+

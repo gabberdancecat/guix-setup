@@ -15,4 +15,5 @@
    "nheko"
    "minetest"
    "monero-gui"
+   "lynx"
    ))

@@ -23,6 +23,7 @@
    "wev"
    "foot"
    "bemenu"
+   "yambar-wayland"
 
    ;; Fonts --
    "font-iosevka-aile"
@@ -84,7 +85,7 @@
 
    ;; Web --
    "qutebrowser"
-   "firefox-esr"
+   "firefox"
 
    ;; Stumpwm --
    ;; either:
@@ -130,7 +131,8 @@
    
    
    ;; Desktop programs --
-   "network-manager-applet"
+   "network-manager-applet" ; original
+   "nm-tray"
    "dunst"
    "libnotify"			; notify-send
    

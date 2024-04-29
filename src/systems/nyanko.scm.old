@@ -92,7 +92,7 @@ EndSection
 (operating-system
  (locale "en_US.utf8")
  (timezone "America/New_York")
- (host-name "gnyu")
+ (host-name "gnuwu")
  (keyboard-layout
   (keyboard-layout "us,us" "dvp,"
                    #:options '("grp:sclk_toggle" "ctrl:nocaps")))
@@ -100,10 +100,10 @@ EndSection
  ;; user accounts
  (users (cons*
 	 (user-account
-	  (name "nya")
-          (comment "Nya")
+	  (name "yui")
+          (comment "Yui")
           (group "users")
-          (home-directory "/home/nya")
+          (home-directory "/home/yui")
           (supplementary-groups '("wheel" ; sudo
                                   "audio" "video"
                                   "netdev" ; network devices
@@ -147,7 +147,9 @@ EndSection
           ;; graphics
           "libva-utils" ; not sure if this does anything...
 	  ;; user mounts
-	  "gvfs"))
+	  "gvfs"
+	  ;; https access
+	  "nss-certs"))
    %base-packages))
 
  ;; add firejail and slock to setuid
@@ -335,27 +337,17 @@ EndSection
 
  ;; Nonfree kernel and firmware
  (kernel linux) ; nonfree kernel
+ (initrd microcode-initrd) ; cpu microcode
  (firmware (list linux-firmware)) ; all linux firmware
- ;; (initrd microcode-initrd) ; cpu microcode
- (initrd (lambda (file-systems . rest)
-           (apply microcode-initrd file-systems
-                  #:initrd base-initrd
-                  #:microcode-packages (list amd-microcode
-                                             intel-microcode)
-                  #:keyboard-layout keyboard-layout
-                  rest)))
 
 
  ;; Encrypted LUKS mapped device
  ;; Specify a mapped device for the encrypted root partition
  ;; The UUID is that returned by 'cryptsetup luksUUID'
  (mapped-devices (list (mapped-device
-                        (source (uuid "60d359e5-c769-4592-ae5d-80a383c801e1"))
+                        (source (uuid ""))
                         (target "enc")
-			(type luks-device-mapping)
-			;; unlock root device
-	                ;;(type (luks-device-mapping-with-options #:key-file "/key-file.bin"))
-			)))
+                        (type luks-device-mapping))))
 
  ;; list of file systems that get mounted.
  ;; (UUID can be obtained with 'blkid' or 'luksUUID')
@@ -364,68 +356,61 @@ EndSection
                         (device "/dev/mapper/enc")
                         (type "btrfs")
                         (options
-                         "subvol=root") ; TODO: try making root subvol zstd compression
+                         "subvol=root,noatime,compress=zstd,space_cache=v2")
                         (dependencies mapped-devices))
                       (file-system
                         (mount-point "/boot")
                         (device "/dev/mapper/enc")
                         (type "btrfs")
                         (options
-                         "subvol=boot")
+                         "subvol=boot,noatime,compress=zstd,space_cache=v2")
                         (dependencies mapped-devices))
                       (file-system
                         (mount-point "/gnu")
                         (device "/dev/mapper/enc")
                         (type "btrfs")
                         (options
-                         "subvol=gnu")
+                         "subvol=gnu,noatime,compress=zstd,space_cache=v2")
                         (dependencies mapped-devices))
                       (file-system
                         (mount-point "/home")
                         (device "/dev/mapper/enc")
                         (type "btrfs")
                         (options
-                         "subvol=home")
+                         "subvol=home,noatime,compress=zstd,space_cache=v2")
                         (dependencies mapped-devices))
                       (file-system
                         (mount-point "/var/log")
                         (device "/dev/mapper/enc")
                         (type "btrfs")
                         (options
-                         "subvol=log")
+                         "subvol=log,noatime,compress=zstd,space_cache=v2")
                         (dependencies mapped-devices))
                       (file-system
                         (mount-point "/data")
                         (device "/dev/mapper/enc")
                         (type "btrfs")
                         (options
-                         "subvol=data")
+                         "subvol=data,noatime,compress=zstd,space_cache=v2")
                         (dependencies mapped-devices))
                       (file-system
                         (mount-point "/swap")
                         (device "/dev/mapper/enc")
                         (type "btrfs")
                         (options
-                         "subvol=swap")
+                         "subvol=swap,noatime")
                         (dependencies mapped-devices))
                       (file-system
                         (mount-point "/.snapshots")
                         (device "/dev/mapper/enc")
                         (type "btrfs")
                         (options
-                         "subvol=snapshots")
+                         "subvol=snapshots,noatime,compress=zstd,space_cache=v2")
                         (dependencies mapped-devices))
-                      ;; (file-system
-                      ;;   (mount-point "/persist")
-                      ;;   (device "/dev/mapper/enc")
-                      ;;   (type "btrfs")
-                      ;;   (options
-                      ;;    "subvol=persist")
-                      ;;   (dependencies mapped-devices))
                       (file-system
                         (mount-point "/boot/efi")
                         (type "vfat")
-                        (device (uuid "49DF-32B8" 'fat32)))
+                        (device (uuid "" 'fat32)))
                       %base-file-systems))
 
  ;; bootloader
@@ -433,10 +418,7 @@ EndSection
               (bootloader grub-efi-bootloader)
               (targets '("/boot/efi"))
               (keyboard-layout keyboard-layout)
-              (timeout 3)
-              ;; load initrd with key file for luks decryption
-              ;;(extra-initrd "/key-file.cpio")
-	      ))
+              (timeout 3)))
 
  ;; Specify a swap file for the system, which resides on the
  ;; root file system.
@@ -445,13 +427,14 @@ EndSection
    (swap-space
     (target "/swap/swapfile")
     (discard? #t)
+    ;; (dependencies mapped-devices)
     (dependencies (filter (file-system-mount-point-predicate "/swap")
-			  file-systems)))))
+                          file-systems)))))
 
  ;; hibernation, blacklist modules
  (kernel-arguments
-  (cons* "resume=/dev/mapper/enc"
-         "resume_offset=533760" ; use "sudo filefrag -e /swap/swapfile", beginning.
+  (cons* "resume=/dev/nvme0n1p2"
+         ;; "resume_offset=" # use "sudo filefrag -e /swap/swapfile", beginning.
          "modprobe.blacklist=uvcvideo"
          %default-kernel-arguments))
  
