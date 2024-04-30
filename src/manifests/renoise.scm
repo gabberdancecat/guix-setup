@@ -9,5 +9,5 @@
 ;;        (specifications->manifest
 ;; 	renoise-packages))) ; from (yui home desktop)
 
-(packages->manifest renoise-packages)
+;; (packages->manifest renoise-packages)
 

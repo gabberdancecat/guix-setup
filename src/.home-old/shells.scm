@@ -15,26 +15,26 @@
 		    ;; Emacs is our editor
 		    ("VISUAL" . "emacsclient")
                     ("EDITOR" . "emacsclient")
-		    ;; add to path
-		    ("PATH" . "$HOME/.bin:$PATH")
+		    ;; add bin and setuid programs to path
+		    ("PATH" . "$HOME/.bin:/run/setuid-programs:$PATH")
 		    ;; make flatpak apps visible
                     ("XDG_DATA_DIRS" . "$XDG_DATA_DIRS:$HOME/.local/share/flatpak/exports/share")
-		    ;; add setuid programs to path
-		    ("PATH" . "/run/setuid-programs:$PATH")
 		    ;; FIX for stumpwm???
 		    ;; ("SBCL_HOME" . "$HOME/.guix-home/profile/lib/sbcl")
 		    ;; no telemetry when compiling osu
 		    ("DOTNET_CLI_TELEMETRY_OPTOUT" . "1")
                     ;; wayland stuff
-                    ;; ("XDG_CURRENT_DESKTOP" . "sway")
-                    ;; ("XDG_SESSION_TYPE" . "wayland")
-                    ;; ("RTC_USE_PIPEWIRE" . "true")
-                    ;; ("SDL_VIDEODRIVER" . "wayland")
-                    ;; ("MOZ_ENABLE_WAYLAND" . "1")
-                    ;; ("CLUTTER_BACKEND" . "wayland")
-                    ;; ("ELM_ENGINE" . "wayland_egl")
-                    ;; ("ECORE_EVAS_ENGINE" . "wayland-egl")
-                    ;; ("QT_QPA_PLATFORM" . "wayland-egl")
+                    ("XDG_CURRENT_DESKTOP" . "sway")
+                    ("XDG_SESSION_TYPE" . "wayland")
+                    ("RTC_USE_PIPEWIRE" . "true")
+                    ("SDL_VIDEODRIVER" . "wayland")
+                    ("MOZ_ENABLE_WAYLAND" . "1")
+                    ("CLUTTER_BACKEND" . "wayland")
+                    ("ELM_ENGINE" . "wayland")
+                    ("ECORE_EVAS_ENGINE" . "wayland")
+                    ("QT_QPA_PLATFORM" . "wayland")
+                    ;; wayland theme
+                    ("GTK_THEME" . "Matcha-dark-azul") ;; TODO: move this to desktop, add theme to guix-home packages (also combine config a bit more)
                     )))
 
 (define-public bash-service
