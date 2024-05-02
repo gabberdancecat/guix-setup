@@ -37,6 +37,9 @@
   #:use-module (srfi srfi-1)
   )
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Components:
+
 (define ri/use-wayland #t)
 ;; (define ri/use-wayland #f)
 
@@ -87,117 +90,125 @@ EndSection
    )
   )
 
-;;; Main system configuration
-
-(operating-system
- (locale "en_US.utf8")
- (timezone "America/New_York")
- (host-name "gnyu")
- (keyboard-layout
+;;
+(define my-keyboard-layout
   (keyboard-layout "us,us" "dvp,"
                    #:options '("grp:sclk_toggle" "ctrl:nocaps")))
 
- ;; user accounts
- (users (cons*
-	 (user-account
-	  (name "nya")
-          (comment "Nya")
-          (group "users")
-          (home-directory "/home/nya")
-          (supplementary-groups '("wheel" ; sudo
-                                  "audio" "video"
-                                  "netdev" ; network devices
-                                  "kvm" "docker"
-                                  "realtime"))) ; music
-         %base-user-accounts))
+;;; Services:
 
- ;; define groups (realtime)
- (groups (cons (user-group (system? #t) (name "realtime"))
-               %base-groups))
+(define %my-base-services
+  (modify-services %base-services
+    (sysctl-service-type
+     config => (sysctl-configuration
+                (settings (append '(("vm.swappiness" . "1"))
+                                  %default-sysctl-settings))))))
 
- ;; globally-installed packages (add pipewire? in user instead?)
- (packages
-  (append
-   (map specification->package+output
-	'("vim"
-	  ;; essentials
-	  "git" "stow"
-	  ;; emacs packages
-	  "emacs" "emacs-exwm"
-	  ;; necessary?
-	  "emacs-desktop-environment"
-	  ;; firejail setuid
-	  "firejail" "xdg-dbus-proxy"
-	  ;; wireguard-tools
-	  "wireguard-tools"
-	  ;; slock
-	  "slock" "xss-lock"
-	  ;; stumpwm stuff
-	  "sbcl" ; if stumpwm:lib is in guix-home profile, add "sbcl" in there as well
-	  "stumpwm-with-slynk"
-	  "stumpwm:lib" ; test ; removing test (only one installed, user is better?)
-	  ;; mount android phone
-	  "jmtpfs"
-	  ;; graphics drivers
-	  "intel-media-driver-nonfree"
-	  ;; for dynamic linker hack
-	  "glibc"
-          ;; fonts
-          "font-terminus"
-          ;; graphics
-          "libva-utils" ; not sure if this does anything...
-	  ;; user mounts
-	  "gvfs"))
-   %base-packages))
+(define %my-base-services
+  (cond (ri/use-wayland
+         (cons*
+          ;; use custom fonts
+          (service console-font-service-type
+                   (map (lambda (tty)
+                          ;; Use a larger font for HIDPI screens
+                          (cons tty (file-append
+                                     font-terminus
+                                     "/share/consolefonts/ter-132n")))
+                        '("tty1" "tty2" "tty3")))
+          ;; greetd-wayland session
+          (service greetd-service-type
+                   (greetd-configuration
+                    (greeter-supplementary-groups (list "video" "input"))
+                    (terminals
+                     (list
+                      ;; TTY1 is the graphical login screen for Sway
+                      (greetd-terminal-configuration
+                       (terminal-vt "1")
+                       (terminal-switch #t))
+                      ;; Set up remaining TTYs for terminal use
+                      (greetd-terminal-configuration (terminal-vt "2"))
+                      (greetd-terminal-configuration (terminal-vt "3")))))))
+         ;; modify base services
+         (modify-services %my-base-services
+           ;; greetd-service-type provides "greetd" PAM service
+           (delete login-service-type)
+           ;; and can be used in place of mingetty-service-type
+           (delete mingetty-service-type)
+           ;; delete default fonts
+           (delete console-font-service-type))))
+  (else
+   
+   ))
 
- ;; add firejail and slock to setuid
- (setuid-programs
-  (append (list (setuid-program (program (file-append firejail "/bin/firejail")))
-		(setuid-program (program (file-append xscreensaver "/bin/xscreensaver"))))
-	  %setuid-programs))
 
- ;; services
- (services
+(define %my-session-services
+  (apply modify-services %base-services
+         (list
+          ;; greetd-service-type provides "greetd" PAM service
+          (delete login-service-type)
+          ;; and can be used in place of mingetty-service-type
+          (delete mingetty-service-type)
+          ;; dont use default fonts
+          (delete console-font-service-type)
+          ;; use custom
+          (service console-font-service-type
+                   (map (lambda (tty)
+                          ;; Use a larger font for HIDPI screens
+                          (cons tty (file-append
+                                     font-terminus
+                                     "/share/consolefonts/ter-132n")))
+                        '("tty1" "tty2" "tty3")))
+          ;; greetd-wayland session
+          (service greetd-service-type
+                   (greetd-configuration
+                    (greeter-supplementary-groups (list "video" "input"))
+                    (terminals
+                     (list
+                      ;; TTY1 is the graphical login screen for Sway
+                      (greetd-terminal-configuration
+                       (terminal-vt "1")
+                       (terminal-switch #t))
+                      ;; Set up remaining TTYs for terminal use
+                      (greetd-terminal-configuration (terminal-vt "2"))
+                      (greetd-terminal-configuration (terminal-vt "3")))))))
+         ))
+
+(cond (ri/use-wayland
+       ;; greetd-service-type provides "greetd" PAM service
+       (delete login-service-type)
+       ;; and can be used in place of mingetty-service-type
+       (delete mingetty-service-type)
+       ;; dont use default fonts
+       (delete console-font-service-type)
+       ;; use custom
+       (service console-font-service-type
+                (map (lambda (tty)
+                       ;; Use a larger font for HIDPI screens
+                       (cons tty (file-append
+                                  font-terminus
+                                  "/share/consolefonts/ter-132n")))
+                     '("tty1" "tty2" "tty3")))
+       ;; greetd-wayland session
+       (service greetd-service-type
+                (greetd-configuration
+                 (greeter-supplementary-groups (list "video" "input"))
+                 (terminals
+                  (list
+                   ;; TTY1 is the graphical login screen for Sway
+                   (greetd-terminal-configuration
+                    (terminal-vt "1")
+                    (terminal-switch #t))
+                   ;; Set up remaining TTYs for terminal use
+                   (greetd-terminal-configuration (terminal-vt "2"))
+                   (greetd-terminal-configuration (terminal-vt "3")))))))
+      (else
+       ()))
+
+(define %my-services
   (append
    ;; list of services for iwlwifi
    %iwlwifi-fix-services
    ;; modify %base-services
-   (let ((%my-base-services
-          (modify-services %base-services
-            (sysctl-service-type
-             config => (sysctl-configuration
-                        (settings (append '(("vm.swappiness" . "1"))
-                                          %default-sysctl-settings)))))))
-     ;; if use wayland:
-     (cond (ri/use-wayland
-            (cons* (service console-font-service-type
-                            (map (lambda (tty)
-                                   ;; Use a larger font for HIDPI screens
-                                   (cons tty (file-append
-                                              font-terminus
-                                              "/share/consolefonts/ter-132n")))
-                                 '("tty1" "tty2" "tty3")))
-                   (service greetd-service-type
-                            (greetd-configuration
-                             (greeter-supplementary-groups (list "video" "input"))
-                             (terminals
-                              (list
-                               ;; TTY1 is the graphical login screen for Sway
-                               (greetd-terminal-configuration
-                                (terminal-vt "1")
-                                (terminal-switch #t))
-                               ;; Set up remaining TTYs for terminal use
-                               (greetd-terminal-configuration (terminal-vt "2"))
-                               (greetd-terminal-configuration (terminal-vt "3"))))))
-                   (modify-services %my-base-services
-                     ;; greetd-service-type provides "greetd" PAM service
-                     (delete login-service-type)
-                     ;; and can be used in place of mingetty-service-type
-                     (delete mingetty-service-type)
-                     ;; dont use default
-                     (delete console-font-service-type))))
-           (else
-            %my-base-services)))
    ;; services
    (list
     ;; -- nonguix substitute server -------
@@ -218,14 +229,14 @@ EndSection
     ;; NOTE: Requires (keyboard-layout):
     (service xorg-server-service-type	; maybe solves xinit?
              (xorg-configuration
-              (keyboard-layout keyboard-layout)))
+              (keyboard-layout my-keyboard-layout)))
     ;; login manager
     (service slim-service-type (slim-configuration 
-        			(display ":0")
-        			(vt "vt4")
-        			(xorg-configuration
+        		        (display ":0")
+        		        (vt "vt4")
+        		        (xorg-configuration
                                  (xorg-configuration
-                                  (keyboard-layout keyboard-layout)
+                                  (keyboard-layout my-keyboard-layout)
                                   ;; IMPORTANT! Libinput.
                                   (extra-config (list %xorg-libinput-config))))))
     ;; screen lock
@@ -254,7 +265,7 @@ EndSection
 
     ;; -- system services -------
     ;; polkit (dont exactly know what this does)
-    (service polkit-service-type)	; unbound variable???
+    (service polkit-service-type)       ; unbound variable???
     ;; dbus system bus?
     (service dbus-root-service-type)
     
@@ -303,7 +314,7 @@ EndSection
     (udev-rules-service 'brightnessctl-udev-rules brightnessctl)
     ;; for firejail
     (extra-special-file "/usr/bin/xdg-dbus-proxy"
-			(file-append xdg-dbus-proxy "/bin/xdg-dbus-proxy"))
+		        (file-append xdg-dbus-proxy "/bin/xdg-dbus-proxy"))
     ;; jack realtime mode
     (service pam-limits-service-type
              (list
@@ -333,129 +344,200 @@ EndSection
     ;; modify %base-services
     )))
 
- ;; Nonfree kernel and firmware
- (kernel linux) ; nonfree kernel
- (firmware (list linux-firmware)) ; all linux firmware
- ;; (initrd microcode-initrd) ; cpu microcode
- (initrd (lambda (file-systems . rest)
-           (apply microcode-initrd file-systems
-                  #:initrd base-initrd
-                  #:microcode-packages (list amd-microcode
-                                             intel-microcode)
-                  #:keyboard-layout keyboard-layout
-                  rest)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Main system configuration:
+
+(operating-system
+  (locale "en_US.utf8")
+  (timezone "America/New_York")
+  (host-name "gnyu")
+  (keyboard-layout my-keyboard-layout)
+
+  ;; user accounts
+  (users (cons*
+	  (user-account
+	   (name "nya")
+           (comment "Nya")
+           (group "users")
+           (home-directory "/home/nya")
+           (supplementary-groups '("wheel" ; sudo
+                                   "audio" "video"
+                                   "netdev" ; network devices
+                                   "kvm" "docker"
+                                   "realtime"))) ; music
+          %base-user-accounts))
+
+  ;; define groups (realtime)
+  (groups (cons (user-group (system? #t) (name "realtime"))
+                %base-groups))
+
+  ;; globally-installed packages (add pipewire? in user instead?)
+  (packages
+   (append
+    (map specification->package+output
+	 '("vim"
+	   ;; essentials
+	   "git" "stow"
+	   ;; emacs packages
+	   "emacs" "emacs-exwm"
+	   ;; necessary?
+	   "emacs-desktop-environment"
+	   ;; firejail setuid
+	   "firejail" "xdg-dbus-proxy"
+	   ;; wireguard-tools
+	   "wireguard-tools"
+	   ;; slock
+	   "slock" "xss-lock"
+	   ;; stumpwm stuff
+	   "sbcl" ; if stumpwm:lib is in guix-home profile, add "sbcl" in there as well
+	   "stumpwm-with-slynk"
+	   "stumpwm:lib" ; test ; removing test (only one installed, user is better?)
+	   ;; mount android phone
+	   "jmtpfs"
+	   ;; graphics drivers
+	   "intel-media-driver-nonfree"
+	   ;; for dynamic linker hack
+	   "glibc"
+           ;; fonts
+           "font-terminus"
+           ;; graphics
+           "libva-utils"                ; not sure if this does anything...
+	   ;; user mounts
+	   "gvfs"))
+    %base-packages))
+
+  ;; add firejail and slock to setuid
+  (setuid-programs
+   (append (list (setuid-program (program (file-append firejail "/bin/firejail")))
+		 (setuid-program (program (file-append xscreensaver "/bin/xscreensaver"))))
+	   %setuid-programs))
+
+  ;; services
+  (services %my-services)
+
+  ;; Nonfree kernel and firmware
+  (kernel linux)                        ; nonfree kernel
+  (firmware (list linux-firmware))      ; all linux firmware
+  ;; (initrd microcode-initrd) ; cpu microcode
+  (initrd (lambda (file-systems . rest)
+            (apply microcode-initrd file-systems
+                   #:initrd base-initrd
+                   #:microcode-packages (list amd-microcode
+                                              intel-microcode)
+                   #:keyboard-layout my-keyboard-layout
+                   rest)))
 
 
- ;; Encrypted LUKS mapped device
- ;; Specify a mapped device for the encrypted root partition
- ;; The UUID is that returned by 'cryptsetup luksUUID'
- (mapped-devices (list (mapped-device
-                        (source (uuid "60d359e5-c769-4592-ae5d-80a383c801e1"))
-                        (target "enc")
-			(type luks-device-mapping)
-			;; unlock root device
-	                ;;(type (luks-device-mapping-with-options #:key-file "/key-file.bin"))
-			)))
+  ;; Encrypted LUKS mapped device
+  ;; Specify a mapped device for the encrypted root partition
+  ;; The UUID is that returned by 'cryptsetup luksUUID'
+  (mapped-devices (list (mapped-device
+                         (source (uuid "60d359e5-c769-4592-ae5d-80a383c801e1"))
+                         (target "enc")
+			 (type luks-device-mapping)
+			 ;; unlock root device
+	                 ;;(type (luks-device-mapping-with-options #:key-file "/key-file.bin"))
+			 )))
 
- ;; list of file systems that get mounted.
- ;; (UUID can be obtained with 'blkid' or 'luksUUID')
- (file-systems (cons* (file-system
-                        (mount-point "/")
-                        (device "/dev/mapper/enc")
-                        (type "btrfs")
-                        (options
-                         "subvol=root") ; TODO: try making root subvol zstd compression
-                        (dependencies mapped-devices))
-                      (file-system
-                        (mount-point "/boot")
-                        (device "/dev/mapper/enc")
-                        (type "btrfs")
-                        (options
-                         "subvol=boot")
-                        (dependencies mapped-devices))
-                      (file-system
-                        (mount-point "/gnu")
-                        (device "/dev/mapper/enc")
-                        (type "btrfs")
-                        (options
-                         "subvol=gnu")
-                        (dependencies mapped-devices))
-                      (file-system
-                        (mount-point "/home")
-                        (device "/dev/mapper/enc")
-                        (type "btrfs")
-                        (options
-                         "subvol=home")
-                        (dependencies mapped-devices))
-                      (file-system
-                        (mount-point "/var/log")
-                        (device "/dev/mapper/enc")
-                        (type "btrfs")
-                        (options
-                         "subvol=log")
-                        (dependencies mapped-devices))
-                      (file-system
-                        (mount-point "/data")
-                        (device "/dev/mapper/enc")
-                        (type "btrfs")
-                        (options
-                         "subvol=data")
-                        (dependencies mapped-devices))
-                      (file-system
-                        (mount-point "/swap")
-                        (device "/dev/mapper/enc")
-                        (type "btrfs")
-                        (options
-                         "subvol=swap")
-                        (dependencies mapped-devices))
-                      (file-system
-                        (mount-point "/.snapshots")
-                        (device "/dev/mapper/enc")
-                        (type "btrfs")
-                        (options
-                         "subvol=snapshots")
-                        (dependencies mapped-devices))
-                      ;; (file-system
-                      ;;   (mount-point "/persist")
-                      ;;   (device "/dev/mapper/enc")
-                      ;;   (type "btrfs")
-                      ;;   (options
-                      ;;    "subvol=persist")
-                      ;;   (dependencies mapped-devices))
-                      (file-system
-                        (mount-point "/boot/efi")
-                        (type "vfat")
-                        (device (uuid "49DF-32B8" 'fat32)))
-                      %base-file-systems))
+  ;; list of file systems that get mounted.
+  ;; (UUID can be obtained with 'blkid' or 'luksUUID')
+  (file-systems (cons* (file-system
+                         (mount-point "/")
+                         (device "/dev/mapper/enc")
+                         (type "btrfs")
+                         (options
+                          "subvol=root") ; TODO: try making root subvol zstd compression
+                         (dependencies mapped-devices))
+                       (file-system
+                         (mount-point "/boot")
+                         (device "/dev/mapper/enc")
+                         (type "btrfs")
+                         (options
+                          "subvol=boot")
+                         (dependencies mapped-devices))
+                       (file-system
+                         (mount-point "/gnu")
+                         (device "/dev/mapper/enc")
+                         (type "btrfs")
+                         (options
+                          "subvol=gnu")
+                         (dependencies mapped-devices))
+                       (file-system
+                         (mount-point "/home")
+                         (device "/dev/mapper/enc")
+                         (type "btrfs")
+                         (options
+                          "subvol=home")
+                         (dependencies mapped-devices))
+                       (file-system
+                         (mount-point "/var/log")
+                         (device "/dev/mapper/enc")
+                         (type "btrfs")
+                         (options
+                          "subvol=log")
+                         (dependencies mapped-devices))
+                       (file-system
+                         (mount-point "/data")
+                         (device "/dev/mapper/enc")
+                         (type "btrfs")
+                         (options
+                          "subvol=data")
+                         (dependencies mapped-devices))
+                       (file-system
+                         (mount-point "/swap")
+                         (device "/dev/mapper/enc")
+                         (type "btrfs")
+                         (options
+                          "subvol=swap")
+                         (dependencies mapped-devices))
+                       (file-system
+                         (mount-point "/.snapshots")
+                         (device "/dev/mapper/enc")
+                         (type "btrfs")
+                         (options
+                          "subvol=snapshots")
+                         (dependencies mapped-devices))
+                       ;; (file-system
+                       ;;   (mount-point "/persist")
+                       ;;   (device "/dev/mapper/enc")
+                       ;;   (type "btrfs")
+                       ;;   (options
+                       ;;    "subvol=persist")
+                       ;;   (dependencies mapped-devices))
+                       (file-system
+                         (mount-point "/boot/efi")
+                         (type "vfat")
+                         (device (uuid "49DF-32B8" 'fat32)))
+                       %base-file-systems))
 
- ;; bootloader
- (bootloader (bootloader-configuration
-              (bootloader grub-efi-bootloader)
-              (targets '("/boot/efi"))
-              (keyboard-layout keyboard-layout)
-              (timeout 3)
-              ;; load initrd with key file for luks decryption
-              ;;(extra-initrd "/key-file.cpio")
-	      ))
+  ;; bootloader
+  (bootloader (bootloader-configuration
+               (bootloader grub-efi-bootloader)
+               (targets '("/boot/efi"))
+               (keyboard-layout my-keyboard-layout)
+               (timeout 3)
+               ;; load initrd with key file for luks decryption
+               ;;(extra-initrd "/key-file.cpio")
+	       ))
 
- ;; Specify a swap file for the system, which resides on the
- ;; root file system.
- (swap-devices
-  (list
-   (swap-space
-    (target "/swap/swapfile")
-    (discard? #t)
-    (dependencies (filter (file-system-mount-point-predicate "/swap")
-			  file-systems)))))
+  ;; Specify a swap file for the system, which resides on the
+  ;; root file system.
+  (swap-devices
+   (list
+    (swap-space
+     (target "/swap/swapfile")
+     (discard? #t)
+     (dependencies (filter (file-system-mount-point-predicate "/swap")
+			   file-systems)))))
 
- ;; hibernation, blacklist modules
- (kernel-arguments
-  (cons* "resume=/dev/mapper/enc"
-         "resume_offset=533760" ; use "sudo filefrag -e /swap/swapfile", beginning.
-         "modprobe.blacklist=uvcvideo"
-         %default-kernel-arguments))
+  ;; hibernation, blacklist modules
+  (kernel-arguments
+   (cons* "resume=/dev/mapper/enc"
+          "resume_offset=533760" ; use "sudo filefrag -e /swap/swapfile", beginning.
+          "modprobe.blacklist=uvcvideo"
+          %default-kernel-arguments))
  
- ;; resolution of '.local' host names with mDNS
- (name-service-switch %mdns-host-lookup-nss))
+  ;; resolution of '.local' host names with mDNS
+  (name-service-switch %mdns-host-lookup-nss))
 
 ;; end of operating system configuration
