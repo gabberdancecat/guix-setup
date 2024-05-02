@@ -11,9 +11,10 @@ make snapshotting and store integrity-checking system, daily, or at least very f
 * TODO Now
 
 - [ ] auto guix upkeep script: verify store integrity, btrfs snapshotting with snapper, make sure guix default profile is being updated, not just the extra profiles (rewrite update script?).
-- [ ] move dotfiles to nya guix repo
+- [X] move dotfiles to nya guix repo
 - [ ] complete river config
 - [ ] find the perfect taskbar
+- [ ] vpn shuffle through mullvad vpns, set all to don't autoconnect except one random, will update next wake from sleep
 - [ ] (NEXT WEEK) Create persist subvol from chroot, reconfigure, if work, try adding keyfile in /persist/key-file.cpio, hope it works.
 - [ ] test if zstd format works, only in root subvol (also noatime? what does that even do?)
 - [X] Restore firefox bookmarks and add new ones from other laptop
@@ -26,5 +27,4 @@ Long future:
 - improve and neaten arkenfox overrides into neater form
   - arkenfox-updater, keep expected firefox version in file, compare to output of "firefox --version" | regex !
 - Move some things in .dotfiles into guix-home
-- figure out a way to fix stumpwm root user (get river all set up beforehand)
-- vpn shuffle through mullvad vpns, set all to don't autoconnect except one random, will update next wake from sleep
+- (l)figure out a way to fix stumpwm root user (get river all set up beforehand)
