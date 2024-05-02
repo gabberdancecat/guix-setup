@@ -14,12 +14,10 @@
 ;; home configuration:
 
 (home-environment
- 
  ;; packages
  (packages (append
             ;; renoise+depends only
             my/renoise-packages))
-
  ;; services
  (services (append
             ;; (pipewire+wayland+fontconfig+gpg+nix)

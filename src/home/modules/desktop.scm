@@ -19,6 +19,10 @@
         my-gpg-agent-service
         my-nix-service)
 
+;; Notes:
+;; - batsignal? (notifs)
+;;
+
 ;; pipewire
 
 (define my-pipewire-service
@@ -58,6 +62,7 @@
 
 ;; gpg-agent
 
+;; if sign_and_send_pubkey error, run "gpg-connect-agent updatestartuptty /bye"
 (define my-gpg-agent-service
   (list
    (service home-gpg-agent-service-type
@@ -72,10 +77,11 @@
              (default-cache-ttl-ssh 28800)
              (max-cache-ttl-ssh 28800)))
    ;; dbus is needed or else gpg ssh will error (OR NOT I GUESS)
-   (simple-service 'gpg-agent-dependencies
-                   home-profile-service-type
-                   (map specification->package
-                        '("dbus")))))
+   ;; (simple-service 'gpg-agent-dependencies
+   ;;                 home-profile-service-type
+   ;;                 (map specification->package
+   ;;                      '("dbus")))
+   ))
 
 ;; nix
 

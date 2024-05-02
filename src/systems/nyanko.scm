@@ -40,6 +40,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Components:
 
+;;; --- General -----
+
 (define ri/use-wayland #t)
 ;; (define ri/use-wayland #f)
 
@@ -86,16 +88,14 @@ EndSection
 (define nonguix-substitute-server-key
   (plain-file
    "non-guix.pub"
-   "(public-key (ecc (curve Ed25519) (q #C1FD53E5D4CE971933EC50C9F307AE2171A2D3B52C804642A7A35F84F3A4EA98#)))"
-   )
-  )
+   "(public-key (ecc (curve Ed25519) 
+(q #C1FD53E5D4CE971933EC50C9F307AE2171A2D3B52C804642A7A35F84F3A4EA98#)))"))
 
-;;
 (define my-keyboard-layout
   (keyboard-layout "us,us" "dvp,"
                    #:options '("grp:sclk_toggle" "ctrl:nocaps")))
 
-;;; Services:
+;;; --- Services -----
 
 (define %my-base-services
   (cons*
@@ -293,75 +293,77 @@ EndSection
    ;; misc services
    %my-misc-services))
 
+;;; --- Users: ----
+
+(define %my-users
+  (cons*
+   (user-account
+    (name "nya")
+    (comment "Nya")
+    (group "users")
+    (home-directory "/home/nya")
+    (supplementary-groups '("wheel" ; sudo
+                            "audio" "video"
+                            "netdev" ; network devices
+                            "kvm" "docker"
+                            "realtime"))) ; music
+   %base-user-accounts))
+
+;;; --- Groups: ----
+
+;; TODO: define all things necessary for realtime audio up and grouped.
+(define %my-groups
+  (cons (user-group (system? #t) (name "realtime")) ; for realtime audio
+        %base-groups))
+
+;;; --- Hostname: ----
+
+(define my-hostname "gnyu")
+
+;;; --- system packages: ----
+
+(define %my-packages
+  (append
+   (map specification->package+output
+	'("vim" "git" "stow"
+          "emacs"
+          "emacs-exwm" "emacs-desktop-environment"
+          "sbcl" "stumpwm-with-slynk" "stumpwm:lib" ; stumpwm
+          "slock" "xss-lock"
+          "firejail" "xdg-dbus-proxy"
+          "wireguard-tools" ; ?
+          "jmtpfs"
+          "intel-media-driver-nonfree" ; nonguix intel drivers
+          ;; "glibc" ; don't need, for dynamic linker hack
+          "font-terminus" ; for wayland greetd
+          "libva-utils" ; ?
+          "gvfs" ; user mounts?
+          ))
+   %base-packages))
+
+;;; --- setuid programs: ----
+
+;; add firejail
+(define %my-setuid-programs
+  (append (list (setuid-program (program (file-append firejail "/bin/firejail")))
+		(setuid-program (program (file-append xscreensaver "/bin/xscreensaver"))))
+	  %setuid-programs))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Main system configuration:
 
 (operating-system
   (locale "en_US.utf8")
   (timezone "America/New_York")
-  (host-name "gnyu")
+  (host-name my-hostname)
   (keyboard-layout my-keyboard-layout)
 
-  ;; user accounts
-  (users (cons*
-	  (user-account
-	   (name "nya")
-           (comment "Nya")
-           (group "users")
-           (home-directory "/home/nya")
-           (supplementary-groups '("wheel" ; sudo
-                                   "audio" "video"
-                                   "netdev" ; network devices
-                                   "kvm" "docker"
-                                   "realtime"))) ; music
-          %base-user-accounts))
+  (users %my-users)
+  (groups %my-groups)
 
-  ;; define groups (realtime)
-  (groups (cons (user-group (system? #t) (name "realtime"))
-                %base-groups))
+  (packages %my-packages)
+  (setuid-programs %my-setuid-programs)
 
-  ;; globally-installed packages (add pipewire? in user instead?)
-  (packages
-   (append
-    (map specification->package+output
-	 '("vim"
-	   ;; essentials
-	   "git" "stow"
-	   ;; emacs packages
-	   "emacs" "emacs-exwm"
-	   ;; necessary?
-	   "emacs-desktop-environment"
-	   ;; firejail setuid
-	   "firejail" "xdg-dbus-proxy"
-	   ;; wireguard-tools
-	   "wireguard-tools"
-	   ;; slock
-	   ;; "slock" "xss-lock"
-	   ;; stumpwm stuff
-	   "sbcl" ; if stumpwm:lib is in guix-home profile, add "sbcl" in there as well
-	   "stumpwm-with-slynk"
-	   "stumpwm:lib" ; test ; removing test (only one installed, user is better?)
-	   ;; mount android phone
-	   "jmtpfs"
-	   ;; graphics drivers
-	   "intel-media-driver-nonfree"
-	   ;; for dynamic linker hack
-	   "glibc"
-           ;; fonts
-           "font-terminus"
-           ;; graphics
-           "libva-utils"                ; not sure if this does anything...
-	   ;; user mounts
-	   "gvfs"))
-    %base-packages))
-
-  ;; add firejail and slock to setuid
-  (setuid-programs
-   (append (list (setuid-program (program (file-append firejail "/bin/firejail")))
-		 (setuid-program (program (file-append xscreensaver "/bin/xscreensaver"))))
-	   %setuid-programs))
-
-  ;; services
   (services %my-services)
 
   ;; Nonfree kernel and firmware
@@ -375,7 +377,6 @@ EndSection
                                               intel-microcode)
                    #:keyboard-layout my-keyboard-layout
                    rest)))
-
 
   ;; Encrypted LUKS mapped device
   ;; Specify a mapped device for the encrypted root partition
