@@ -1,4 +1,4 @@
-(define-module (src home-new modules renoise))
+(define-module (src home modules renoise))
 
 (use-modules (gnu packages) ; specification->
              (gnu services) ; service-type
@@ -35,7 +35,12 @@
   (cons*
    package-renoise-transformed
    (specifications->packages
-    '("jack" "jack2" "qjackctl"
+    '(;; "jack"
+      ;; "jack2" ; pipewire already provides libjack.so?
+      "qjackctl"
+      "qpwgraph"
+      "pipewire" ; need here for pw-jack (just the service is insufficient)
+      ;; "carla" ; audio plugin host, VSTs
       "dbus"
       "alsa-utils"
       "openbox"

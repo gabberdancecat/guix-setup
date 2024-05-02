@@ -1,10 +1,10 @@
-(define-module (src home-new owo))
+(define-module (src home owo))
 
-(use-modules (src home-new modules shells) ; bash, aliases
-             (src home-new modules desktop) ; wayland env+theme, pipewire, gpg, fontconfig, nix
-             ;; (src home-new modules system) ; channels
-             ;; (src home-new modules config) ; dotfiles
-             (src home-new modules renoise) ; renoise(packages)
+(use-modules (src home modules shells) ; bash, aliases
+             (src home modules desktop) ; wayland env+theme, pipewire, gpg, fontconfig, nix
+             ;; (src home modules system) ; channels
+             ;; (src home modules config) ; dotfiles
+             (src home modules renoise) ; renoise(packages)
              ;; depend
              (gnu home)
              (gnu packages)

@@ -1,4 +1,4 @@
-(define-module (src home-new modules shells))
+(define-module (src home modules shells))
 
 (use-modules (gnu home services) ; service-extension
              (gnu home services shells) ; env-vars-service-type

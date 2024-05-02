@@ -1,4 +1,4 @@
-(define-module (src home-new modules desktop))
+(define-module (src home modules desktop))
 
 (use-modules (gnu home services sound) ; pipewire-service
              (gnu home services desktop) ; dbus-service
@@ -6,6 +6,7 @@
              (gnu home services gnupg) ; gpg-agent-service
              (gnu home services) ; home-files-service-type
              (gnu packages gnupg) ; gnupg, pinentry-rofi
+             (gnu packages) ; specification->package
              (gnu services) ; service
              (guix gexp) ; local-file
              (ice-9 pretty-print)
@@ -37,7 +38,8 @@
     ("CLUTTER_BACKEND" . "wayland")
     ("ELM_ENGINE" . "wayland")
     ("ECORE_EVAS_ENGINE" . "wayland")
-    ("QT_QPA_PLATFORM" . "wayland")
+    ;; ("QT_QPA_PLATFORM" . "wayland") ; breaks qt apps
+    ("QT_QPA_PLATFORM" . "xcb")
     ;; wayland theme
     ;; TODO: move this to desktop, add theme to guix-home packages
     ;; (also combine config a bit more
@@ -68,7 +70,12 @@
              (default-cache-ttl 28800)
              (max-cache-ttl 28800)
              (default-cache-ttl-ssh 28800)
-             (max-cache-ttl-ssh 28800)))))
+             (max-cache-ttl-ssh 28800)))
+   ;; dbus is needed or else gpg ssh will error (OR NOT I GUESS)
+   (simple-service 'gpg-agent-dependencies
+                   home-profile-service-type
+                   (map specification->package
+                        '("dbus")))))
 
 ;; nix
 
@@ -92,8 +99,8 @@
   (append my-pipewire-service
           my-wayland-service
           ;; my-fontconfig-service
-          my-gpg-agent-service
           my-nix-service
+          my-gpg-agent-service
           ))
 
 ;; (pretty-print my/desktop-service)

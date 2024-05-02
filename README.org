@@ -32,15 +32,15 @@ upload another elia track
 
 * TODO Now
 
-- update system.org on other computer
-  - and other new things over on that system
-- auto guix upkeep script: verify store integrity, btrfs snapshotting with snapper, make sure guix default profile is being updated, not just the extra profiles (rewrite update script?).
-- Restore firefox bookmarks and add new ones from other laptop
-- save new nyanko.scm
-  - depend: gpg
-- complete river config
-- (NEXT WEEK) Create persist subvol from chroot, reconfigure, if work, try adding keyfile in /persist/key-file.cpio, hope it works.
-- test if zstd format works, only in root subvol (also noatime? what does that even do?)
+- [ ] auto guix upkeep script: verify store integrity, btrfs snapshotting with snapper, make sure guix default profile is being updated, not just the extra profiles (rewrite update script?).
+- [X] Restore firefox bookmarks and add new ones from other laptop
+- [ ] save new nyanko.scm
+  - [ ] FIX GIT GPG ACCESS
+- [ ] create modules for stow dotfiles, then move dotfiles into nya repo, use stow layout
+- [ ] complete river config
+- [ ] (NEXT WEEK) Create persist subvol from chroot, reconfigure, if work, try adding keyfile in /persist/key-file.cpio, hope it works.
+- [ ] test if zstd format works, only in root subvol (also noatime? what does that even do?)
+- [ ] create script for volume-up key, check if current volume is <= 100, if yes, allow inc script arg amount, check val again, if over 100, set back to 100
 
 Long future:
 - improve and neaten arkenfox overrides into neater form
@@ -51,3 +51,4 @@ Long future:
 - figure out a way to fix stumpwm root user (get river all set up beforehand)
 - vpn shuffle through mullvad vpns, set all to don't autoconnect except one random, will update next wake from sleep
 
+- 

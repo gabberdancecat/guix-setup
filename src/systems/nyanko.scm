@@ -37,8 +37,8 @@
   #:use-module (srfi srfi-1)
   )
 
-;; (define ri/use-wayland #t)
-(define ri/use-wayland #f)
+(define ri/use-wayland #t)
+;; (define ri/use-wayland #f)
 
 ;; Fixes wifi issues with AX200:
 ;; Below has the same effect as running 'iw wlan0 set power_save off'.

@@ -58,6 +58,7 @@
    "vlc"
    "mupdf" ; keybinds: S-w + - j k h l , . m t [0-9]m [0-9]t / n N [0-9]g c S-h
    "okular"			; pdf reader
+   "cmus"
    
    ;; Desktop misc --
    "network-manager-applet" ; original
