@@ -1,0 +1,6 @@
+#!/bin/sh
+## configured in System.org
+
+guix pull --channels=$HOME/.config/guix/base-channels.scm
+guix describe --format=channels > $HOME/.config/guix/channels.scm
+# maybe remove commit from personal channel with regex here

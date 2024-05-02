@@ -1,0 +1,2002 @@
+#+title: System Configuration
+# #+auto_tangle: t
+#+startup: contents
+
+* Table of Contents :TOC:
+- [[#intro][Intro]]
+- [[#personal-notes][personal notes]]
+  - [[#things-to-set-up-in-here][Things to set up in here:]]
+  - [[#for-the-future][For the future:]]
+- [[#guix-system-configscm][Guix System config.scm]]
+  - [[#main-unified-system-config][MAIN Unified System Config]]
+  - [[#functionsscm][functions.scm]]
+  - [[#system76-system-config][System76 System config]]
+  - [[#thinkpad-system-config][Thinkpad System Config]]
+  - [[#guix-system-reconfigure-script][Guix System reconfigure script]]
+  - [[#oldobsolete-configs][old/obsolete configs]]
+- [[#guix-channels][Guix Channels]]
+  - [[#update-channels-script][Update channels script]]
+  - [[#custom-guix-channel][Custom guix channel]]
+- [[#guix-manifest-profiles][Guix manifest profiles]]
+  - [[#activateupdate-profiles-script][Activate/update profiles script]]
+- [[#user-services][User services]]
+- [[#dotfiles-management][Dotfiles management]]
+  - [[#pull-dotfiles][pull-dotfiles]]
+  - [[#stow-dotfiles][stow dotfiles]]
+  - [[#emacs-command-variants][emacs command variants]]
+- [[#nix][Nix]]
+- [[#guix-system-installation][Guix System installation]]
+  - [[#initial][initial]]
+  - [[#wifi][wifi]]
+  - [[#partition-disks][partition disks]]
+  - [[#create-filesystems-and-mount][create filesystems and mount]]
+  - [[#partial-installation-script][Partial installation script]]
+
+* Intro
+
+Half of this is copied from daviwil.
+
+* personal notes
+
+** Things to set up in here:
+
+- manifests for all (at the top, before guix channels?)
+- read through the docs (save the docs (maybe in emacs?)) (very fun :3)
+- fill in dotfiles management headline
+  - script to save all org docs and save to stash before git pull, then pop from stash, in order to avoid merge conflicts and fucc ups. (how to make running this command more streamlined? make an alias emacs function that runs the shellscript? integrate into magit if shellscript available?)
+  - right after git pull and resolve merge conflicts, org-tangle all and then stow . (so that i can maintain changes from all computers (unnecessary? overkill? only the org tangle part? is the org tangle part even necessary? well, i guess if im gonna be quitting emacs soon, then id want my other stuff to tangle... and i'll forget to stow . bc i'll never do it otherwise...))
+
+** For the future:
+
+- Consider changing the manifest and profile system into something where running a script generates a new manifest file with everything, and just one profile is created from it.
+  - Although one nice thing about this current system is updating only desktop packages and not everything to prevent pulling and compiling bigger packages...
+
+NixOS is actually viable.....
+- only free software option,
+- beautiful hyfetch,
+- nice lang,
+- cute trans girls use it,
+- makes me feel good and euphoric (better than the peace of guix and lisp??)
+
+* Guix System config.scm
+
+Useful dotfiles:
+[[https://github.com/jsoo1/dotfiles/blob/release/guix/config.scm][jsoo1 guix config.scm dotfiles]]
+
+Notes:
+- pipewire:
+  [[https://lists.gnu.org/archive/html/help-guix/2022-02/msg00198.html][gnu lists - pipewire discussions]]
+  i can probably just manually start up pipewire.
+  Pipewire startup script in here:
+  https://codeberg.org/SystemCrafters/crafted-guix
+- firejail:
+  [[https://nixos.wiki/wiki/Firejail][nixos wiki - firejail]]
+  if only firejail on global guix profile, can i still use nix shell? regular nix install, plus guix firejail works??
+
+Troubleshooting:
+- Swap doesn't exactly work... Using =swap-space= in operating system results in an error, so i wrap it in =swap-devices=, so that it works. =herd services status= says ,,, lsblk says ,,, running swapon makes it work, but herd still shows servcie not runnig.
+
+** MAIN Unified System Config
+
+*** modules
+
+#+begin_src scheme :tangle .config/guix/systems/main.scm
+
+  (define-module (main)
+    #:use-module (gnu)
+    #:use-module (gnu system) ; sudoers
+    #:use-module (nongnu packages linux) ; import kernel
+    #:use-module (nongnu packages video) ; intel-graphics
+    #:use-module (nongnu system linux-initrd) ; import firmware
+    #:use-module (gnu system setuid) ; setuid
+    #:use-module (gnu services desktop)
+    #:use-module (gnu services networking)
+    #:use-module (gnu services xorg)
+    #:use-module (gnu services pm) ; power management
+    #:use-module (gnu services sysctl) ; wm.swappiness
+    #:use-module (gnu services sound)
+    #:use-module (gnu services audio)
+    #:use-module (gnu services nix)
+    #:use-module (gnu services shepherd)
+    #:use-module (gnu services docker)
+    #:use-module (gnu services linux) ; kernel-module-loader
+    #:use-module (gnu services databases) ; mysql experiments
+    #:use-module (gnu packages wm)
+    #:use-module (gnu packages fonts)
+    #:use-module (gnu packages certs)
+    #:use-module (gnu packages shells)
+    #:use-module (gnu packages linux) ; access packages (setuid)
+    #:use-module (gnu packages suckless) ; slock
+    #:use-module (gnu packages xdisorg) ; xscreensaver
+    )
+
+
+#+end_src
+
+*** packages
+
+#+begin_src scheme :tangle .config/guix/systems/main.scm
+
+  ;; to add to this, do: (append (list (<new stuff>)) my-default-packages)
+  (define %my-default-packages
+    (append
+     (map specification->package+output
+          '("vim"
+            ;; essentials
+            "git" "stow"
+            ;; emacs packages
+            "emacs" "emacs-exwm"
+            ;; necessary?
+            "emacs-desktop-environment"
+            ;; firejail setuid
+            "firejail" "xdg-dbus-proxy"
+            ;; wireguard-tools
+            "wireguard-tools"
+            ;; slock
+            "slock" "xss-lock"
+            ;; stumpwm
+            "sbcl" "stumpwm-with-slynk" ; "stumpwm:lib" "sbcl-stumpwm-ttf-fonts" "font-dejavu"
+            ;; mount android phone
+            "jmtpfs"
+            ;; graphics drivers
+            "intel-media-driver-nonfree"
+            ;; wayland 
+            "cage"
+            ;; https access
+            "nss-certs"))
+     %base-packages))
+
+#+end_src
+
+*** setuid-programs
+
+#+begin_src scheme :tangle .config/guix/systems/main.scm
+
+  ;; simply place my-setuid-programs in config
+  (define %my-setuid-programs
+    ;; add firejail and slock to setuid
+    (append (list (setuid-program (program (file-append firejail "/bin/firejail")))
+                  (setuid-program (program (file-append xscreensaver "/bin/xscreensaver"))))
+            %setuid-programs))
+
+#+end_src
+
+*** services - special and helper vars
+
+**** iwlwifi
+
+#+begin_src scheme :tangle .config/guix/systems/main.scm
+  
+  ;; Fixes wifi issues with AX200:
+  ;; Below has the same effect as running 'iw wlan0 set power_save off'.
+  ;; Both option sets are needed as iwlmvm will override iwlwifi.
+  ;; For iwlmvm: 1=always on, 2=balanced, 3=low-power.
+  (define iwlwifi-config
+    (plain-file "iwlwifi.conf"
+                "options iwlwifi power_save=0
+                    options iwlmvm power_scheme=1"))  
+
+  (define %iwlwifi-fix-services
+    (list
+     ;; fix unstable wifi
+     (service kernel-module-loader-service-type
+              '("iwlwifi"))
+     (simple-service 'iwlwifi-config etc-service-type
+                     (list `("modprobe.d/iwlwifi.conf"
+                             ,iwlwifi-config)))))
+
+#+end_src
+
+**** fstrim
+
+#+begin_src scheme :tangle .config/guix/systems/main.scm
+
+  ;; weekly SSD-trim
+  (define %fstrim-service
+    (list
+     (service fstrim-service-type
+              (fstrim-configuration
+               (schedule "0 17 * * 5"))))) ; 5pm, Fri
+
+#+end_src
+
+**** pam-limits
+
+#+begin_src scheme :tangle .config/guix/systems/main.scm
+
+  ;; fixes issues on music DAWs
+  (define %pam-limits-service
+    (list
+     (service pam-limits-service-type
+              (list
+               (pam-limits-entry "@realtime" 'both 'rtprio 99)
+               (pam-limits-entry "@realtime" 'both 'memlock 'unlimited)))))
+
+#+end_src
+
+**** xorg-libinput-config
+
+#+begin_src scheme :tangle .config/guix/systems/main.scm
+
+  (define %xorg-libinput-config
+    "Section \"InputClass\"
+    Identifier \"Touchpads\"
+    Driver \"libinput\"
+    MatchDevicePath \"/dev/input/event*\"
+    MatchIsTouchpad \"on\"
+
+    Option \"Tapping\" \"on\"
+    Option \"TappingDrag\" \"on\"
+    Option \"DisableWhileTyping\" \"on\"
+    Option \"MiddleEmulation\" \"on\"
+    Option \"ScrollMethod\" \"twofinger\"
+  EndSection
+  Section \"InputClass\"
+    Identifier \"Keyboards\"
+    Driver \"libinput\"
+    MatchDevicePath \"/dev/input/event*\"
+    MatchIsKeyboard \"on\"
+  EndSection
+  ")
+
+#+end_src
+
+**** nongnu substitute server key
+
+#+begin_src scheme :tangle .config/guix/systems/main.scm
+  
+  (define nonguix-substitute-server-key
+    (plain-file
+     "non-guix.pub"
+     "(public-key (ecc (curve Ed25519) (q #C1FD53E5D4CE971933EC50C9F307AE2171A2D3B52C804642A7A35F84F3A4EA98#)))"
+     )
+    )
+
+#+end_src
+
+*** services
+
+#+begin_src scheme :tangle .config/guix/systems/main.scm
+
+  (define %my-services-a
+    (cons*
+     ;; for mostly system level power events
+     (service elogind-service-type)
+     ;; might be unnecessary... but might as well keep it
+     (service wpa-supplicant-service-type)
+     ;; network manager
+     (service network-manager-service-type)
+     ;; power management
+     (service tlp-service-type
+              (tlp-configuration
+               ;; for renoise/music DAW
+               (cpu-scaling-governor-on-ac (list "performance"))
+               (cpu-scaling-governor-on-bat (list "performance"))
+               (energy-perf-policy-on-ac "performance")
+               (energy-perf-policy-on-bat "performance")))
+     ;; pulseaudio (must install pulseaudio package separately (maybe install system-wide?))
+     ;; (configure through pulseaudio-configuration list rather than ~/.config/pulse)
+     ;; choose user-side config instead
+     ;; (service pulseaudio-service-type)
+     ;; mpd basic setup
+     (service mpd-service-type) ; doesn't work, didnt pull depend?
+     ;; cpu frequency scaling
+     (service thermald-service-type
+              (thermald-configuration
+               (adaptive? #t)))
+     ;; nix service type
+     (service nix-service-type)
+     ;; auto mount usb devices
+     (service udisks-service-type)
+     ;; docker service
+     (service docker-service-type)
+
+     ;; delete this later after checking if /etc/security/limimts.conf appears!!!!!!!!
+     (service pam-limits-service-type
+              (list
+               (pam-limits-entry "@realtime" 'both 'rtprio 99)
+               (pam-limits-entry "@realtime" 'both 'memlock 'unlimited)))
+
+     ;; screen lock
+     (service screen-locker-service-type
+              (screen-locker-configuration
+               (name "slock")
+               (program (file-append slock "/bin/slock"))
+               (using-pam? #t)
+               (using-setuid? #t)))
+     ;; mullvad-vpn
+     ;; (serivce mullvad-daemon-service-type)
+     ;; (service mullvad-daemon-shepherd)
+     ;; (simple-service 'my-mullvad-daemon 
+     ;;            #~(job '(next-hour (3)) "guix gc -F 2G"))
+     ;; bluetooth for filesharing
+     (service bluetooth-service-type
+              (bluetooth-configuration
+               (privacy 'network/on)))
+     ;; mysql for testing
+     (service mysql-service-type)
+     ;; modify %base-services
+     (modify-services
+      %base-services
+      (sysctl-service-type
+       config => (sysctl-configuration
+                  (settings (append '(("vm.swappiness" . "1"))
+                                    %default-sysctl-settings))))
+      (guix-service-type
+       config => (guix-configuration
+                  (inherit config)
+                  (substitute-urls
+                   (append (list "https://substitutes.nonguix.org")
+                           %default-substitute-urls))
+                  (authorized-keys
+                   (append (list nonguix-substitute-server-key)
+                           %default-authorized-guix-keys)))))))
+
+  (define %my-services
+    (append %my-services-a
+            ;; fixes iwlwifi
+            %iwlwifi-fix-services
+            ;; weekly SSD-trim
+            %fstrim-service
+            ;; for music DAWs
+            %pam-limits-service))
+
+#+end_src
+
+*** users
+
+#+begin_src scheme :tangle .config/guix/systems/main.scm
+
+  (define %my-users
+    (cons* (user-account
+            (name "yui")
+            (comment "Yui")
+            (group "users")
+            (home-directory "/home/yui")
+            (supplementary-groups '("wheel" ;; sudo
+                                    "audio" "video"
+                                    "netdev" ;; network devices
+                                    "kvm" "docker"
+                                    "realtime" ; music
+                                    )))
+           %base-user-accounts))
+
+#+end_src
+
+*** groups
+
+#+begin_src scheme :tangle .config/guix/systems/main.scm
+
+  (define %my-groups
+    (cons (user-group (system? #t) (name "realtime"))
+          %base-groups))
+
+#+end_src
+
+*** operating-system
+
+#+begin_src scheme :tangle .config/guix/systems/main.scm
+  ;;; Main system configuration
+
+  (operating-system
+   (locale "en_US.utf8")
+   (timezone "America/New_York")
+   (host-name "gnuwu")
+   (keyboard-layout
+    (keyboard-layout "us,us" "dvp,"
+                     #:options '("grp:sclk_toggle" "ctrl:nocaps")))
+
+   ;; user accounts
+   (users %my-users)
+
+   ;; define groups (realtime)
+   (groups %my-groups)
+
+   ;; globally-installed packages (add pipewire? in user instead?)
+   (packages %my-default-packages)
+
+   ;; add firejail to setuid
+   (setuid-programs %my-setuid-programs)
+
+   ;; load wireguard kernel module
+   ;; (kernel-loadable-modules (list wireguard-linux-compat))
+
+   ;; services
+   (services
+    (cons*
+     ;; NOTE: Requires (keyboard-layout):
+     (service xorg-server-service-type ; maybe solves xinit?
+              (xorg-configuration
+               (keyboard-layout keyboard-layout)))
+     ;;
+     (service slim-service-type (slim-configuration ; login manager
+                                 (display ":0")
+                                 (vt "vt7")
+                                 (xorg-configuration
+                                  (xorg-configuration
+                                   (keyboard-layout keyboard-layout)
+                                   ;; IMPORTANT! Libinput.
+                                   (extra-config (list %xorg-libinput-config))))))
+     %my-services))
+
+   ;; Nonfree kernel and firmware
+   (kernel linux) ; nonfree kernel
+   (initrd microcode-initrd) ; cpu microcode
+   (firmware (list linux-firmware)) ; all linux firmware
+
+   ;; list of file systems that get mounted.
+   ;; (UUID can be obtained with 'blkid' or 'luksUUID')
+   (file-systems (append
+                  (list (file-system
+                         (mount-point "/")
+                         (device (file-system-label "my-root"))
+                         (type "btrfs"))
+                        (file-system
+                         (mount-point "/home")
+                         (device (file-system-label "my-root"))
+                         (type "btrfs")
+                         (options "subvol=home"))
+                        (file-system
+                         (mount-point "/swap")
+                         (device (file-system-label "my-root"))
+                         (type "btrfs")
+                         (options "subvol=swap"))
+                        (file-system
+                         (mount-point "/boot/efi")
+                         (device (uuid "304B-6C1C" 'fat))
+                         (type "vfat")))
+                  %base-file-systems))
+
+   ;; bootloader
+   (bootloader (bootloader-configuration
+                (bootloader grub-efi-bootloader)
+                (targets '("/boot/efi"))
+                (keyboard-layout keyboard-layout)))
+
+   ;; Specify a swap file for the system, which resides on the
+   ;; root file system.
+   (swap-devices
+    (list
+     (swap-space
+      (target "/swap/swapfile")
+      (dependencies (filter (file-system-mount-point-predicate "/swap")
+                            file-systems)))))
+
+   ;; hibernation, blacklist modules
+   (kernel-arguments
+    (cons* "resume=/dev/nvme0n1p2"
+           "resume_offset=11543808"
+           "modprobe.blacklist=uvcvideo"
+           %default-kernel-arguments))
+   )
+
+  ;; end of operating system configuration
+
+#+end_src
+
+** functions.scm
+
+#+begin_src scheme :tangle .config/guix/systems/functions.scm
+  ;; gnu guix system functions
+
+  (define-module (functions)
+    #:use-module (gnu)
+    #:use-module (gnu system) ; sudoers 
+    #:use-module (nongnu packages linux) ; import kernel
+    #:use-module (nongnu system linux-initrd) ; import firmware
+    #:use-module (gnu system setuid) ; setuid
+    #:use-module (gnu services desktop)
+    #:use-module (gnu services networking)
+    #:use-module (gnu services xorg)
+    #:use-module (gnu services pm) ; power management
+    #:use-module (gnu services sysctl) ; wm.swappiness
+    #:use-module (gnu services sound)
+    #:use-module (gnu services audio)
+    #:use-module (gnu services nix)
+    #:use-module (gnu services shepherd)
+    #:use-module (gnu services docker)
+    #:use-module (gnu packages wm)
+    #:use-module (gnu packages fonts)
+    #:use-module (gnu packages certs)
+    #:use-module (gnu packages shells)
+    #:use-module (gnu packages linux) ; access packages (setuid)
+    #:use-module (gnu packages suckless) ; slock
+    #:use-module (gnu packages xdisorg) ; xscreensaver
+    )
+
+  (define-public %xorg-libinput-config
+    "Section \"InputClass\"
+    Identifier \"Touchpads\"
+    Driver \"libinput\"
+    MatchDevicePath \"/dev/input/event*\"
+    MatchIsTouchpad \"on\"
+
+    Option \"Tapping\" \"on\"
+    Option \"TappingDrag\" \"on\"
+    Option \"DisableWhileTyping\" \"on\"
+    Option \"MiddleEmulation\" \"on\"
+    Option \"ScrollMethod\" \"twofinger\"
+  EndSection
+  Section \"InputClass\"
+    Identifier \"Keyboards\"
+    Driver \"libinput\"
+    MatchDevicePath \"/dev/input/event*\"
+    MatchIsKeyboard \"on\"
+  EndSection
+  ")
+
+  ;; to add to this, do: (append (list (<new stuff>)) my-default-packages)
+  (define-public %my-default-packages
+    (append
+     (map specification->package+output
+          '("vim"
+            ;; essentials
+            "git" "stow"
+            ;; emacs packages
+            "emacs" "emacs-exwm"
+            ;; necessary?
+            "emacs-desktop-environment"
+            ;; firejail setuid
+            "firejail" "xdg-dbus-proxy"
+            ;; wireguard-tools
+            "wireguard-tools"
+            ;; slock
+            "slock" "xss-lock"
+            ;; stumpwm
+            "sbcl" "stumpwm-with-slynk" ; "stumpwm:lib" "sbcl-stumpwm-ttf-fonts" "font-dejavu"
+            ;; mount android phone
+            "jmtpfs"
+            ;; https access
+            "nss-certs"))
+     %base-packages))
+
+  ;; (define-public %my-default-packages
+  ;;   (append (list
+  ;;            vim
+  ;;            ;; essentials
+  ;;            git stow
+  ;;            ;; emacs packages
+  ;;            emacs emacs-exwm emacs-desktop-environment
+  ;;            ;; firejail setuid
+  ;;            firejail xdg-dbus-proxy
+  ;;            ;; wireguard-tools
+  ;;            wireguard-tools
+  ;;            ;; slock
+  ;;            slock xss-lock
+  ;;            ;; stumpwm
+  ;;            sbcl stumpwm `(,stumpwm "lib") sbcl-ttf-fonts font-dejavu
+  ;;            ;; mount android phone
+  ;;            jmtpfs
+  ;;            ;; https access
+  ;;            nss-certs
+  ;;            ;; 
+  ;;            %base-packages)))
+
+  ;; simply place my-setuid-programs in config
+  (define-public %my-setuid-programs
+    ;; add firejail and slock to setuid
+    (append (list (setuid-program (program (file-append firejail "/bin/firejail")))
+                  (setuid-program (program (file-append xscreensaver "/bin/xscreensaver"))))
+            %setuid-programs))
+
+  (define-public nongnu-substitute-server-key
+    (plain-file
+     "non-guix.pub"
+     "(public-key (ecc (curve Ed25519) (q #C1FD53E5D4CE971933EC50C9F307AE2171A2D3B52C804642A7A35F84F3A4EA98#)))"
+     )
+    )
+
+  ;; (define-public %my-keyboard-req-services
+  ;;   (list
+  ;;    ;; maybe solves xinit? (needs keyboard layout, moved below)
+  ;;    (service xorg-server-service-type
+  ;;             (xorg-configuration
+  ;;              (keyboard-layout keyboard-layout)))
+  ;;    ;; login manager (needs keyboard layout, moved below)
+  ;;    (service slim-service-type (slim-configuration
+  ;;                                (display ":0")
+  ;;                                (vt "vt7")
+  ;;                                (xorg-configuration
+  ;;                                 (xorg-configuration
+  ;;                                  (keyboard-layout keyboard-layout)))))))
+
+  ;; Some services need to be configured in operating-system, because they
+  ;; depend on keyboard-layout, so they are configured in the individual
+  ;; system configs. these are those services:
+  ;;  xorg-server-service-type
+  ;;  slim-service-type
+
+  ;; mullvad service type
+  ;; (define mullvad-daemon-shepherd
+  ;;   (shepherd-service 
+  ;;    (documentation "Run mullvad-daemon")
+  ;;    (provision '(mullvad-daemon))
+  ;;    (requirement '(user-processes))
+  ;;    (start #~(make-forkexec-constructor
+  ;;              '("mullvad-daemon")))
+  ;;    (stop #~(make-kill-destructor))))
+
+  ;; (define mullvad-daemon-service-type
+  ;;   (service-type (name 'mullvad-daemon)
+  ;;                 (extensions
+  ;;                  (list (service-extension shepherd-root-service-type)))
+  ;;                 (requirement '(user-processes))
+  ;;                 (start #~(make-forkexec-constructor '("mullvad-daemon")))
+  ;;                 (stop #~(make-kill-destructor))))
+
+  ;; user default list of services
+  (define-public %my-services
+    (list
+     ;; for mostly system level power events
+     (service elogind-service-type)
+     ;; might be unnecessary... but might as well keep it
+     (service wpa-supplicant-service-type)
+     ;; network manager
+     (service network-manager-service-type)
+     ;; power management
+     (service tlp-service-type
+              (tlp-configuration))
+     ;; pulseaudio (must install pulseaudio package separately (maybe install system-wide?))
+     ;; (configure through pulseaudio-configuration list rather than ~/.config/pulse)
+     (service pulseaudio-service-type)
+     ;; mpd basic setup
+     (service mpd-service-type) ; doesn't work, didnt pull depend?
+     ;; cpu frequency scaling
+     (service thermald-service-type
+              (thermald-configuration
+               (adaptive? #t)))
+     ;; nix service type
+     (service nix-service-type)
+     ;; auto mount usb devices
+     (service udisks-service-type)
+     ;; docker service
+     (service docker-service-type)
+     ;; screen lock
+     (service screen-locker-service-type
+              (screen-locker-configuration
+               (name "slock")
+               (program (file-append slock "/bin/slock"))
+               (using-pam? #t)
+               (using-setuid? #t)))
+     ;; mullvad-vpn
+     ;; (serivce mullvad-daemon-service-type)
+     ;; (service mullvad-daemon-shepherd)
+     ;; (simple-service 'my-mullvad-daemon 
+     ;;            #~(job '(next-hour (3)) "guix gc -F 2G"))
+     ))
+
+  (define-public %my-base-services
+    (modify-services
+     ;; modify %base-services
+     %base-services
+     (sysctl-service-type
+      config => (sysctl-configuration
+                 (settings (append '(("vm.swappiness" . "2"))
+                                   %default-sysctl-settings))))
+     (guix-service-type
+      config => (guix-configuration
+                 (inherit config)
+                 (substitute-urls
+                  (append (list "https://substitutes.nonguix.org")
+                          %default-substitute-urls))
+                 (authorized-keys
+                  (append (list nongnu-substitute-server-key)
+                          %default-authorized-guix-keys))))))
+
+  ;; Default operating system here for nongnu firmare and kernel
+  (define-public default-operating-system
+    (operating-system
+    ;;; Special defaults go here!
+
+     ;; Locale, timezone, and keyboard layout
+     (locale "en_US.utf8")
+     (timezone "America/New_York")
+
+     ;; TEST
+     (keyboard-layout
+      (keyboard-layout "us,us" "dvp,"
+                       #:options '("grp:sclk_toggle" "ctrl:nocaps")))
+
+     ;; Nongnu firmware and kernel
+     (kernel linux) ; nonfree kernel
+     (initrd microcode-initrd) ; cpu microcode
+     (firmware (list linux-firmware)) ; all linux firmware
+
+     ;; meant to be overwritten
+     (bootloader
+      (bootloader-configuration
+       (bootloader grub-bootloader)
+       (targets '("/dev/sda"))
+       (keyboard-layout keyboard-layout)
+       ))
+     ;; meant to be overwritten
+     (file-systems
+      (cons*
+       (file-system
+        (mount-point "/tmp")
+        (device "none")
+        (type "tmpfs")
+        (check? #f))
+       %base-file-systems))
+     ;; meant to be overwritten
+     (host-name "GNUwU")
+
+     ))
+
+#+end_src
+
+** System76 System config
+
+either the mapped-device is fucked or the mount to /mnt/boot/efi
+
+check: if sysctl vm.swappiness is 2, then shadowing variables/function do not work. if is 1, then it does. yay!
+
+#+begin_src scheme :tangle .config/guix/systems/gnuwu.scm
+  ;; gnu guix system config
+
+  ;; System76 laptop configuration
+
+  ;; This file is configured in System.org
+
+  ;; Which modules to import to access the variables
+  (define-module (gnuwu)
+    #:use-module (functions)
+    #:use-module (gnu)
+    #:use-module (nongnu packages linux)
+    #:use-module (nongnu system linux-initrd))
+
+  ;; xorg, sysctl, kernel-module-loader(+2), bluetooth
+  (use-service-modules xorg sysctl linux desktop)
+  ;; wireguard-loader
+  ;; (use-package-modules vpn)
+
+  ;; ----------
+
+  ;; Fixes wifi issues with AX200:
+  ;; Below has the same effect as running 'iw wlan0 set power_save off'.
+  ;; Both option sets are needed as iwlmvm will override iwlwifi.
+  ;; For iwlmvm: 1=always on, 2=balanced, 3=low-power.
+  (define iwlwifi-config
+    (plain-file "iwlwifi.conf"
+                "options iwlwifi power_save=0
+                  options iwlmvm power_scheme=1"))
+
+  (define %iwlwifi-fix-services
+    (list
+     ;; fix unstable wifi
+     (service kernel-module-loader-service-type
+              '("iwlwifi"))
+     (simple-service 'iwlwifi-config etc-service-type
+                     (list `("modprobe.d/iwlwifi.conf"
+                             ,iwlwifi-config)))))
+
+  ;; weekly SSD-trim
+  (define %fstrim-service
+    (list
+     (service fstrim-service-type
+              (fstrim-configuration
+               (schedule "0 17 * * 5"))))) ; 5pm, Fri
+
+  ;; bluetooth config for syncthing and kdeconnect
+  (define %my-bluetooth-service-type
+    (list
+     (service bluetooth-service-type
+              (bluetooth-configuration
+               (privacy 'network/on)))))
+
+  ;; ----------
+
+  ;; Preconfigured:
+  ;;  %xorg-libinput-config
+  ;;  %my-default-packages
+  ;;  %my-setuid-programs
+
+  (define %my-services
+    (append
+     ;; user default services
+     %my-services
+     ;; fixes iwlwifi
+     %iwlwifi-fix-services
+     ;; weekly SSD-trim
+     %fstrim-service
+     ;; bluetooth for filesharing
+     %my-bluetooth-service-type
+     ;; modify my-base-services
+     (modify-services
+      %my-base-services
+      (sysctl-service-type
+       config => (sysctl-configuration
+                  (settings (append '(("vm.swappiness" . "1"))
+                                    %default-sysctl-settings)))))))
+
+  (define %my-users
+    (cons* (user-account
+            (name "yui")
+            (comment "Yui")
+            (group "users")
+            (home-directory "/home/yui")
+            (supplementary-groups '("wheel" ;; sudo
+                                    "audio" "video"
+                                    "netdev" ;; network devices
+                                    "kvm" "docker"
+                                    )))
+           %base-user-accounts))
+
+  ;; ----------
+
+  ;; Main system configuration
+  (operating-system
+   (locale "en_US.utf8")
+   (timezone "America/New_York")
+   (host-name "gnuwu")
+   (keyboard-layout
+    (keyboard-layout "us,us" "dvp,"
+                     #:options '("grp:sclk_toggle" "ctrl:nocaps")))
+
+   ;; user accounts
+   (users %my-users)
+
+   ;; globally-installed packages (add pipewire? in user instead?)
+   (packages %my-default-packages)
+
+   ;; add firejail to setuid
+   (setuid-programs %my-setuid-programs)
+
+   ;; load wireguard kernel module
+   ;; (kernel-loadable-modules (list wireguard-linux-compat))
+
+   ;; services
+   (services
+    (cons*
+     ;; Requires (keyboard-layout):
+     (service xorg-server-service-type ; maybe solves xinit?
+              (xorg-configuration
+               (keyboard-layout keyboard-layout)))
+     ;;
+     (service slim-service-type (slim-configuration ; login manager
+                                 (display ":0")
+                                 (vt "vt7")
+                                 (xorg-configuration
+                                  (xorg-configuration
+                                   (keyboard-layout keyboard-layout)
+                                   ;; IMPORTANT! Libinput.
+                                   (extra-config (list %xorg-libinput-config))))))
+     %my-services))
+
+   ;; Nonfree kernel and firmware
+   (kernel linux) ; nonfree kernel
+   (initrd microcode-initrd) ; cpu microcode
+   (firmware (list linux-firmware)) ; all linux firmware
+
+   ;; list of file systems that get mounted.
+   ;; (UUID can be obtained with 'blkid' or 'luksUUID')
+   (file-systems (append
+                  (list (file-system
+                         (mount-point "/")
+                         (device (file-system-label "my-root"))
+                         (type "btrfs"))
+                        (file-system
+                         (mount-point "/home")
+                         (device (file-system-label "my-root"))
+                         (type "btrfs")
+                         (options "subvol=home"))
+                        (file-system
+                         (mount-point "/swap")
+                         (device (file-system-label "my-root"))
+                         (type "btrfs")
+                         (options "subvol=swap"))
+                        (file-system
+                         (mount-point "/boot/efi")
+                         (device (uuid "304B-6C1C" 'fat))
+                         (type "vfat")))
+                  %base-file-systems))
+
+   ;; bootloader
+   (bootloader (bootloader-configuration
+                (bootloader grub-efi-bootloader)
+                (targets '("/boot/efi"))
+                (keyboard-layout keyboard-layout)))
+
+   ;; Specify a swap file for the system, which resides on the
+   ;; root file system.
+   (swap-devices
+    (list
+     (swap-space
+      (target "/swap/swapfile")
+      (dependencies (filter (file-system-mount-point-predicate "/swap")
+                            file-systems)))))
+
+   ;; hibernation, blacklist modules
+   (kernel-arguments
+    (cons* "resume=/dev/nvme0n1p2"
+           "resume_offset=11543808"
+           "modprobe.blacklist=uvcvideo"
+           %default-kernel-arguments))
+
+   )
+
+  ;; end of operating system configuration
+
+#+end_src
+
+** Thinkpad System Config
+
+#+begin_src scheme :tangle .config/guix/systems/thinkpad.scm
+
+  (define-module (thinkpad)
+    #:use-module (functions)
+    #:use-module (gnu)
+    #:use-module (nongnu packages linux)
+    #:use-module (nongnu system linux-initrd))
+
+  (use-service-modules xorg sysctl)
+
+  (define %my-default-packages
+    %my-default-packages)
+
+  (define %my-setuid-programs
+    %my-setuid-programs)
+
+  (define %my-services
+    (append ; list + list
+     ;; default services
+     %my-services
+     ;; modified-modified-base-services
+     (modify-services %my-base-services
+                      (sysctl-service-type
+                       config => (sysctl-configuration
+                                  (settings (append '(("vm.swappiness" . "40"))
+                                                    %default-sysctl-settings)))))))
+
+  (define %my-users
+    (cons*
+     (user-account
+      (name "rin")
+      (comment "Rin")
+      (group "users")
+      (home-directory "/home/rin")
+      (supplementary-groups '("wheel" ;; sudo
+                              "audio" "video"
+                              "netdev" ;; network devices
+                              "kvm"
+                              "input" ; libinput
+                              )))
+     %base-user-accounts))
+
+  (define %my-swap-devices
+    (list
+     (swap-space (target "/dev/sda1"))))
+
+  ;; bootloader has keyboard
+
+  (define %my-file-systems
+    (cons (file-system
+           (device (file-system-label "my-root"))
+           (mount-point "/")
+           (type "btrfs"))
+          %base-file-systems))
+
+  (define %my-kernel-arguments
+    (cons* "resume=/dev/sda1"
+           "modprobe.blacklist=uvcvideo"
+           %default-kernel-arguments))
+
+  ;; Operating system config
+  (operating-system
+   ;; (inherit default-operating-system)
+   (locale "en_US.utf8")
+   (timezone "America/New_York")
+   (host-name "GNUwU")
+   (keyboard-layout
+    (keyboard-layout "us,us" "dvp,"
+                     #:options '("grp:sclk_toggle" "ctrl:nocaps")))
+   (packages %my-default-packages)
+   (setuid-programs %my-setuid-programs)
+   (services
+    (cons*
+     ;; depends on keyboard-layout
+     (service xorg-server-service-type
+            (xorg-configuration
+             (keyboard-layout keyboard-layout)))
+     ;; depends on keyboard-layout
+     (service slim-service-type (slim-configuration
+                               (display ":0")
+                               (vt "vt7")
+                               (xorg-configuration
+                                (xorg-configuration
+                                 (keyboard-layout keyboard-layout)))))
+     %my-services))
+   (users %my-users)
+   (swap-devices %my-swap-devices)
+   ;; Nongnu firmware and kernel
+   (kernel linux) ; nonfree kernel
+   (initrd microcode-initrd) ; cpu microcode
+   (firmware (list linux-firmware)) ; all linux firmware
+   ;; bootloader
+   (bootloader (bootloader-configuration
+                (bootloader grub-bootloader)
+                (targets '("/dev/sda"))
+                (keyboard-layout keyboard-layout)))
+   (file-systems %my-file-systems)
+   (kernel-arguments %my-kernel-arguments))
+
+#+end_src
+
+** Guix System reconfigure script
+
+#+begin_src shell :tangle .bin/guix-system-reconfigure :shebang #!/bin/sh
+
+  ## this script is configured in System.org
+  ## 
+
+  echo "Reconfiguring system..."
+
+  echo "thinkpad (1) or system76 (2) or main (3)?"
+  # if params, use for $in
+  [ "$#" -gt 0 ] && in=$1 || read in
+
+  if [ "$in" = "1" ]; then
+      echo "THINKPAD"
+      sudo -E guix system -L ~/.config/guix/systems reconfigure \
+         ~/.config/guix/systems/thinkpad.scm
+  elif [ "$in" = "2" ]; then
+      echo "SYSTEM76"
+      sudo -E guix system -L ~/.config/guix/systems reconfigure \
+         ~/.config/guix/systems/gnuwu.scm
+  elif [ "$in" = "3" ]; then
+      echo "MAIN"
+      sudo -E guix system reconfigure \
+         ~/.config/guix/systems/main.scm
+  else
+      echo "invalid input, exiting..."
+      exit 1
+  fi
+
+  echo "Done!"
+
+  # check if xdg-dbus-proxy exists
+  Path="/usr/bin/xdg-dbus-proxy"
+  if [ ! -L "$Path" ] && [ ! -f "$Path" ]; then
+      if [ "$(ls /usr/bin | grep -c 'xdg-dbus-proxy')" -eq 0 ]; then
+        echo "$Path doesn't exist."
+      else
+        echo "The symlink $Path is broken."
+        echo "ls -l /usr/bin/ -------"
+        ls -l /usr/bin
+        echo "-----------------------"
+        echo "Delete broken symlink? (Y/n)"
+        read in
+        if ! [ "$in" = "n" ]; then
+            trash /usr/bin/xdg-dbus-proxy
+        fi
+      fi
+      echo "Create symlink at $Path ? (Y/n)"
+      read in
+      if ! [ "$in" = "n" ]; then
+        echo "Creating..."
+        sudo ln -s $(which xdg-dbus-proxy) /usr/bin/xdg-dbus-proxy
+      fi
+  fi
+
+#+end_src
+
+** old/obsolete configs
+
+A bunch of old configs
+
+*** Old thinkpad System (disabled)
+
+#+begin_src scheme :tangle no
+  ;; gnu guix system config
+
+  ;; Thinkpad System config (inherited by base-config)
+
+  ;; This file is configured in System.org
+
+  (define-module (thinkpad)
+    #:use-module (base-system)
+    #:use-module (gnu))
+
+  (operating-system
+   ;; inherit base-config
+   (inherit base-operating-system)
+
+   ;; unique hostname
+   (host-name "GNUwU")
+
+   ;; user accounts
+   (users (cons* (user-account
+                  (name "rin")
+                  (comment "Rin")
+                  (group "users")
+                  (home-directory "/home/rin")
+                  (supplementary-groups '("wheel" ;; sudo
+                                          "audio" "video"
+                                          "netdev" ;; network devices
+                                          "kvm"
+                                          )))
+  	       %base-user-accounts))
+
+   ;; list of file systems that get mounted.
+   ;; (UUID can be obtained with 'blkid' or 'luksUUID')
+   (file-systems (cons (file-system
+                        (device (file-system-label "my-root"))
+                        (mount-point "/")
+                        (type "btrfs"))
+                       %base-file-systems))
+
+   ;; declare swap devices
+   ;; (Weird issue with swap fixed (?) with following:
+   ;;  https://serverfault.com/questions/688627/
+   ;;  swapon-failed-device-or-resource-busy-on-mounted-disk)
+   ;; (Also just use path instead of UUID)
+   (swap-devices
+    (list
+     (swap-space (target "/dev/sda1"))))
+
+   ;; hibernation, blacklist modules
+   (kernel-arguments
+    (cons* "resume=/dev/sda1"
+  	 "modprobe.blacklist=uvcvideo"
+           %default-kernel-arguments))
+   
+   )
+
+#+end_src
+
+*** System76 (meow) (disabled)
+
+#+begin_src scheme :tangle no
+  ;; gnu guix system config
+
+  ;; System76 Guix System config (inherited by base-config)
+
+  ;; This file is configured in System.org
+
+  (define-module (meow)
+    #:use-module (base-system)
+    #:use-module (gnu))
+
+  (operating-system
+   (inherit base-operating-system)
+
+   (host-name "gnuwu")
+
+   ;; user accounts
+   (users (cons* (user-account
+                  (name "yui")
+                  (comment "Yui")
+                  (group "users")
+                  (home-directory "/home/yui")
+                  (supplementary-groups '("wheel" ;; sudo
+                                          "audio" "video"
+                                          "netdev" ;; network devices
+                                          "kvm"
+                                          )))
+  	       %base-user-accounts))
+
+   ;; services (must fix)
+   ;; (services (cons*
+   ;; 	    (service fstrim-service-type
+   ;; 		     (fstrim-configuration
+   ;; 		      (schedule "0 17 * * 5"))) ; 5pm, Fri
+   ;; 	    (modify-services
+   ;; 	     %base-services
+   ;; 	     (sysctl-service-type
+   ;; 	      config => (sysctl-configuration
+   ;; 			 (settings (append '(("vm.swappiness" . "1"))
+   ;; 					   %default-sysctl-settings)))))
+   ;; 	    ))
+
+   ;; list of file systems that get mounted.
+   ;; (UUID can be obtained with 'blkid' or 'luksUUID')
+   (file-systems (cons (file-system
+                        (device (file-system-label "my-root"))
+                        (mount-point "/")
+                        (type "btrfs")
+  		      (dependencies mapped-devices))
+  		     (file-system
+  		      (mount-point "/boot/efi")
+  		      (device (uuid "jkgjahjfhdjalkkljflk" 'fat))
+  		      (type "vfat"))
+  		     %base-file-systems))
+
+   ;; bootloader
+   (bootloader (bootloader-configuration
+  	      (bootloader grub-efi-bootloader)
+  	      (targets '("/boot/efi"))
+  	      (keyboard-layout keyboard-layout)))
+
+   ;; Specify a mapped device for the encrypted root partition.
+   ;; The UUID is that returned by 'cryptsetup luksUUID'.
+   (mapped-devices
+    (list (mapped-device
+           (source (uuid "12345678-1234-1234-1234-123456789abc"))
+           (target "my-root")
+           (type luks-device-mapping))))
+
+   ;; Specify a swap file for the system, which resides on the
+   ;; root file system.
+   (swap-devices (list (swap-space
+                        (target "/swapfile"))))
+
+   ;; hibernation, blacklist modules
+   (kernel-arguments
+    (cons* ; "resume=/dev/sda1"
+     "modprobe.blacklist=uvcvideo"
+     %default-kernel-arguments))
+
+   )
+
+#+end_src
+
+*** base-system.scm (disabled)
+
+#+begin_src scheme :tangle no
+  ;; gnu guix system config
+
+  ;; base-system module
+
+  ;; This file is configured in System.org
+
+  ;; Which modules to import to access the variables
+  (define-module (base-system)
+    #:use-module (gnu)
+    #:use-module (nongnu packages linux) ; import kernel
+    #:use-module (nongnu system linux-initrd) ; import firmware
+    #:use-module (gnu system setuid) ; setuid
+    #:use-module (gnu services desktop)
+    #:use-module (gnu services networking)
+    #:use-module (gnu services xorg)
+    #:use-module (gnu services pm) ; power management
+    #:use-module (gnu services sysctl) ; wm.swappiness
+    #:use-module (gnu services sound)
+    #:use-module (gnu services audio)
+    #:use-module (gnu services nix)
+    #:use-module (gnu packages wm)
+    #:use-module (gnu packages certs)
+    #:use-module (gnu packages shells)
+    #:use-module (gnu packages linux) ; access packages (setuid)
+    ;; #:use-module (gnu packages package-management) ; access nix (setuid)
+    )
+
+  ;; (use-service-modules desktop networking xorg pm sysctl sound audio nix) ; dbus
+  ;; (use-package-modules wm certs shells)
+
+
+  ;; Main system configuration
+  (define-public base-operating-system
+    (operating-system
+     (locale "en_US.utf8")
+     (timezone "America/New_York")
+     (host-name "GNUwU") ; placeholder
+     (keyboard-layout
+      (keyboard-layout "us,us" "dvp,"
+                       #:options '("grp:sclk_toggle" "ctrl:nocaps")))
+
+     ;; user accounts (moved below)
+
+     ;; globally-installed packages (add pipewire? in user instead?)
+     (packages
+      (append
+       (list (specification->package "vim")
+             ;; essentials
+             (specification->package "git")
+             (specification->package "stow")
+             ;; exwm .desktop file access
+             (specification->package "emacs")
+             (specification->package "emacs-exwm")
+             ;; (specification->package "emacs-desktop-environment")
+             ;; firejail setuid
+             (specification->package "firejail")
+             (specification->package "xdg-dbus-proxy") ; for flatpak and firejail
+             ;; https access
+             (specification->package "nss-certs"))
+       %base-packages))
+
+     ;; add firejail to setuid
+     (setuid-programs
+      (append (list (setuid-program (program (file-append firejail "/bin/firejail"))))
+              %setuid-programs))
+
+     ;; system services
+     ;; (to search for available services, use: 'guix system search KEYWORD')
+     (services
+      (cons*
+
+       ;; for mostly system level power events
+       (service elogind-service-type)
+
+       ;; might be unnecessary... but might as well keep it
+       (service wpa-supplicant-service-type)
+
+       ;; network manager
+       (service network-manager-service-type)
+
+       ;; maybe solves xinit?
+       (service xorg-server-service-type
+                (xorg-configuration
+                 (keyboard-layout keyboard-layout)))
+
+       ;; login manager
+       (service slim-service-type (slim-configuration
+                                 (display ":0")
+                                 (vt "vt7")
+                                 (xorg-configuration
+                                    (xorg-configuration
+                                     (keyboard-layout keyboard-layout)))))
+
+       ;; power management
+       (service tlp-service-type
+                (tlp-configuration))
+
+       ;; pulseaudio (must install pulseaudio package separately (maybe install system-wide?))
+       ;; (configure through pulseaudio-configuration list rather than ~/.config/pulse)
+       (service pulseaudio-service-type)
+
+       ;; mpd (primitive setup)
+       (service mpd-service-type) ; doesn't work, didnt pull depend?
+
+       ;; cpu frequency scaling
+       (service thermald-service-type
+                (thermald-configuration
+                 (adaptive? #t)))
+
+       ;; nix service type
+       (service nix-service-type)
+
+       ;; auto mount usb devices
+       (service udisks-service-type)
+
+       ;; modify default services...
+       (modify-services
+        %base-services
+        (sysctl-service-type
+         config => (sysctl-configuration
+                    (settings (append '(("vm.swappiness" . "1"))
+                                      %default-sysctl-settings))))
+        (guix-service-type
+         config => (guix-configuration
+                    (inherit config)
+                    (substitute-urls
+                     (append (list "https://substitutes.nonguix.org")
+                             %default-substitute-urls))
+                    (authorized-keys
+                     (append (list
+                              (plain-file "non-guix.pub"
+                                        "(public-key (ecc (curve Ed25519) (q #C1FD53E5D4CE971933EC50C9F307AE2171A2D3B52C804642A7A35F84F3A4EA98#)))")
+                              )
+                             %default-authorized-guix-keys)))))))
+
+     ;; Nonfree kernel and firmware
+     (kernel linux) ; nonfree kernel
+     (initrd microcode-initrd) ; cpu microcode
+     (firmware (list linux-firmware)) ; all linux firmware
+
+     ;; Guix doesn't like it when there isn't a bootloader
+     ;; entry, so add one that is meant to be overridden.
+     ;; UEFI GRUB with EFI partition mounted on /boot/efi.
+     (bootloader (bootloader-configuration
+                (bootloader grub-bootloader)
+                (targets '("/dev/sda"))
+                ;; (bootloader grub-efi-bootloader)
+                ;; (targets '("/boot/efi"))
+                (keyboard-layout keyboard-layout)))
+
+     ;; specify mapped device for the encrypted root parition
+     ;; (UUID is fetched with 'cryptsetup luksUUID')
+     ;; (mapped-devices
+     ;;  (list (mapped-device
+     ;;         (source (uuid "471f7e73-d1f0-401e-9624-b467c94bf78e"))
+     ;;         (target "cryptroot")
+     ;;         (type luks-device-mapping))))
+
+     ;; Guix doesn't like it when there isn't a file-systems
+     ;; entry, so add one that is meant to be overridden
+     (file-systems (cons*
+                    (file-system
+                     (mount-point "/tmp")
+                     (device "none")
+                     (type "tmpfs")
+                     (check? #f))
+                    %base-file-systems))
+
+     ))
+
+  ;; end of operating system configuration
+
+#+end_src
+
+* Guix Channels
+
+#+begin_src scheme :tangle .config/guix/base-channels.scm
+
+  (cons* (channel
+          (branch "main")
+          (name 'my-guix-channel)
+          (url "file:///home/yui/Code/code/my-guix-channel"))
+         (channel
+          (name 'nonguix)
+          (url "https://gitlab.com/nonguix/nonguix")
+          ;; Enable signature verification:
+          (introduction
+           (make-channel-introduction
+            "897c1a470da759236cc11798f4e0a5f7d4d59fbc"
+            (openpgp-fingerprint
+             "2A39 3FFF 68F4 EF7A 3D29  12AF 6F51 20A0 22FB B2D5"))))
+         %default-channels)
+
+  ;; cons* appends channel to the end of %default-channels
+  ;; https://gitlab.com/nonguix/nonguix
+
+#+end_src
+
+** Update channels script
+
+the base-channels.scm file is a pinned snapshot of all the commits of the repo. Run this script to update the pinned snapshots.
+(im not sure how useful this will be... will it require another custom script? will it interfere with guix pull?)
+
+the linux kernel will reconfigure every time guix pull is done. although this shouldn't be much of a problem if substitutes are used, this is might necessiate channel pinning.
+
+the script below runs guix pull like usual, now with updating channel commits. Maybe alias guix-update-channels.sh to =guix pull=? Maybe I wouldn't want to update commits every time i guix pull though...
+
+#+begin_src sh :tangle .bin/guix-update-channels :shebang #!/bin/sh
+
+  ## configured in System.org
+
+  guix pull --channels=$HOME/.config/guix/base-channels.scm
+  guix describe --format=channels > ~/.config/guix/channels.scm
+  # maybe remove commit from personal channel with regex here
+
+#+end_src
+
+** Custom guix channel
+
+[[https://git.savannah.gnu.org/cgit/guix.git/tree/gnu/packages/emacs.scm#n98][Guix Emacs build script source]]
+
+ideas:
+- librewolf
+- exwm-mff
+
+#+begin_src scheme
+
+#+end_src
+
+* Guix manifest profiles
+
+?
+merge the many different manifests together? alias a thing for -m for all manifests on the same command?
+
+[[https://guix.gnu.org/en/cookbook/en/guix-cookbook.html#Basic-setup-with-manifests][Guix Docs - Basic setup with manifests]]
+[[https://www.futurile.net/2022/12/21/guix-profiles-logical-separation/][[Unread] Futurile - Guix profiles to logically separate packages]]
+
+** Activate/update profiles script
+
+each manifest gets converted into a profile in =$GUIX_EXTRA_PROFILES=
+
+tangle to .bin/activate-profiles
+
+#+begin_src sh :tangle .bin/guix-update-profiles :shebang #!/bin/sh
+
+  # this script is configured in System.org
+
+  # profiles (input can be "emacs desktop gaming all")
+
+  die() { echo "$*" 1>&2 ; exit 1; }
+
+  GUIX_EXTRA_PROFILES=$HOME/.guix-extra-profiles
+
+  args=$*
+  if [[ $1 == "all" ]]; then
+      args="$HOME/.config/guix/manifests/*.scm";
+      echo "updating ALL profiles..."
+  elif [[ $# -eq 0 ]]; then
+      echo "WARNING: updating all profiles, continue? (Y/n)"
+      read in
+      if [[ "$in" == "y" || "$in" == "" ]]; then
+          args="$HOME/.config/guix/manifests/*.scm";
+      else
+          echo "exiting..."
+          exit 0
+      fi
+  fi
+
+  for arg in $args; do
+      profileName=$(basename $arg); profileName="${profileName%.*}" # "emacs"
+      profilePath="$GUIX_EXTRA_PROFILES/$profileName" # "~/.guix-extra-profiles/emacs"
+      manifestPath=$HOME/.config/guix/manifests/$profileName.scm # "~/.config/guix/manifests/emacs.scm"
+
+      # if path to manifest doesn't exist, print Error, then continue loop.
+      if ! [ -f $manifestPath ]; then
+          echo "Error: the profile's manifest file ($manifestPath) cannot be found."
+          continue;
+      fi
+
+      GUIX_PROFILE="$profilePath/$profileName" # "~/.guix-extra-profiles/emacs/emacs"
+      # if profile yet to be sourced
+      if [ $(guix package --list-profiles | grep -c "$GUIX_PROFILE") -eq 0 ]; then
+          echo "Activating profile: $profileName"
+          ToSource=1
+      else
+          echo "Updating profile: $profileName"
+          ToSource=0
+      fi
+
+      # create profile dir and install/update profile
+      mkdir -p $profilePath
+      guix package --manifest=$manifestPath --profile="$profilePath/$profileName"
+
+      # source profile if necessary
+      if (( $ToSource == 1 )); then
+          if [ -f $GUIX_PROFILE/etc/profile ]; then
+              . "$GUIX_PROFILE"/etc/profile
+          else
+              echo "Error: Couldn't find profile?!?! At $GUIX_PROFILE/etc/profile"
+          fi
+      fi
+  done
+
+  ## Check firefox version after update and ask to update if version has changed
+  # FirefoxVersion="115.2.0"
+  # NewVersion="$(firefox --version)"
+  # matches="$(echo '$NewVersion' | grep -c '$FirefoxVersion')"
+  # if (( "$matches" = 1 )); then
+  #     exit 0
+  # else
+  #     echo "Update arkenfox? (Y/n)"
+  #     read in
+  #     if ! [ "$in" = "n" ]; then
+  #         [ -f "$HOME/.bin/arkenfox-updater.sh" ] && ~/.bin/arkenfox-updater.sh
+  #     fi
+  # fi
+
+#+end_src
+
+* User services
+
+* Dotfiles management
+
+- before git pull (syncing), make script to save all org buffers before, then stash all, git pull, then pop stash, and check for merge conficts.
+- then, tangle all the new org files to prevent any issues, then run stow.
+
+** pull-dotfiles
+
+#+begin_src shell :tangle .bin/pull-dotfiles :shebang #!/bin/sh
+
+  ## this script is configured in System.org
+
+  # Sync dotfiles repo and ensure that dotfiles are tangled correctly afterward
+
+  GREEN='\033[1;32m'
+  BLUE='\033[1;34m'
+  RED='\033[1;30m'
+  NC='\033[0m'
+
+  # Navigate to the directory of this script (generally ~/.dotfiles/.bin)
+  cd $(dirname $(readlink -f $0))
+  cd ..
+
+  echo -e "${BLUE}Stashing existing changes...${NC}"
+  stash_result=$(git stash push -m "pull-dotfiles: Before syncing dotfiles")
+  needs_pop=1
+  if [ "$stash_result" == "No local changes to save" ]; then
+      needs_pop=0
+  fi
+
+  echo -e "${BLUE}Pulling updates from dotfiles repo...${NC}"
+  echo
+  git pull origin main
+  echo
+
+  if [[ $needs_pop -eq 1 ]]; then
+      echo -e "${BLUE}Popping stashed changes...${NC}"
+      echo
+      git stash pop
+  fi
+
+  unmerged_files=$(git diff --name-only --diff-filter=U)
+  if [[ ! -z $unmerged_files ]]; then
+     echo -e "${RED}The following files have merge conflicts after popping the stash:${NC}"
+     echo
+     printf %"s\n" $unmerged_files  # Ensure newlines are printed
+  else
+     # Run stow to ensure all new dotfiles are linked
+     emacsclient -e '(org-save-all-org-buffers)' -a "echo 'Emacs is not currently running'"
+     stow .
+  fi
+
+#+end_src
+
+** stow dotfiles
+
+#+begin_src shell :tangle .bin/stow-dotfiles :shebang #!/bin/sh
+
+  ## this script is edited in System.org
+
+  # Navigate to the directory of this script (generally ~/.dotfiles/.bin)
+  cd $(dirname $(readlink -f $0))
+  cd ..
+
+  if [ -f ".stow-local-ignore" ]; then
+      emacsclient -e '(org-save-all-org-buffers)' -a "echo 'Emacs is not currently running'"
+      stow .
+      echo "Finished stow."
+  else
+      echo "ERROR: .stow-local-ignore could not be found in the directory running \"stow .\" on"
+  fi
+
+#+end_src
+
+** emacs command variants
+
+#+begin_src emacs-lisp :tangle .emacs.d/lisp/ri-git-interface-commands.el
+
+  (defun ri/git-pull-dotfiles ()
+    "Run the pull-dotfiles shell command, which stashes existing changes, runs `git pull origin master', pop the stash, then `stow .' to update."
+    (interactive)
+    (let ((dot-root (f-parent user-emacs-directory)))
+      (if (f-directory-p (concat dot-root "/.git"))
+          (shell-command (concat "sh " dot-root "/.bin/pull-dotfiles"))
+        (error "The root dotfiles directory is not a parent directory of `.emacs.d', so it cannot locate the `.bin' directory, where `pull-dotfiles' command exists. Maybe try to come up with a better solution, so that the user-emacs-directory doesn't have to be in the root dotfiles directory? Maybe in the form of an environmental variable at startup?"))))
+
+  (defun ri/stow-dotfiles ()
+    "Run the stow command on the root dotfiles directory."
+    (interactive)
+    (let ((dot-root (f-parent user-emacs-directory)))
+      (if (f-file-p (concat dot-root "/.stow-local-ignore"))
+          (shell-command (concat "sh " dot-root "/.bin/stow-dotfiles"))
+        (error "The root dotfiles directory is not a parent directory of `.emacs.d', so it cannot locate the `.bin' directory, where `pull-dotfiles' command exists. Maybe try to come up with a better solution, so that the user-emacs-directory doesn't have to be in the root dotfiles directory? Maybe in the form of an environmental variable at startup?"))))
+
+  (provide 'ri-git-interface-commands)
+
+#+end_src
+
+* Nix
+
+* Guix System installation
+
+When installing Guix System, follow both instructions side by side:
+[[https://guix.gnu.org/manual/en/html_node/Keyboard-Layout-and-Networking-and-Partitioning.html][Guix System installation guide]]
+[[https://wiki.systemcrafters.net/guix/nonguix-installation-guide/][System Crafters - Guix System Installation Guide]]
+[[https://wiki.archlinux.org/title/Partitioning#Example_layouts][Arch Wiki - Partition layouts examples]]
+https://guix.gnu.org/manual/en/guix.html#Manual-Installation
+
+(for EFI, btrfs)
+
+** initial
+
+- keyboard layout
+
+  : loadkeys dvorak
+
+** wifi
+
+*** if wifi card blocked, unblock
+
+: rfkill unblock all
+
+*** if wired connection
+
+: ip link set <interface> up
+
+*** if wifi
+
+: vim wpa_supplicant.conf
+
+#+begin_src conf :tangle no
+network={
+  ssid="my-ssid"
+  key_mgmt=WPA-PSK
+  psk="the network's secret passphrase"
+}
+#+end_src
+
+: wpa_supplicant -c wpa_supplicant.conf -i <interface> -B
+: dhclient -v interface
+: ping -c 3 gnu.org  # might not work, when wifi actually works
+
+** partition disks
+
+: fdisk <partition>
+(sda1(EFI,+1G), sda2(Linux,Rest))
+(keys:
+  p(print)
+  g(new gpt disklabel)
+  n(new part)
+    (part #)
+    (first sector (def))
+    (last sector (size (Ex: +1G, +512M)))
+  t(part type)
+    L(list all)
+    (type # (EFI=1, LinuxFilesystem=(Linux,20), LinuxRoot(x86-64)=(23;better?)))
+)
+
+- EFI partition
+  (+1G, type1)
+- Root partition
+  (Enter, typeLinux)
+
+** create filesystems and mount
+
+*** for efi partition:
+
+: mkfs.fat -n "MY-BOOT" -F32 /dev/nvme0n1p1
+
+*** if not using luks for root partition:
+
+: mkfs.btrfs -L my-root /dev/nvme0n1p2
+: mount LABEL=my-root /mnt
+
+: mount /dev/<EFI partition> /mnt/boot/efi
+
+*** if using luks for root partition:
+
+based on:
+- [[https://github.com/abcdw/rde/blob/9e31470ba79d6b2e8e908256702616a1902b7aa3/rde/scripts/install.sh][rde install cheat sheet]]
+- [[https://github.com/abcdw/rde/blob/9e31470ba79d6b2e8e908256702616a1902b7aa3/rde/system/desktop.scm][rde install system config]]
+- [[https://www.codyhou.com/arch-encrypt-swap/][arch encrypted btrfs swap snapper]]
+- [[https://manueljimenezs.github.io/2020/05/full-disk-encryption-on-archlinux-with-lvm-luks-btrfs/][arch lvm luks btrfs]]
+- [[https://nixos.wiki/wiki/Btrfs][nixos wiki btrfs encrypted]]
+- [[https://sawyershepherd.org/post/hibernating-to-an-encrypted-swapfile-on-btrfs-with-nixos/][nixos btrfs swapfile hibernation guide]]
+- [[https://www.reddit.com/r/GUIX/comments/suylu8/encrypted_swap_on_guix/][reddit encrypted swap in system config]]
+- [[https://guix.gnu.org/en/manual/devel/en/html_node/Swap-Space.html][guix docs swapfile hibernation examples]]
+
+(dont use pbkdf2? breaks it? try running ~cryptsetup luksDump <device>~ and look for PBKDF?)
+
+: cryptsetup luksFormat --type luks1 /dev/nvme0n1p2 
+: cryptsetup open /dev/nvme0n1p2 enc
+: mkfs.btrfs -L my-root /dev/mapper/enc
+: mount -t btrfs /dev/mapper/enc /mnt
+
+# mounted on cryptroot, create subvolumes
+: btrfs subvolume create /mnt/root
+: btrfs subvolume create /mnt/boot
+: btrfs subvolume create /mnt/home
+: btrfs subvolume create /mnt/gnu
+: btrfs subvolume create /mnt/data
+: btrfs subvolume create /mnt/log
+: btrfs subvolume create /mnt/snapshots  # new
+: btrfs subvolume create /mnt/swap  # new
+
+# empty snapshot of the root subvolume, which can be rollback to on every boot
+: btrfs subvolume snapshot -r /mnt/root /mnt/root-blank
+
+# unmount cryptroot
+: umount /mnt
+
+# remount subvolumes and boot partition
+
+# TODO: ask discord if all these options for subvolumes is bad
+
+: mount -o noatime,compress=zstd,space_cache=v2,subvol=root /dev/mapper/enc /mnt
+# rewrite, broken in eshell
+: cd /mnt
+: mkdir -p home gnu data var/log .snapshots swap boot
+: mount -o noatime,compress=zstd,space_cache=v2,subvol=home /dev/mapper/enc home
+: mount -o noatime,compress=zstd,space_cache=v2,subvol=gnu /dev/mapper/enc gnu
+: mount -o noatime,compress=zstd,space_cache=v2,subvol=data /dev/mapper/enc data
+: mount -o noatime,compress=zstd,space_cache=v2,subvol=log /dev/mapper/enc var/log
+: mount -o noatime,compress=zstd,space_cache=v2,subvol=snapshots /dev/mapper/enc .snapshots
+: mount -o noatime,subvol=swap /dev/mapper/enc swap
+: mount -o noatime,compress=zstd,space_cache=v2,subvol=boot /dev/mapper/enc boot
+: cd -
+
+: blkid  # to get uuid of EFI_PARTITION
+: mkdir -p /mnt/boot/efi
+: mount EFI_PARTITION /mnt/boot/efi
+
+*** Swapfile (btrfs, assuming swapfile at /mnt/swap/swapfile)
+
+**** Method 1: doesn't work?!?!
+
+: cd /mnt/swap
+: chattr +C /mnt/swap
+: fallocate -l 16G /mnt/swap/swapfile
+: chmod 0600 ./swapfile
+: mkswap -U clear ./swapfile
+
+**** Method 2: works?!?!
+
+: btrfs filesystem mkswapfile --size 16g --uuid clear /mnt/swap/swapfile
+
+**** swapon
+
+# : swapon ./swapfile
+    
+*** Start copy-on-write store
+
+# Copy /gnu/store on write:
+: herd start cow-store /mnt
+
+*** Download guix dots for base-channels.scm and system config 
+
+# clone from either personal, or daviwil's (https://codeberg.org/daviwil/dotfiles)
+: git clone <url to my repo with guix channels>
+
+: mkdir -p ~/.config/guix
+: cp ~/dotfiles1/.config/guix/base-channels.scm ~/.config/guix/channels.scm
+
+*** Pull from non-free repo (and regular) and add nonguix substitute server
+
+: guix pull --channels="$HOME/.config/guix/channels.scm"
+: GUIX_PROFILE=/root/.config/guix/current
+: . $GUIX_PROFILE/etc/profile
+: hash guix
+# get signing key and authorize
+: curl https://substitutes.nonguix.org/signing-key.pub -o signing-key.pub
+: guix archive --authorize < signing-key.pub
+
+*** Configure system config
+
+: mkdir /mnt/etc
+: cp ~/yui-dotfiles/guix/src/systems/nyanko.scm /mnt/etc/
+
+# set luksUUID (cryptsetup luksUUID /dev/nvme0n1p2) and efi partition uuid (lsblk -f)
+# set resume_offset kernel parameter (filefrag -e /mnt/swap/swapfile)
+
+*** Install system
+
+# make sure everything is set up!
+
+: guix system init /mnt/etc/nyanko.scm /mnt --substitute-urls="https://ci.guix.gnu.org https://bordeaux.guix.gnu.org https://substitutes.nonguix.org"
+
+*** Misc (probably not necessary)
+
+Check and make sure grub isn't broken by running:
+: guix system reconfigure /mnt/etc/config.scm
+doesnt work...
+
+works:
+: /gnu/store/uhjagcmkabdgkanhaajnthak-grub-2.06/sbin/grub-install --no-floppy --target=i386-pc --boot-directory /mnt/boot /dev/nvme0n1p1
+(probably fucks things up even more)
+
+*** Post-installation checks
+
+- decryption, number of password entries (when resuming from hibernation?)
+- hibernation, swapfile
+-
+
+*** Repair process
+
+**** Grub rescue
+
+https://guix.gnu.org/manual/devel/en/html_node/Chrooting-into-an-existing-system.html
+
+(at boot:
+ insmod luks
+ cryptmount hd0,
+ )
+
+ 
+**** Chrooting
+
+: loadkeys dvorak
+
+: rfkill unblock all
+
+: vim wpa_supplicant.conf
+
+: wpa_supplicant -c wpa_supplicant.conf -i wlan0 -B
+: dhclient -v wlan0
+
+: cryptsetup open /dev/nvme0n1p2 enc
+: mount -o subvol=root /dev/mapper/enc /mnt
+: mount -o subvol=home /dev/mapper/enc /mnt/home
+: mount -o subvol=gnu /dev/mapper/enc /mnt/gnu
+: mount -o subvol=data /dev/mapper/enc /mnt/data
+: mount -o subvol=log /dev/mapper/enc /mnt/var/log
+: mount -o subvol=snapshots /dev/mapper/enc /mnt/.snapshots
+: mount -o subvol=swap /dev/mapper/enc /mnt/swap
+: mount -o subvol=boot /dev/mapper/enc /mnt/boot
+
+: mount -L MY-BOOT /mnt/boot/efi
+
+: mount --rbind /proc /mnt/proc
+: mount --rbind /sys /mnt/sys
+: mount --rbind /dev /mnt/dev
+
+: chroot /mnt /gnu/store/...bash.../bin/sh
+
+: source /var/guix/profiles/system/profile/etc/profile
+: source /home/nya/.guix-profile/etc/profile
+
+: guix-daemon --build-users-group=guixbuild --disable-chroot &
+
+
+: # git clone https://<dotfiles1 repo>
+: cp ~/dotfiles1/.config/guix/base-channels.scm ~/channels.scm
+: guix pull --channels="$HOME/channels.scm"
+: # source GUIX_PROFILE
+
+: 
+
+** Partial installation script
+
+#+begin_src shell :tangle .bin/initial-install-guix.sh :shebang #!/bin/sh
+
+  # This file is edited in System.org
+
+  ## After wifi, loadkeys, and partitioning, git clone and run the script!
+
+  ROOT="nvme0n1p2"
+  SWAP="sda1"
+
+  main() {
+      while
+          LOOP=0
+          echo "_____________________________________________________________________"
+          echo ""
+          echo "Did you partition your drives first? Is 'dotfiles1' in the home dir?"
+          echo "mkfs.btrfs and mkswap must be done first if not already done so."
+          echo ""
+          echo "Options:"
+          echo "0.) ALREADY CREATED RECOVERY mount (cryptroot, $ROOT), swapon ($SWAP)."
+          echo "1.) herd start cow-store."
+          echo "2.) nonguix channel, guix pull, prompt to run GUIX_PROFILE."
+          echo "3.) install neovim (and other essentials), then prompt to run GUIX_PROFILE."
+          echo "4.) copy config.scm to /etc/guix, then get and add signing key."
+          echo "5.) edit config.scm with nvim."
+          echo "6.) proceed with system install (regular) (prompts text if not working)."
+          echo "7.) change default root ($ROOT) and swap ($SWAP) partitions."
+          echo ""
+          echo -n "> "
+          read in
+          case $in in
+              0)
+                  cryptsetup open /dev/$ROOT my-partition
+                  mount LABEL=my-root /mnt
+                  # swapon /dev/$SWAP
+                  ;;
+              1)
+                  herd start cow-store /mnt
+                  ;;
+              2)
+                  mkdir -p ~/.config/guix
+                  cp ~/dotfiles1/.config/guix/base-channels.scm ~/.config/guix/channels.scm
+                  guix pull --channels="$HOME/.config/guix/base-channels.scm"
+                  echo -e "\n> Run the following manually, by hand:"
+                  echo "GUIX_PROFILE=\"/root/.config/guix/current\""
+                  echo ". \"$GUIX_PROFILE/etc/profile\""
+                  echo "hash guix"
+                  ;;
+              3)
+                  guix install neovim
+                  echo -e "\n> Run the following manually, by hand:"
+                  echo "GUIX_PROFILE=\"/root/.guix-profile\""
+                  echo ". \"$GUIX_PROFILE/etc/profile\""
+                  echo "hash guix"
+                  ;;
+              4)
+                  cp ~/dotfiles1/.config/guix/gnuwu.scm /etc/guix/
+                  curl https://substitutes.nonguix.org/signing-key.pub -o signing-key.pub
+                  guix archive --authorize < signing-key.pub
+                  ;;
+              5)
+                  nvim /etc/guix/gnuwu.scm
+                  ;;
+              6)
+                  guix system init /etc/guix/gnuwu.scm /mnt --substitute-urls="https://ci.guix.gnu.org https://bordeaux.guix.gnu.org https://substitutes.nonguix.org"
+                  ;;
+              7)
+                  echo -en "Enter new value for ROOT partition '/dev/VALUE' (old: '$ROOT'):\n> "
+                  read in
+                  ROOT="$in"
+                  echo -en "Enter new value for SWAP partition '/dev/VALUE' (old: '$SWAP'):\n> "
+                  read in
+                  SWAP="$in"
+                  clear
+                  # loop one more time
+                  LOOP=1
+                  ;;
+              ,*)
+                  echo "Failed to find match, exiting..."
+                  ;;
+          esac
+
+          (( $LOOP == 1 ))
+      do true; done
+  }
+
+  main
+
+#+end_src

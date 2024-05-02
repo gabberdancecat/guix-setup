@@ -1,0 +1,85 @@
+#!/bin/sh
+## Improved version of firejail-guix-run
+# Note: quotes in params dont work, and you need to
+# enter "--" to separate firejail params from program params.
+
+# create a tmpfile and delete if exit
+tmpfile=$(mktemp)
+trap 'rm -f "$tmpfile"' EXIT
+
+die() { echo -e "\n$* exiting..." 1>&2 ; exit 1; }
+
+params=( "$@" )
+
+# process parameters
+process_params() {
+    # panic if no params
+    [ "${#params[@]}" -eq 0 ] && die "no inputs provided."
+    # if a separator "--" exists in the params, forward the params
+    # that come before it to firejail and after it to the program.
+    paramsForFirejail=()
+    paramsForProgram=()
+    # if "--" does NOT exist in list of params:
+    if ! $(printf '%s\0' '${params[@]}' | grep -Fxqz -- '--'); then
+      for i in "${params[@]}"; do
+  	  paramsForProgram+=($i)
+      done
+    else
+      local passedSeparator=false
+      for i in "${params[@]}"; do
+  	  if [ "$i" = "--" ]; then
+  	      passedSeparator=true
+  	      continue;
+  	  fi
+  	  # if loop passed the separator, add to program params.
+  	  if [ "$passedSeparator" = false ]; then
+  	      paramsForFirejail+=($i)
+  	  else
+  	      paramsForProgram+=($i)
+  	  fi
+      done
+    fi
+    # get the program name
+    programName="${paramsForProgram[0]}"
+    # shift the values to get rid of program name from parameters
+    paramsForProgram=("${paramsForProgram[@]:1}")
+}
+
+# manage if params contains --profile
+input_profile() {
+    profile=$(printf '%s\0' '${params[@]}' | grep -Fxz -- '--profile=.*')
+    if [ "$profile" = "" ]; then
+      profile="--profile=$(basename $(which $programName))"
+    fi
+}
+
+# identify wrapper script and copy it to tmpfile
+copy_script() {
+    # not sure if this is necessary but might as well
+    [ -f "$HOME/.profile" ] && . ~/.profile
+    # get path to wrapper script
+    wrapperPath=$(which "$programName") || die "program not found in path."
+    # copy script to tmpfile
+    cp $wrapperPath $tmpfile || die "cant copy wrapper script to tmpfile."
+}
+
+# modify the copied wrapper script to work properly
+modify_script() {
+    # identify path to program binary
+    binaryPath=$(cat $tmpfile | grep '^exec' | grep -o '/gnu/store/[^\"]*') \
+      || die "exec not found in script."
+    [ "$binaryPath" = "" ] && die "exec command not found in \"$wrapperPath\"!"
+
+    # replace exec command in wrapper script with new firejail run prompt 
+    firejailRunPrompt="firejail --profile=$programName ${paramsForFirejail[@]} -- $binaryPath ${paramsForProgram[@]}"
+    sed -i "s|^exec.*|$firejailRunPrompt|" $tmpfile
+
+    # execute
+    sh $tmpfile
+}
+
+## Main
+process_params
+input_profile
+copy_script
+modify_script

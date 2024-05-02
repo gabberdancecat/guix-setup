@@ -1,0 +1,28 @@
+#!/bin/sh
+## this script is configured in System.org
+## 
+
+echo "Reconfiguring system..."
+
+echo "thinkpad (1) or system76 (2) or main (3)?"
+# if params, use for $in
+[ "$#" -gt 0 ] && in=$1 || read in
+
+if [ "$in" = "1" ]; then
+    echo "THINKPAD"
+    sudo -E guix system -L ~/.config/guix/systems reconfigure \
+       ~/.config/guix/systems/thinkpad.scm
+elif [ "$in" = "2" ]; then
+    echo "SYSTEM76"
+    sudo -E guix system -L ~/.config/guix/systems reconfigure \
+       ~/.config/guix/systems/gnuwu.scm
+elif [ "$in" = "3" ]; then
+    echo "nyanko"
+    sudo -E guix system reconfigure \
+       ~/src/nya/src/systems/nyanko.scm
+else
+    echo "invalid input, exiting..."
+    exit 1
+fi
+
+echo "Done!"

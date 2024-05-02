@@ -1,0 +1,286 @@
+set $mod Mod4
+set $alt Mod1
+set $ctrl Control
+
+# kill focused window
+bindsym $mod+$alt+d kill
+bindsym $mod+$ctrl+q exit
+bindsym $mod+$ctrl+r reload
+
+exec dbus-update-activation-environment SEATD_SOCK DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=sway SDL_VIDEODRIVER=wayland MOZ_ENABLE_WAYLAND=1 QT_QPA_PLATFORM=wayland
+
+input type:keyboard {
+    xkb_layout us,us
+    xkb_variant dvp,
+    xkb_options ctrl:nocaps,grp:sclk_toggle
+    repeat_delay 220
+    repeat_rate 70
+}
+
+input type:touchpad {
+    dwt enabled
+    tap enabled
+    middle_emulation enabled
+}
+
+# output eDP-1 {
+#     mode 1920x1080@59.999Hz
+# }
+
+# font (window header text)
+font pango:Iosevka Aile 10
+   
+# Style the UI
+client.focused #c792eacc #232635dd #ffffffff #ffffffff #c792eacc 
+client.unfocused #c792eacc #1c1f2bef #ffffffff #ffffffff #c792eacc
+
+### Default Settings ###
+
+# orientation and layout
+default_orientation horizontal
+workspace_layout tabbed
+
+# gaps and borders
+default_border pixel 1
+gaps outer 6
+gaps inner 4
+smart_borders off
+hide_edge_borders --i3 none 
+
+### General ###
+
+# resize
+bindsym $mod+r resize
+
+# enter fullscreen mode for the focused container
+bindsym $mod+f fullscreen toggle
+
+### Select window ###
+
+# use meow-dvp keys for window movement
+bindsym $mod+h focus left
+bindsym $mod+n focus down
+bindsym $mod+t focus up
+bindsym $mod+s focus right
+
+### Layouts ###
+
+# split direction
+bindsym $mod+v split v
+bindsym $mod+g split h
+
+# change container layout (stacked, tabbed, toggle split)
+bindsym $mod+w layout stacking
+# bindsym $mod+w layout tabbed
+
+# focus the parent container
+bindsym $mod+a focus parent
+
+# focus the child container
+#bindsym $mod+d focus child
+
+### Floating ###
+
+# $mod+drag to move windows around
+floating_modifier $mod
+
+# toggle tiling / floating
+bindsym $mod+Shift+f floating toggle
+
+# floating window movement
+bindsym $mod+Shift+Left move left 30 px
+bindsym $mod+Shift+Down move down 30 px
+bindsym $mod+Shift+Up move up 30 px
+bindsym $mod+Shift+Right move right 30 px
+bindsym $mod+Shift+h move left 30 px
+bindsym $mod+Shift+t move up 30 px
+bindsym $mod+Shift+n move down 30 px
+bindsym $mod+Shift+s move right 30 px
+
+# change focus between floating and tiling windows
+bindsym $mod+Shift+space focus mode_toggle
+
+# toggle pinned floating window (?)
+bindsym $mod+Shift+p sticky toggle
+
+### Other ###
+
+# Window rules
+for_window [title="Firefox — Sharing Indicator"] kill
+for_window [title=".* - mpv$"] floating enable, sticky enable
+
+# workspace names
+set $ws0 "xtra"
+set $ws1 "code"
+set $ws2 "dev"
+set $ws3 "www"
+set $ws4 "notes"
+set $ws5 "misc"
+set $ws6 "social"
+set $ws7 "games"
+set $ws8 "music"
+set $ws9 "art"
+
+# number keys for dvorak
+set $0 dollar
+set $1 ampersand
+set $2 bracketleft
+set $3 braceleft
+set $4 braceright
+set $5 parenleft
+set $6 equal
+set $7 asterisk
+set $8 parenright
+set $9 plus
+
+# Switch to dev workspace by default
+# workspace $ws1
+
+# Switch to workspace
+bindsym $mod+$0 workspace $ws0
+bindsym $mod+$1 workspace $ws1
+bindsym $mod+$2 workspace $ws2
+bindsym $mod+$3 workspace $ws3
+bindsym $mod+$4 workspace $ws4
+bindsym $mod+$5 workspace $ws5
+bindsym $mod+$6 workspace $ws6
+bindsym $mod+$7 workspace $ws7
+bindsym $mod+$8 workspace $ws8
+bindsym $mod+$9 workspace $ws9
+bindsym $mod+$alt+h workspace prev
+bindsym $mod+$alt+s workspace next
+bindsym $mod+$alt+t workspace back_and_forth
+bindsym $mod+tab workspace back_and_forth
+
+# Move focused container to workspace
+bindsym $mod+Shift+$0 move container to workspace $ws0
+bindsym $mod+Shift+$1 move container to workspace $ws1
+bindsym $mod+Shift+$2 move container to workspace $ws2
+bindsym $mod+Shift+$3 move container to workspace $ws3
+bindsym $mod+Shift+$4 move container to workspace $ws4
+bindsym $mod+Shift+$5 move container to workspace $ws5
+bindsym $mod+Shift+$6 move container to workspace $ws6
+bindsym $mod+Shift+$7 move container to workspace $ws7
+bindsym $mod+Shift+$8 move container to workspace $ws8
+bindsym $mod+Shift+$9 move container to workspace $ws9
+
+# Move specific workspaces to outputs
+# workspace $ws0 output $laptop
+# workspace $ws1 output $primary $laptop
+# workspace $ws2 output $primary $laptop
+# workspace $ws3 output $laptop
+# workspace $ws4 output $laptop
+# workspace $ws5 output $laptop
+
+# move workspace
+# bindsym $mod+Mod1+h move workspace to output left
+# bindsym $mod+Mod1+l move workspace to output right
+# bindsym $mod+Mod1+Left move workspace to output left
+# bindsym $mod+Mod1+Right move workspace to output right
+
+# terminal
+# bindsym $mod+Return exec foot
+bindsym $mod+Return exec alacritty
+
+# App launcher
+bindsym $mod+space exec fuzzel -w 50 -x 8 -y 8 -r 3 -b 232635ff -t A6Accdff -s A6Accdff -S 232635ff -C c792eacc -m c792eacc -f "Iosevka Aile:weight=light:size=11" --no-fuzzy --icon-theme="Papirus-Dark"
+
+
+# Keymaps
+
+set $main_map Launch: [c]application-map, [,]ctrl-map [SPC][e]emacs
+set $application_map Launch: [f]firefox, [p]keepassxc, [d]vencord, [s]spotify, [c]steam, [e]emacs, [r]renoise
+set $ctrl_map Launch: [f]next-song, [b]prev-song
+
+bindsym $mod+c mode "$main_map"
+	
+mode "$main_map" {
+    bindsym c mode "$application_map"
+    bindsym comma mode "$ctrl_map"
+    bindsym e exec emacsclient -a '' -c     ; mode "default"
+    bindsym Space exec emacsclient -a '' -c ; mode "default"
+    
+    bindsym Escape mode "default"
+    bindsym Return mode "default"
+    bindsym $ctrl+g mode "default"
+}
+     
+mode "$application_map" {
+    bindsym f exec firefox                         ; mode "default"
+    bindsym p exec firejail keepassxc              ; mode "default"
+    bindsym d exec flatpak run dev.vencord.Vesktop ; mode "default"
+    bindsym s exec flatpak run com.spotify.Client  ; mode "default"
+    bindsym c exec steam                           ; mode "default"
+    bindsym e exec emacsclient -a '' -c            ; mode "default"
+    bindsym r exec firejail pw-jack renoise        ; mode "default"
+    
+    bindsym Escape mode "default"
+    bindsym Return mode "default"
+    bindsym $ctrl+g mode "default"
+}
+
+mode "$ctrl_map" {
+    bindsym f exec playerctl next     ; mode "default"
+    bindsym p exec playerctl previous ; mode "default"
+    
+    bindsym Escape mode "default"
+    bindsym Return mode "default"
+    bindsym $ctrl+g mode "default"
+}
+
+# Bind hotkeys for brightness and volume
+bindsym --locked XF86MonBrightnessDown exec brightnessctl set 10%-
+bindsym --locked XF86MonBrightnessUp exec brightnessctl set 10%+
+bindsym --locked Shift+XF86MonBrightnessDown exec brightnessctl set 5%-
+bindsym --locked Shift+XF86MonBrightnessUp exec brightnessctl set 5%+	
+bindsym --locked XF86AudioPlay exec playerctl play-pause
+bindsym --locked XF86AudioLowerVolume exec volume-adjust.sh -10%
+bindsym --locked XF86AudioRaiseVolume exec volume-adjust.sh +10%
+bindsym --locked Shift+XF86AudioLowerVolume exec volume-adjust.sh -5%
+bindsym --locked Shift+XF86AudioRaiseVolume exec volume-adjust.sh +5%
+bindsym --locked XF86AudioMute exec pactl set-sink-mute @DEFAULT_SINK@ toggle
+
+# Screenshots
+bindsym Print exec grimshot --notify save area
+bindsym Alt+Print exec grimshot --notify save output
+
+# Power
+bindsym $mod+$ctrl+Shift+h exec loginctl hibernate
+
+# Set up screen locking
+# set $lock 'swaylock -f -i ~/.dotfiles/backgrounds/samuel-ferrara-uOi3lg8fGl4-unsplash.jpg -s fill --font "Iosevka Aile" --indicator-idle-visible'
+  
+# exec swayidle -w \
+#   timeout 900 $lock \
+#   timeout 960 'swaymsg "output * dpms off"' \
+# 	resume 'swaymsg "output * dpms on"' \
+#   before-sleep $lock
+
+for_window [class="^Steam$" title="^Friends$"] floating enable
+for_window [class="^Steam$" title="Steam - News"] floating enable
+for_window [class="^Steam$" title=".* - Chat"] floating enable
+for_window [class="^Steam$" title="^Settings$"] floating enable
+for_window [class="^Steam$" title=".* - event started"] floating enable
+for_window [class="^Steam$" title=".* CD key"] floating enable
+for_window [class="^Steam$" title="^Steam - Self Updater$"] floating enable
+for_window [class="^Steam$" title="^Screenshot Uploader$"] floating enable
+for_window [class="^Steam$" title="^Steam Guard - Computer Authorization Required$"] floating enable
+for_window [title="^Steam Keyboard$"] floating enable
+
+output * bg ~/Pictures/Random-images/glt-landscape2.png fill
+
+# autostart applications
+exec waybar
+# exec yambar -c ~/.config/yambar/laptop.yml
+exec mako --border-radius=2 --font="Deva Vu Sans 10" --max-visible=5 --outer-margin=5 --margin=3 --background="#1c1f26" --border-color="#89AAEB" --border-size=1 --default-timeout=7000
+exec nm-applet --indicator
+exec nm-tray
+# exec gammastep-indicator -l 37.983810:23.727539 -t 6500:3500 -b 1.0:0.7
+exec wlsunset -S 08:00 -s 18:30 -t 3000 -T 6500
+  
+exec emacs
+
+exec gsettings set org.gnome.desktop.interface gtk-theme "Matcha-dark-azul"
+exec gsettings set org.gnome.desktop.interface icon-theme "Papirus-Dark"
+exec gsettings set org.gnome.desktop.interface font-name "Iosevka Aile 11"
+# Deja Vu Sans 10 ?

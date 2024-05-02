@@ -1,0 +1,163 @@
+#!/bin/sh
+
+## export PATH
+if [ -d "$HOME/.local/bin" ] ;
+   then PATH="$HOME/.local/bin:$PATH"
+fi
+
+if [ -d "$HOME/.cabal/bin" ] ;
+   then PATH="$HOME/.cabal/bin:$PATH"
+fi
+
+if [ -d "$HOME/.doom-emacs/bin" ] ;
+   then PATH="$HOME/.doom-emacs/bin:$PATH"
+fi
+
+if [ -d "$HOME/.bin" ] ;
+   then PATH="$HOME/.bin:$PATH"
+fi
+
+if [ -d "$HOME/.opt" ] ;
+   then PATH="$HOME/.bin:$PATH"
+fi
+
+if [ -d "/usr/local/bin" ] ;
+   then PATH="/usr/local/bin:$PATH"
+fi
+
+#if [ -d "/var/lib/flatpak/exports/bin/" ] ;
+#  then PATH="/var/lib/flatpak/exports/bin/:$PATH"
+#fi
+
+
+## setting other environment variables
+if [ -z "$XDG_CONFIG_HOME" ] ; then
+   export XDG_CONFIG_HOME="$HOME/.config"
+fi
+if [ -z "$XDG_DATA_HOME" ] ; then
+   export XDG_DATA_HOME="$HOME/.local/share"
+fi
+if [ -z "$XDG_CACHE_HOME" ] ; then
+   export XDG_CACHE_HOME="$HOME/.cache"
+fi
+# export XMONAD_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/xmonad"
+# export XMONAD_DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/xmonad"
+# export XMONAD_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/xmonad"
+
+export LD_LIBRARY_PATH="/home/yui/.guix-extra-profiles/renoise/renoise/lib"
+# export LD_LIBRARY_PATH="/run/current-system/profile/lib"
+
+## MISC
+#
+# .NET telemetry optout
+DOTNET_CLI_TELEMETRY_OPTOUT=1
+
+## OTHER
+
+## aliases
+alias recompileurxvt='xrdb ~/.Xresources'
+
+if type "exa" &> /dev/null; then
+    alias l='exa --group-directories-first'
+    alias la='exa -a --group-directories-first'
+    alias ll='exa -alh --group-directories-first'
+    alias ls='exa --color=auto --group-directories-first'
+else
+    alias l='ls'
+    alias la='ls -a'
+    alias ls='ls -p --color=auto'
+    alias ll='ls -lah --color=auto'
+fi
+
+alias grep='grep --color=auto'
+
+alias b='cd ..'
+
+alias ts='trash'
+alias rm='rm -i'
+
+#alias em="emacsclient -t -a ''"
+alias em="emacsclient"
+alias gnumacs="emacs --with-profile gnu"
+
+# deprecated, now using stow.
+#alias dots='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+
+alias istatus='iwctl station wlan0 show | bat'
+alias iscan='iwctl station wlan0 scan && iwctl station wlan0 get-networks'
+#alias ireconnect='doas rc-service iwd stop && doas rc-service iwd start'
+alias ireconnect='ireconnect.sh'
+alias iping='ping gnu.org'
+alias clipboard='xclip -sel clip'
+alias recursive-find='grep -rnw . -e'
+alias sync-dots='cd $HOME/.dotfiles/ && stow .'
+
+#alias Xephyr-start-server='Xephyr -br -ac -noreset -screen 1600x800 -verbosity 10 :1 &'
+alias Xephyr-start-server='Xephyr -br -ac -noreset -parent -screen -resizeable -verbosity 10 :1 &'
+alias Xephyr-start-wm='DISPLAY=:1'
+
+# if program exists and is guix, create alias to firejail
+
+
+
+####-----------------------
+#### sheww comyands :3 uwu
+## ideas:
+# xargs
+#
+#  
+#
+
+
+seta() {
+    alias "$1"="${@:2}"
+}
+
+# general
+
+seta "pwease"	"sudo"
+
+seta "meow"	"echo"  # change to rawr ?
+seta "mew"	"echo"
+seta "pwint"	"printf"
+
+seta "nya"	"ls"
+seta "nyan"	"ll"
+seta "nyaa"	"la"
+
+# seta "cd"	"cd" # ?
+seta "maw"	"mkdir" 
+seta "vore"	"rm"
+seta "chomp"	"rmdir"
+
+seta "gwep"	"grep"
+seta "lowocate" "find"
+
+seta "pets"	"head"
+
+# tools
+
+# seta "ps"	"ps" # ?
+seta "halp"	"man"
+seta "weh"	"awk"
+seta "snek"	"python"
+
+# ctrl flow
+
+seta "owo"	"if"
+seta "ewe"	"else"
+seta "uwu"	"done"
+
+seta "pounces"	"for"
+seta "on"	"in"
+
+seta "nuzzles"	"while"
+
+seta "duwu"	"do"
+
+# misc
+
+seta "glomps" "exit"
+
+
+####-----------------------

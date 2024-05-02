@@ -1,0 +1,48 @@
+
+!!-----------------------------------------------------!!
+!! Keyboard tweaks for Thinkpad L520 Japanese keyboard !!
+!!-----------------------------------------------------!!
+
+!! How to find keycodes: xev.
+
+!!! Considerations:
+!- Set Muhenkan to Enter instead of backspace and set "}]angleMu" (next to enter) to backspace.
+
+
+!! extend backspace by setting unregistered "|yen_" (noSymbol, 132) to also backspace
+keycode 132 = BackSpace
+
+!! extend enter by setting "}]angleMu" (registered to "\" "|") (backslash, 51) to also enter, OR
+!!  bind to backspace and make Muhenkan enter instead
+keycode 51 = Return
+!keycode 51 = BackSpace
+
+!! swap unregistered katakana/hiragana/roomaji key (Hiragana_Katakana, 101) with R-alt (Alt_R, 108),
+!!  then fulfill the removed "\" "|" from earlier by taking the place of physical L_Alt (108)
+keycode 101 = Alt_R
+keycode 108 = backslash bar
+remove mod1 = backslash bar
+! above is a placeholder; physical L_Alt is free!
+
+!!! option: set unregistered Muhenkan (Muhenkan, 102) and Henkan (Henkan_Mode, 100) to Space (space, 65) to extend, OR
+!!!  set to Ctrl (Control_L, 37) and Backspace (BackSpace, 22)
+! Option 1:
+keycode 102 = BackSpace
+keycode 100 = space
+! Option 1.1:
+!keycode 102 = Return
+!keycode 100 = space
+! Option 2:
+!keycode 102 = space
+!keycode 100 = space
+! Option 3:
+!keycode 102 = Control_L
+!keycode 100 = BackSpace
+! Option 4:
+!keycode 102 = BackSpace
+!keycode 100 = Control_L
+
+!!! option: for the unregistered "_\ro" (NoSymbol, 97), bind to Shift (Shift_R) to extend it
+keycode 97 = Shift_R
+add shift = Shift_R
+

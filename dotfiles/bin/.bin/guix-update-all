@@ -1,0 +1,146 @@
+#!/bin/sh
+
+commands=(
+    "guix-system-reconfigure 3"
+    "guix-update-channels"
+    "guix-update-profiles all"
+    "nix-update-packages y"
+    "flatpak-update"
+)
+
+extra_commands=(
+    "arkenfox-updater.sh"
+)
+
+
+die() { echo -e "\n$*" 1>&2 ; exit 1; }
+
+## if param 0 (def), dont save to failed_commands and exit.
+## if param 1, save to failed_commands and crash.
+check_all_commands() {
+    local param="" ; [ "$#" = 0 ] && param=0 || param="$1"
+    local firstWord=""
+    local found_hit=0
+    # loop through commands
+    for((i=0; i<${#commands[@]}; i++)); do
+	firstWord=$(echo "${commands[i]}" | head -n1 | cut -d " " -f1)
+	# check if script exists in $PATH
+	if [ $(which $firstWord >/dev/null 2>&1 ; echo $?) = 1 ]; then
+	    echo "Script not found: ${commands[i]}"
+	    found_hit=1
+	fi
+    done
+    if [ "$param" = 1 ] && [ "$found_hit" = 1 ]; then
+	die "some scripts cannot be run. exiting..."
+    fi
+    echo ""
+}
+
+get_input() {
+    read input
+    input="$(echo $input | tr 'A-Z' 'a-z')" # lowercase
+    echo $input # returns $in
+}
+
+main() {
+    echo "-------------------------"
+    echo " ~  Update All Script  ~ "
+    echo "-------------------------"
+    echo "> Commands to be run:"
+    echo "-"
+    # print all commands
+    for((i=0; i<${#commands[@]}; i++)); do
+	echo "$i. ${commands[i]}"
+    done
+    echo ""
+
+    ## check if any commands are missing (ignore if hits)
+    check_all_commands 0
+
+    ## prompt to update all
+    echo "Update all? (Y, n) exclude:(0 2 7...) only:(o 0 2 7...)"
+    echo "(enter space-separated numbers for commands to exclude)"
+    echo -n "> "
+    input=$(get_input)
+    input_arr=($input) # convert input to array
+    input_arr_len=${#input_arr[@]} # input arr len for reference
+
+
+    ### Process inputs!
+    if [ "$input" = "n" ]; then
+	## if n, exit.
+	echo "Exiting..."
+	exit 0;
+    elif [ "$input" = "y" ]; then
+	## if y, contiune.
+	break;
+    else
+	## if input isn't y / n, it must be a list of numbers.
+	## check list of numbers for errors.
+	## Exit and error if:
+	##   it's not only numbers
+	##   number is greater than list length - 1
+	for i in ${input_arr[@]}; do  # iterate through input_arr index
+	    if ! echo $i | grep -Eq '^[0-9]+$'; then
+		echo "Error: number assoc with commands to exclude contains a non-number"
+		echo "exiting..."
+		exit 1
+	    fi
+	    if (( $i > ${#input_arr[@]} )); then
+		echo "Error: number $i is out of range"
+		echo "exiting..."
+		exit 1
+	    fi
+	done
+	## no errors? ok proceed with processing numbers and removing from
+	## commands arr.
+	##
+	# go through elements in input_arr and remove the number of the commands arr.
+	for((i=0; i<$input_arr_len; i++)); do
+	    # get value of input at index, and use element to unset commands arr at
+	    # user specified indexes
+	    unset "commands[ ${input_arr[i]} ]"
+	done
+	commands=("${commands[@]}")
+    fi
+    echo ""
+
+    ## check if all the commands work (quit if hit)
+    check_all_commands 1
+
+    ## Run all commands in commands arr
+    echo "> Commands to run:"
+    echo "----------"
+    for ((i=0; i < ${#commands[@]}; i++)); do
+	echo ${commands[$i]}
+    done
+    echo "-"
+    echo "Proceed? (Y/n)"
+    while : ; do
+	echo -n "> "
+	input=$(get_input)
+	[ "$input" = "" ] && input="y"
+	case $input in
+	    y)
+		break
+		;;
+	    n)
+		echo "exiting..."
+		exit 0
+		;;
+	    *)
+		echo "invalid input, try again"
+		continue;
+		;;
+	esac
+    done
+
+    ## execute...
+    for ((i=0; i < ${#commands[@]}; i++)); do
+	echo -e "\n-------------------\n"
+	echo -e "$i: ${commands[i]}\n"
+	${commands[$i]}
+    done
+}
+
+main

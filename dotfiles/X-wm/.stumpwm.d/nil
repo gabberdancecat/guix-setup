@@ -1,0 +1,38 @@
+(ri/load-module "swm-gaps")
+
+;; head gaps, along edges of monitor, affects modeline placement
+(setf swm-gaps:*head-gaps-size* 8) ; def 0 ; rec 8
+;; between windows
+(setf swm-gaps:*inner-gaps-size* 4) ; def 5
+;; between window border and screen border 
+(setf swm-gaps:*outer-gaps-size* 10) ; def 30
+
+;; enable
+;; (swm-gaps::toggle-gaps-on)
+
+  ;;; Commands
+
+;; reload command
+(defcommand reload-gaps () () 
+            (swm-gaps:toggle-gaps)
+            (swm-gaps:toggle-gaps))
+
+;; (reload-gaps)
+
+;; Utilities ----------
+
+(ri/load-module "notifications")
+(ri/load-module "swm-pomodoro" nil "pomodoro")
+
+;; set sounds?
+
+;; ;; pomodoro keymap
+(defvar *my-pomodoro-map*
+  (let ((m (make-sparse-keymap)))
+    (define-key m (kbd "s") "pomodoro-start-timer")
+    (define-key m (kbd "c") "pomodoro-cancel-timer")
+    (define-key m (kbd "r") "pomodoro-reset")
+    (define-key m (kbd "i") "pomodoro-status")
+    m))
+(define-key *my-misc-commands-map* (kbd "p") '*my-pomodoro-map*)
+(define-key *my-function-commands-map* (kbd "p") '*my-pomodoro-map*)

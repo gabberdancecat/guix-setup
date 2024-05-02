@@ -1,20 +1,5 @@
 #+TITLE: notes to self
 
-
-* TODO before restarting:
-
-- backup home dir
-- backup ALL dots and code
-- backup keepassxc database
-- backup librewolf and arkenfox bookmarks
-- backup flatpak data
-
-* For reinstallation:
-
-create a install script for easy install (or rather a list of commands to read off of)
-
-follow rde installation tutorial
-
 * Post-installation
 
 make sure EVERYTHING is reproducible, in case this happens again
@@ -23,32 +8,23 @@ make snapshotting and store integrity-checking system, daily, or at least very f
 
 .guix-profile is never updated, only .guix-extra-profiles. edit the script to ensure that the default profile is being upgraded as well!
 
-remove x display manager replace with xinit
-https://lists.gnu.org/archive/html/help-guix/2018-07/msg00080.html
-remove gdm, then read the contents of %desktop-services if being used, using trick showed in rde video tutorial, reading contents of variable in system config file.
-- also, modify the guix-system-reconfigure script by showing the actual command that is run, so can learn.
-
-upload another elia track
-
 * TODO Now
 
 - [ ] auto guix upkeep script: verify store integrity, btrfs snapshotting with snapper, make sure guix default profile is being updated, not just the extra profiles (rewrite update script?).
-- [X] Restore firefox bookmarks and add new ones from other laptop
-- [ ] save new nyanko.scm
-  - [ ] FIX GIT GPG ACCESS
-- [ ] create modules for stow dotfiles, then move dotfiles into nya repo, use stow layout
+- [ ] move dotfiles to nya guix repo
 - [ ] complete river config
+- [ ] find the perfect taskbar
 - [ ] (NEXT WEEK) Create persist subvol from chroot, reconfigure, if work, try adding keyfile in /persist/key-file.cpio, hope it works.
 - [ ] test if zstd format works, only in root subvol (also noatime? what does that even do?)
-- [ ] create script for volume-up key, check if current volume is <= 100, if yes, allow inc script arg amount, check val again, if over 100, set back to 100
+- [X] Restore firefox bookmarks and add new ones from other laptop
+- [X] save new nyanko.scm
+  - [X] FIX GIT GPG ACCESS
+- [X] create modules for stow dotfiles
+- [X] create script for volume-up key, check if current volume is <= 100, if yes, allow inc script arg amount, check val again, if over 100, set back to 100
 
 Long future:
 - improve and neaten arkenfox overrides into neater form
   - arkenfox-updater, keep expected firefox version in file, compare to output of "firefox --version" | regex !
-- combine nya and channel repos in ~/src
-- improve look of nyanko.scm, split into modules maybe
 - Move some things in .dotfiles into guix-home
 - figure out a way to fix stumpwm root user (get river all set up beforehand)
 - vpn shuffle through mullvad vpns, set all to don't autoconnect except one random, will update next wake from sleep
-
-- 

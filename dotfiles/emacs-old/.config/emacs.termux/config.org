@@ -1,0 +1,783 @@
+#+title: Emacs Termux config file
+#+property: header-args :tangle ./init.el
+#+startup: content
+
+* notes
+
+- C-M-v to paste
+- Things to sync
+  - *maybe move to external storage?
+    syncthing?
+  - termux.d/.emacs.d
+  - termux.d/org
+- List of Commands
+  - M-w copy
+- Things to research
+  - no-littering settings
+
+* init
+
+set the user-init-file and user-emacs-directory to the location of the init file.
+
+#+begin_src elisp
+
+  (setq user-init-file (or load-file-name
+			   (buffer-file-name)))
+  (setq user-emacs-directory (file-name-directory
+			      user-init-file))
+  
+#+end_src
+
+* packages
+
+set up package and use-package.
+
+#+begin_src elisp :tangle no
+
+(require 'package)
+
+(setq package-archives
+      '(("melpa" . "https://melpa.org/packages/")
+	("elpa" . "https://elpa.gnu.org/packages/")))
+
+;; fixes bug?
+(setq gnutls-algorithm-priority
+      "NORMAL:-VERS-TLS1.3")
+
+;; load all packages and activate
+(package-initialize)
+
+;; only refresh if package cache empty
+(unless package-archive-contents
+  package-refresh-contents)
+
+;; use-package
+(unless (package-installed-p 'use-package)
+  (package-install 'use-package))
+(require 'use-package)
+
+#+end_src
+
+* straight.el
+
+#+begin_src elisp
+
+  ;; Bootstrap straight.el
+  (defvar bootstrap-version)
+  (let ((bootstrap-file
+	 (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+	(bootstrap-version 6))
+    (unless (file-exists-p bootstrap-file)
+      (with-current-buffer
+	  (url-retrieve-synchronously
+	   "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+	   'silent 'inhibit-cookies)
+	(goto-char (point-max))
+	(eval-print-last-sexp)))
+    (load bootstrap-file nil 'nomessage))
+
+  ;; Use straight.el for use-package expressions
+  (straight-use-package 'use-package)
+
+  ;; Load the helper package for commands like `straight-x-clean-unused-repos'
+  (require 'straight-x)
+
+
+#+end_src
+
+* system
+
+emacs settings.
+
+#+begin_src elisp
+
+  ;;
+  ;; system --------
+  ;;
+
+  ;; will it put misc cache in .emacs.d?
+  ;;  maybe good if sync?
+  ;;  Puts stuff in home dir, plus .bak thrown around
+  (use-package no-littering)
+    ;; :ensure t)
+
+  ;; keep custom settings in temp file
+  ;; (setq custom-file
+  ;;   (if (boundp 'server-socket-dir)
+  ;;       (expand-file-name "custom.el" server-socket-dir)
+  ;;     (expand-file-name
+  ;;      (format "emacs-custom-%s.el" (user-uid))
+  ;;      temporary-file-directory)))
+  ;; (setq custom-file
+  ;;   (expand-file-name "custom.el"
+  ;;     user-emacs-directory))
+  (setq custom-file (make-temp-file "custom.el"))
+  (load custom-file t)
+
+  (use-package keyfreq
+    ;; :ensure t
+    :config
+    (keyfreq-mode 1)
+    (keyfreq-autosave-mode 1))
+
+#+end_src
+
+* accessibility
+
+shortcuts and improved interface.
+
+#+begin_src elisp
+
+  (defun find-config ()
+    "Edit init.el"
+    (interactive)
+    (find-file
+     (expand-file-name "config.org" user-emacs-directory)))
+
+  (global-set-key (kbd "C-c q") 'find-config)
+
+  (global-set-key (kbd "C-c v") 'magit)
+
+  (use-package recentf)
+    ;; :ensure t)
+
+  ;; shorten y-n prompt
+  (defalias 'yes-or-no-p 'y-or-n-p)
+
+#+end_src
+
+* keybinds
+** generic keybinds
+
+#+begin_src elisp
+
+  ;; default <escape> command
+  (global-set-key (kbd "<escape>")
+		  'keyboard-escape-quit)
+
+  ;; shows available prefix command options
+  (use-package which-key
+    :init (which-key-mode)
+    ;; :diminish which-key-mode ;; not installed?
+    ;; :ensure t
+    :config
+    (setq which-key-idle-delay 0.3))
+
+  ;; line break at space instead of "\"
+  (global-visual-line-mode 1)
+
+  ;; Collection of Ridiculously Useful eXtensions
+  ;;  (auto-aligns elisp!)
+  (use-package crux
+    ;; :ensure t
+    :bind (("C-a" . crux-move-beginning-of-line)
+	   ("M-o" . crux-other-window-or-switch-buffer)
+	   ("C-k" . crux-smart-kill-line)
+	   )
+    :config
+    ;; (global-set-key [remap kill-line]
+    ;;		  'crux-smart-kill-line)
+    (global-set-key (kbd "C-c c c")
+		    'crux-cleanup-buffer-or-region))
+
+#+end_src
+
+** god-mode
+
+#+begin_src elisp
+
+  ;; god mode
+  (use-package god-mode
+    ;; :ensure t
+    :disabled
+    :bind (("C-z" . god-local-mode)
+	   ("C-x C-1" . delete-other-windows)
+	   ("C-x C-2" . split-window-below)
+	   ("C-x C-3" . split-window-right)
+	   ("C-x C-0" . delete-window))
+    :config
+    (setq god-exempt-major-modes nil)
+    (setq god-exempt-predicates nil)
+    (setq god-mode-enable-function-key-translation nil)
+    ;;(global-set-key (kbd "C-z") #'god-local-mode)
+    ;; isearch integ?
+    (define-key god-local-mode-map (kbd ".") #'repeat)
+    (define-key god-local-mode-map (kbd "i")
+      #'god-local-mode)
+    (defun my-god-mode-update-mode-line ()
+      (cond
+       (god-local-mode
+	(set-face-attribute 'mode-line nil
+			    :foreground "#604000"
+			    :background "#fff29a")
+	(set-face-attribute 'mode-line-inactive nil
+			    :foreground "#3f3000"
+			    :background "#fff3da"))
+       (t
+	(set-face-attribute 'mode-line nil
+			    :foreground "#0a0a0a"
+			    :background "#d7d7d7")
+	(set-face-attribute 'mode-line-inactive nil
+			    :foreground "#404148"
+			    :background "#efefef"))))
+
+    (add-hook 'post-command-hook #'my-god-mode-update-mode-line)
+    (god-mode))
+
+#+end_src
+
+** meow
+
+#+begin_src elisp
+
+  ;; meow
+  ;;  On PC, meow-motion-overwrite-define-key set to make t move-down
+  (use-package meow
+    ;; :ensure t
+    :config
+    (defun meow-setup ()
+      (setq meow-cheatsheet-layout
+	    meow-cheatsheet-layout-dvorak)
+      (meow-leader-define-key
+       '("1" . meow-digit-argument)
+       '("2" . meow-digit-argument)
+       '("3" . meow-digit-argument)
+       '("4" . meow-digit-argument)
+       '("5" . meow-digit-argument)
+       '("6" . meow-digit-argument)
+       '("7" . meow-digit-argument)
+       '("8" . meow-digit-argument)
+       '("9" . meow-digit-argument)
+       '("0" . meow-digit-argument)
+       '("/" . meow-keypad-describe-key)
+       '("?" . meow-cheatsheet))
+      (meow-motion-overwrite-define-key
+       ;; custom keybinding for motion state
+       '("<escape>" . ignore))
+      (meow-normal-define-key
+       '("0" . meow-expand-0)
+       '("9" . meow-expand-9)
+       '("8" . meow-expand-8)
+       '("7" . meow-expand-7)
+       '("6" . meow-expand-6)
+       '("5" . meow-expand-5)
+       '("4" . meow-expand-4)
+       '("3" . meow-expand-3)
+       '("2" . meow-expand-2)
+       '("1" . meow-expand-1)
+       '("-" . negative-argument)
+       '(";" . meow-reverse)
+       '("," . meow-inner-of-thing)
+       '("." . meow-bounds-of-thing)
+       '("<" . meow-beginning-of-thing)
+       '(">" . meow-end-of-thing)
+       '("a" . meow-append)
+       '("A" . meow-open-below)
+       '("b" . meow-back-word)
+       '("B" . meow-back-symbol)
+       '("c" . meow-change)
+       '("d" . meow-delete)
+       '("D" . meow-backward-delete)
+       '("e" . meow-line)
+       '("E" . meow-goto-line)
+       '("f" . meow-find)
+       '("g" . meow-cancel-selection)
+       '("G" . meow-grab)
+       '("h" . meow-left)
+       '("H" . meow-left-expand)
+       '("i" . meow-insert)
+       '("I" . meow-open-above)
+       '("j" . meow-join)
+       '("k" . meow-kill)
+       '("l" . meow-till)
+       '("m" . meow-mark-word)
+       '("M" . meow-mark-symbol)
+       '("n" . meow-next)
+       '("N" . meow-next-expand)
+       '("o" . meow-block)
+       '("O" . meow-to-block)
+       '("p" . meow-prev)
+       '("P" . meow-prev-expand)
+       '("q" . meow-quit)
+       '("Q" . meow-goto-line)
+       '("r" . meow-replace)
+       '("R" . meow-swap-grab)
+       '("s" . meow-search)
+       '("t" . meow-right)
+       '("T" . meow-right-expand)
+       '("u" . meow-undo)
+       '("U" . meow-undo-in-selection)
+       '("v" . meow-visit)
+       '("w" . meow-next-word)
+       '("W" . meow-next-symbol)
+       '("x" . meow-save)
+       '("X" . meow-sync-grab)
+       '("y" . meow-yank)
+       '("z" . meow-pop-selection)
+       '("'" . repeat)
+       '("<escape>" . ignore)))
+
+    (defun my-meow-mode-update-mode-line ()
+      (cond
+       (meow-normal-mode
+	(set-face-attribute 'mode-line nil
+			    :foreground "#604000"
+			    :background "#fff29a")
+	(set-face-attribute 'mode-line-inactive nil
+			    :foreground "#3f3000"
+			    :background "#fff3da"))
+       (t
+	(set-face-attribute 'mode-line nil
+			    :foreground "#0a0a0a"
+			    :background "#d7d7d7")
+	(set-face-attribute 'mode-line-inactive nil
+			    :foreground "#404148"
+			    :background "#efefef"))))
+
+    (add-hook 'post-command-hook
+	      #'my-meow-mode-update-mode-line)
+    (meow-setup)
+    (meow-global-mode 1))
+
+#+end_src
+
+*
+
+#+begin_src elisp
+
+
+  ;; jump to any char or line
+  (use-package avy)
+    ;; :ensure t)
+
+  ;; window navigation shortcuts
+  (use-package ace-window
+    ;; :ensure t
+    :config
+    (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)))
+
+  ;; expands the region around the cursor semantically
+  (use-package expand-region
+    ;; :ensure t
+    :bind ("C-=" . er/expand-region))
+
+#+end_src
+
+* completion
+
+#+begin_src elisp
+
+  ;; completion framework that uses minibuffer
+  (use-package ivy
+    ;; :ensure t
+    :config
+    ;; disable "^" in prompt
+    (setq ivy-initial-inputs-alist nil)
+    (ivy-mode t))
+
+  ;; ivy enhanced common emacs commands
+  (use-package counsel
+    ;; :ensure t
+    :bind (("M-x" . counsel-M-x)))
+
+  ;; sorting and filtering library and ivy sort
+  (use-package prescient)
+  ;;   :ensure t
+  (use-package ivy-prescient
+    ;; :ensure t
+    :config
+    (ivy-prescient-mode t))
+
+  ;; ivy enhanced isearch
+  (use-package swiper
+    ;; :ensure t
+    :bind (("M-s" . counsel-grep-or-swiper)))
+
+#+end_src
+
+* appearance
+
+#+begin_src elisp
+
+  ;;
+  ;; appearance --------
+  ;;
+
+  ;; what are the available terminal fonts?
+  ;; (set-frame-font "Operator Mono 12" nil t)
+
+  (use-package solarized-theme
+    ;; :ensure t
+    :disabled
+    :config
+    (load-theme 'solarized-light t))
+
+  (load-theme 'modus-vivendi t)
+
+  (use-package feebleline
+    ;; :ensure t
+    :disabled
+    :config
+    (setq feebleline-msg-functions
+	  '((feebleline-line-number
+	     :post "" :fmt "%5s")
+	    (feebleline-column-number
+	     :pre ":" :fmt "%-2s")
+	    (feebleline-file-directory
+	     :face feebleline-dir-face :post "")
+	    (feebleline-file-or-buffer-name
+	     :face font-lock-keyword-face
+	     :post "")
+	    (feebleline-file-modified-star
+	     :face font-lock-warning-face
+	     :post "")
+	    (feebleline-git-branch
+	     :face feebleline-git-face
+	     :pre " : ")
+	    (feebleline-project-name
+	     :align right)))
+    (feebleline-mode 1))
+
+  ;; I'm activating mini-modeline after smart-mode-line
+  (use-package mini-modeline
+    ;; :ensure t
+    :disabled
+    :config
+    (mini-modeline-mode t))
+
+#+end_src
+
+* org-mode
+
+#+begin_src elisp
+
+  ;;
+  ;; org-mode
+  ;;
+
+  (defun mi/org-mode-setup ()
+    )
+
+  (use-package org
+    ;; :ensure t
+    :defer t
+    :hook (org-mode . mi/org-mode-setup)
+    :config
+    (setq org-directory
+	  (expand-file-name "org/" user-emacs-directory)))
+
+
+  ;; (setq org-startup-indented 'f)
+  ;; (setq org-directory "~/org")
+  ;; (setq org-special-ctrl-a/e 't)
+  ;; (setq org-default-notes-file (concat org-directory "/notes.org"))
+  ;; (define-key global-map "\C-cc" 'org-capture)
+  ;; (setq org-mobile-directory "~/Dropbox/Apps/MobileOrg")
+  ;; (setq org-src-fontify-natively 't)
+  ;; (setq org-src-tab-acts-natively t)
+  ;; (setq org-src-window-setup 'current-window)
+
+  ;; (let*
+  ;;     ((base-font-color
+  ;;       (face-foreground 'default nil 'default))
+  ;;      (headline
+  ;;       `(:foreground ,base-font-color)))
+  ;;   (custom-theme-set-faces
+  ;;    'user
+  ;;    `(org-level-8 ((t (,@headline))))
+  ;;    `(org-level-7 ((t (,@headline))))
+  ;;    `(org-level-6 ((t (,@headline))))
+  ;;    `(org-level-5 ((t (,@headline))))
+  ;;    `(org-level-4 ((t (,@headline))))
+  ;;    `(org-level-3 ((t (,@headline :height 1.3))))
+  ;;    `(org-level-2 ((t (,@headline :height 1.3))))
+  ;;    `(org-level-1 ((t (,@headline :height 1.3 ))))
+  ;;    `(org-document-title ((t (,@headline :height 1))))))
+
+  (use-package org-auto-tangle
+    ;; :ensure t
+    :defer t
+    :hook (org-mode . org-auto-tangle-mode))
+
+#+end_src
+
+* development
+
+#+begin_src elisp
+
+;;(use-package tree-sitter
+;;  :ensure t)
+
+#+end_src
+
+* programs
+
+#+begin_src elisp
+
+  ;;
+  ;; programs
+  ;;
+
+  (use-package magit
+    ;; :ensure t
+    :commands magit)
+
+  (use-package vterm
+    ;; :ensure t
+    :commands vterm)
+
+#+end_src
+
+* EXWM
+
+#+begin_src elisp
+
+  (use-package exwm
+    ;; :ensure t
+    :config
+    (exwm-enable))
+
+#+end_src
+
+* scripts
+** install-repeatable
+
+#+begin_src bash :tangle exwm/install-repeatable.sh :shebang #!/data/data/com.termux/files/usr/bin/bash
+
+  pkg upgrade
+
+  # install common stuff, plus desktop utils
+  pkg install vim emacs git neofetch man p7zip openssh cmake libtool \
+      x11-repo termux-api tigervnc xorg-server
+
+  pip install yt-dlp
+
+#+end_src
+
+** bashrc
+
+#+begin_src bash :tangle exwm/.bashrc
+
+  alias l=ls
+  alias la='ls -a'
+  alias ll='ls -lah'
+  alias ts='rm -iv'
+
+  alias Emu='cd ~/storage/downloads'
+
+#+end_src
+
+** startdesktop
+
+#+begin_src bash :tangle exwm/startdesktop :shebang #!/data/data/com.termux/files/usr/bin/bash
+
+  # Export Display
+  export DISPLAY=":1"
+
+  # Start VNC Server
+  if [[ $(pidof Xvnc) ]]; then
+      echo -e "\n[!] Server Already Running."
+      { vncserver -list; echo; }
+      read -p "Kill VNC Server? (Y/N) : "
+      if [[ "$REPLY" == "Y" || "$REPLY" == "y" ]]; then
+	  { killall Xvnc; echo; }
+      else
+	  echo
+      fi
+  else
+      echo -e "\n[*] Starting VNC Server..."
+      vncserver
+  fi
+
+#+end_src
+
+** xstartup
+
+#+begin_src bash :tangle exwm/xstartup :shebang #!/data/data/com.termux/files/usr/bin/bash
+
+  ## This file is executed during VNC server
+  ## startup.
+
+  # Launch Openbox Window Manager.
+  emacs &
+
+#+end_src
+
+** vnc-config
+
+#+begin_src bash :tangle exwm/vnc-config :shebang #!/data/data/com.termux/files/usr/bin/bash
+
+  ## Supported server options to pass to vncserver upon invocation can be listed
+  ## in this file. See the following manpages for more: vncserver(1) Xvnc(1).
+  ## Several common ones are shown below. Uncomment and modify to your liking.
+  ##
+  # securitytypes=vncauth,tlsvnc
+  # desktop=sandbox
+  # geometry=2000x1200
+  # localhost
+  # alwaysshared
+
+#+end_src
+
+** one-time-install-script
+
+#+begin_src bash :tangle exwm/one-time-install-script.sh :shebang #!/bin/bash
+
+  ##
+  ## A bash script that installs the desktop
+  ##
+
+  cd ~
+
+  repeatable() {
+
+      echo -e -n "\nRun install-repeatable.sh script? \n(updates and installs all packages) \n> "
+      read in
+      if [[ "$in" == "y" ]]; then
+	  bash ~/dotfiles2/.config/emacs.termux/exwm/install-repeatable.sh
+      fi
+
+  }
+
+  setup_storage() {
+
+      echo
+      ls ~
+
+      echo -en "\nRun termux-setup-storage? \n> "
+      read in
+      if [[ "$in" == "y" ]]; then
+	  termux-setup-storage
+      fi
+
+  }
+
+  # termux_properties() {
+
+  #     echo
+  #     cd ~/.termux
+  #     ls
+  #     termux_prop_file="~/.termux/termux.properties"
+  #     prop_extra="extra-keys = [['TAB','ESC','PGUP','PGDN']]"
+  #     echo -e "\nLines to enter: \n\n$prop_extra\n"
+  #     echo -e "\nCurrent config: <Placeholder: Last few lines of file> \n<Keep symlink from termux dir to dotfiles? Consider simply keeping the file?>/n"
+  #     echo -en "\nAdd this line to the config? \n> "
+  #     read in
+  #     if [[ "$in" == "y" ]]; then
+  #	$($termux_prop_file << $(echo "##############"))
+  #	$($termux_prop_file << $prop_extra)
+
+  #	echo "UPDATED FILE:"
+  #	echo "#################\n"
+  #	cat ~/.termux/termux.properties
+  #	echo "##################\n"
+  #     fi
+
+  # }
+
+  git_clone() {
+
+      echo
+      ls ~
+
+      echo -en "\nGit clone dotfiles? \n> "
+      read in
+      if [[ "$in" == "y" ]]; then
+	  cd ~
+	  git clone https://github.com/senkowo/dotfiles2
+      fi
+
+  }
+
+  setup_vnc() {
+
+      echo
+      ls -a
+      vncserver -list
+
+      echo -en "\nSetup vnc server? \n> "
+      read in
+      if [[ "$in" == "y" ]]; then
+	  vncserver -localhost
+      fi
+
+  }
+
+  symlinks_helper() {
+
+      full=$1
+      dest=$(echo $full | awk -v N=$4 '{print $4}')
+      dir=$(echo $dest | sed 's|[^/]*$||')
+
+      echo -e "\nSymlink to create: \n\"$full\"\n"
+
+      if ! [[ -d $dir ]]; then
+	  echo -e "Directory \"$dir\" doesn't exist. \nEnter to create..."
+	  read in
+	  mkdir -p $dir
+      fi
+      if ! [[ -L $dest ]]; then
+
+	  if [[ -f $dest ]]; then
+	      echo -e "Regular file exists here at \"$dest\". \nEnter to delete..."
+	      read in
+	      rm $dest
+	  fi
+
+	  echo "Symlink doesn't exist at \"$dest\""
+	  echo "Enter to create symlink..."
+	  read in
+	  $full
+      else
+	  echo "Link does exist, enter to continue..."
+	  read in
+      fi
+
+      echo "#############"
+      echo
+
+  }
+
+  symlinks() {
+
+      ls -a ~/dotfiles2
+      echo -en "\nSymlink all possible files? \n> "
+      read in
+      if [[ "$in" == "y" ]]; then
+	  # .bashrc
+	  link1="ln -s ${HOME}/dotfiles2/.config/emacs.termux/exwm/.bashrc ${HOME}/.bashrc"
+
+	  # termux.properties
+	  link2="ln -s ${HOME}/dotfiles2/.config/emacs.termux/exwm/termux.properties ${HOME}/.termux/termux.properties"
+
+	  # startdesktop command
+	  link3="ln -s ${HOME}/dotfiles2/.config/emacs.termux/exwm/startdesktop ${HOME}/.local/bin/startdesktop"
+
+	  # xstartup
+	  link4="ln -s ${HOME}/dotfiles2/.config/emacs.termux/exwm/xstartup ${HOME}/.vnc/xstartup"
+
+	  # vnc-config
+	  link5="ln -s ${HOME}/dotfiles2/.config/emacs.termux/exwm/vnc-config ${HOME}/.vnc/config"
+
+	  symlinks_helper "$link1"
+	  symlinks_helper "$link2"
+	  symlinks_helper "$link3"
+	  symlinks_helper "$link4"
+	  symlinks_helper "$link5"
+
+      fi
+
+  }
+
+  install_run() {
+      repeatable
+      setup_storage
+      git_clone
+      setup_vnc
+      symlinks
+  }
+
+  ## main
+  install_run
+
+#+end_src

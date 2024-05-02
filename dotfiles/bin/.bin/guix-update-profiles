@@ -1,0 +1,76 @@
+#!/bin/sh
+# this script is configured in System.org
+
+# profiles (input can be "emacs desktop gaming all")
+
+die() { echo "$*" 1>&2 ; exit 1; }
+
+GUIX_EXTRA_PROFILES=$HOME/.guix-extra-profiles
+MANIFESTS_DIR=$HOME/src/nya/src/manifests
+PROFILE_MANIFEST_PARAMS="-L $HOME/src/nya"
+
+args=$*
+if [[ $1 == "all" ]]; then
+    args="$MANIFESTS_DIR/*.scm";
+    echo "updating ALL profiles..."
+    guix upgrade # upgrade def profile
+elif [[ $# -eq 0 ]]; then
+    echo "WARNING: updating all profiles, continue? (Y/n)"
+    read in
+    if [[ "$in" == "y" || "$in" == "" ]]; then
+        args="$MANIFESTS_DIR/*.scm";
+	guix upgrade # upgrade def profile
+    else
+        echo "exiting..."
+        exit 0
+    fi
+fi
+
+for arg in $args; do
+    profileName=$(basename $arg); profileName="${profileName%.*}" # "emacs"
+    profilePath="$GUIX_EXTRA_PROFILES/$profileName" # "~/.guix-extra-profiles/emacs"
+    manifestPath=$MANIFESTS_DIR/$profileName.scm # "~/.config/guix/manifests/emacs.scm"
+
+    # if path to manifest doesn't exist, print Error, then continue loop.
+    if ! [ -f $manifestPath ]; then
+        echo "Error: the profile's manifest file ($manifestPath) cannot be found."
+        continue;
+    fi
+
+    GUIX_PROFILE="$profilePath/$profileName" # "~/.guix-extra-profiles/emacs/emacs"
+    # if profile yet to be sourced
+    if [ $(guix package --list-profiles | grep -c "$GUIX_PROFILE") -eq 0 ]; then
+        echo "Activating profile: $profileName"
+        ToSource=1
+    else
+        echo "Updating profile: $profileName"
+        ToSource=0
+    fi
+
+    # create profile dir and install/update profile
+    mkdir -p $profilePath
+    guix package --manifest=$manifestPath --profile="$profilePath/$profileName" $PROFILE_MANIFEST_PARAMS
+
+    # source profile if necessary
+    if (( $ToSource == 1 )); then
+        if [ -f $GUIX_PROFILE/etc/profile ]; then
+            . "$GUIX_PROFILE"/etc/profile
+        else
+            echo "Error: Couldn't find profile?!?! At $GUIX_PROFILE/etc/profile"
+        fi
+    fi
+done
+
+## Check firefox version after update and ask to update if version has changed
+# FirefoxVersion="115.2.0"
+# NewVersion="$(firefox --version)"
+# matches="$(echo '$NewVersion' | grep -c '$FirefoxVersion')"
+# if (( "$matches" = 1 )); then
+#     exit 0
+# else
+#     echo "Update arkenfox? (Y/n)"
+#     read in
+#     if ! [ "$in" = "n" ]; then
+#         [ -f "$HOME/.bin/arkenfox-updater.sh" ] && ~/.bin/arkenfox-updater.sh
+#     fi
+# fi

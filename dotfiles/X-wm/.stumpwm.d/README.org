@@ -1,0 +1,868 @@
+# -*- eval: (stumpwm-mode 1); -*-
+
+#+title: StumpWM config
+#+property: header-args:common-lisp :tangle init.lisp
+#+auto_tangle: t
+#+startup: content
+
+* _Description_
+
+A personal StumpWM config defined in a literate org file.
+
+I previously used EXWM as my WM for its extreme integration with Emacs, but became frustrated with many small, hard-to-debug issues, as well as graphical studdering and complete freezing. I customized StumpWM to integrate well with Emacs, load modules fast and flexibly, and make it feel as comfortable and at-home as EXWM does.
+
+Notable details:
+- The keybinds are generally centered around the dvorak-programmer (dvp) keyboard layout.
+- I made a rather complex system of adding and loading modules that is significantly faster and more flexible than the traditional method. More on [[*Explanation of custom module loader:][Explanation of custom module loader]].
+
+** Explanation of custom module loader:
+Usually, you would run =(set-module-dir "PATH")=, which will go through every subdir in PATH, and add every found module path to the =*load-path*=, from which modules can be searched for and loaded from. However, if the =*module-dir*= has a lot of modules, adding every single one to the =*load-path*= is an incredibly slow process.
+- My solution to this was to set the =*module-dir*= to an empty directory, and for every module that i call with =(ri/load-module "MODULE")=, create a symlink in the empty =*module-dir*= pointing to the location of the module path.
+- My solution eliminates: the need to keep all the modules in one directory, the slow loading times of adding every unused module in the =*module-dir*= to the =*load-path*=, and the dependency on messily adding modules using their full path using =(add-to-load-path "PATH")= for every module not in the =*module-dir*=. 
+- How it works: A list of directories from which to load modules from is specified in =*module-source-dirs*=. Upon calling =(ri/load-module "MODULE")=, it will search through the directories specified in =*module-source-dirs*= for MODULE, and upon match, create a symlink in the empty =*module-dir*= pointing to the matched MODULE path, to be automatically added when running =(set-module-dir "PATH")=. However, because this function is run before the loading of any modules, the adding of these modules to the =*load-path*= using these symlinks wont take effect until the next startup. So, it'll instead add the module using =(add-to-load-path "PATH")= for now. In addition, upon quitting StumpWM, a function will delete any symlinks in the =*module-dir*= that has not been called during this session, preventing the accumilation of unneeded symlinks.
+
+** List of useful resources and dotfiles:
+- [[https://config.phundrak.com/stumpwm.html][StumpWM config - Phundrak]]
+- [[https://github.com/c4d3s/dotfiles/blob/master/stumpwm.org][c4d3s dots]]
+- [[https://stumpwm.github.io/git/stumpwm-git.html#Top][Main StumpWM Manual]]
+- [[https://github.com/stumpwm/stumpwm-contrib][full list of stumpwm-contrib modules (Github)]]
+- [[https://config.phundrak.com/bin.html][Executable scripts - Phundrak]]
+- [[https://github.com/jamesmccabe/stumpwm-demo-config/blob/master/init.lisp][stumpwm-demo-config]]
+
+** Ideas for improvement:
+- eval each line of the config and create a timestamp of when each line is evaled so you can identify which lines of code take the longest amount of time to startup.
+- ask to confirm before killing window if librewolf, firefox, steam, etc...
+- s-c fprev , s-M-c nprev
+- auto-enable stumpwm-mode when in org file and if dir is .stumpwm.d
+- might be bad... if C-z C-z and no other window in frame, ~other~ (other frame)
+- gaps
+- instead of swap-windows 0 1 2 3... , do list a o e u / h t n s. 
+- buy minecraft
+- enable tray after gaps
+- make toggle gaps command toggle stumptray twice
+- create sophisticated way of loading files, alist
+- bind s-$ to jump to saved group location?
+- maybe why there's more gap on the bottom is because not specify bar top vs bottom?
+- create a website for my dotfiles, with drop down on top to view all top level menus.
+- ask: window-focus: scroll no grab focus, click yes (and dont take input?)
+- bind XF86TouchpadToggle to banish cursor, then disable touchpad. and then make certain keybinds re-enable it if touchpad disabled.
+- s-<dir> keys move around emacs windows as well.
+- TODO: emacs search command from stumpwm.
+- TODO: nice purple square ring around the focused window (matches emacs theme).
+  
+** Personal notes
+
+- if guix packages arent loading, try ~export SBCL_HOME="/run/current-system/profile/lib/sbcl"~ or something like that.
+- also, dont forget about the ~/source~ dir in ~/run/current-system/profile/lib/sbcl~ instead of ~/sbcl~.
+- command =show-window-properties= SHOWS X WINDOW PROPS!!!!!!!!!!! SO USEFUL!!!!!!!!!!!!
+
++ pomodoro and gaps broken  
+
+** Notes for turning into modules
+
+Add this to first line of every file
+
+: ;;; -*- eval: (stumpwm-mode 1); -*-
+
+* _init and startup_
+
+- TODO: =*mouse-focus-policy*= with ~:click~ where scroll doesn't grab focus? make my own?
+
+#+begin_src common-lisp
+
+;; -*-lisp-*-
+;;
+;; Madeline :3
+
+  ;;; initial ---------
+
+(in-package :stumpwm)
+(setf *default-package* :stumpwm) ; user var???, relative path for funs/vars from package
+(defvar *confdir* "~/.stumpwm.d")
+
+;; fix?
+;; (require 'sb-cltl2)
+
+(set-prefix-key (kbd "C-z"))
+(setf *mouse-focus-policy* :click) ; def :ignore 
+;; (setf *debug-level* 20) ; debug!!!
+
+  ;;; Startup ---------
+
+(setf *startup-message* nil) ; no need when initializing
+(run-shell-command "~/.stumpwm.d/test-autostart.sh")
+;; (run-shell-command "autostart-general.sh stumpwm") ; startup script (create a single one?)
+
+#+end_src
+
+* _Custom Module Loader_
+
+Custom load-module function.
+
+Load this before loading any files, important.
+
+- TODO: instead of deleting just stumpwm from =*module-valid-load-paths*=, create a function and a list of modules to remove from that list.
+
+- TODO: rewrite this whole thing, and make it so package names (swm-pomodoro) dont clash with package dir name (pomodoro).
+
+#+begin_src common-lisp :tangle custom-module-loader.lisp
+
+  ;;; Custom Module Loader v1.0
+
+;; To set up this module, add it using `(add-to-load-path "PATH")'
+;; then load using `(load-module "ri/load-module")'.
+;; By default, the *module-dir* will be set to `*confdir*/modules',
+;; and set automatically with 
+
+(defvar *symlink-modules* T
+  "If T, allow loading from symlinks pointing to modules,
+    as well creating new ones.")
+
+(defvar *module-source-dirs*
+  '(
+    "~/.guix-extra-profiles/desktop/desktop/share/common-lisp/sbcl/"
+    ;; "~/.guix-home/profile/share/common-lisp/sbcl/"
+    ;; "~/.guix-profile/share/common-lisp/sbcl"
+    ;; "~/.guix-profile/share/common-lisp/source"
+    "~/.stumpwm.d/extra"
+    "~/.stumpwm.d/contrib/")
+  "A list of paths to search through and extract
+    valid module load-paths from.")
+
+(defvar *modules-to-exclude*
+  '("stumpwm")
+  "A list of modules to exclude from `*module-valid-load-paths*'.
+    By default, 'stumpwm' is excluded, because if stumpwm:lib is
+    installed via Guix in one of the dirs in
+    `*module-source-dirs*', it's unnecessary")
+
+;;--------
+
+;; DEBUG
+(defvar *DEBUG-def-module-dir* *module-dir*)
+;; sets *module-dir* to ~/.stumpwm.d/modules
+(when *symlink-modules*
+  (set-module-dir (format nil "~A" (pathname (concat *confdir* "/" "modules")))))
+
+
+(defvar *module-valid-load-paths* '()
+  "A list of all valid module load-paths, excluding the 
+    stumpwm:lib modules (guix)")
+
+(defun ri/update-valid-load-paths ()
+  (setf *module-valid-load-paths*
+        (let ((paths (mapcan #'build-load-path *module-source-dirs*)))
+          (remove-if (lambda (path)
+                       (string-equal "stumpwm" (first (last (pathname-directory path)))))
+                     paths))))
+
+(ri/update-valid-load-paths)
+
+(defvar ri/added-modules-list '()
+  "A list of all module names that have been run with 
+    `ri/load-module'")
+
+(defun ri/module-symlink-ready-p (name)
+  "Return T if `*symlink-modules*' is T and NAME exists
+    in `*module-dir*' as a symlink."
+  (and *symlink-modules*
+       (directory (format nil "~A/~A" *module-dir* name))))
+
+(defun ri/module-get-path (name)
+  "Returns the absolute path to module NAME from `*module-valid-load-paths*'"
+  (first (remove-if-not (lambda (path)
+                          (string-equal name
+                                        (first (last (pathname-directory path)))))
+                        ,*module-valid-load-paths*)))
+
+(defcommand ri/load-module (name &optional noload realpath) ((:string "Load module: "))
+	    "A massive custom wrapper around `load-module'. When run,
+    add NAME to `ri/added-modules-list' for later reference. If 
+    `*symlink-modules*' is T and a symlinked module NAME exists in
+    `*module-dir*', `add-to-load-path' and if `*symlink-modules*' 
+    is T, create a symlink to be used next startup. Finally, 
+    `load-module' if NOLOAD is non-nil"
+	    (setf name (string-downcase name))
+	    ;; if ready to load, skip this
+	    (when-let ((path-to-add 
+			(and (not (ri/module-symlink-ready-p name))
+			     (ri/module-get-path (or realpath name))))) ; nil if not found
+	      ;; add module load-path
+	      (add-to-load-path path-to-add)
+	      ;; create symlink for next time
+	      (when *symlink-modules*
+		(let ((symlink-to (format nil "~A" (concat *confdir* "/" "modules")))
+		      (dir-namestring-path (first (last (pathname-directory path-to-add)))))
+		  (format T "LOG: Creating symlink ~A...~&" name)
+		  (run-shell-command (format nil "ln -s ~A ~A" path-to-add symlink-to)))))
+	    ;; load-module
+	    (unless noload
+	      (format T "LOG: loading module ~A...~&" name)
+	      (if (load-module name)
+		  (when *symlink-modules* ; add to list if successful load
+		    (push name ri/added-modules-list)))))
+
+;; FIX: go through *module-dir* and run delete-symlink if not found in ri/added-modules-list
+(defun ri/symlink-deletion ()
+  "Delete every symlink in `*module-dir*' not found in 
+    `ri/added-modules-list'"
+  (when (stringp *module-dir*)
+    (flet ((delete-symlink (name)
+             (format T "deleting symlink ~A..." name)
+             (run-shell-command
+              (format nil "unlink ~A" (pathname (concat *module-dir* "/" name))))))
+      (flatten (mapcar #'delete-symlink ri/added-modules-list)))))
+;; delete unused symlinks when quit
+;; (add-hook *quit-hook* 'ri/symlink-deletion)
+
+#+end_src
+
+* _Load MAIN Files!!_
+
+#+begin_src common-lisp
+
+  ;;; Load all config files -----------
+
+(load "~/.stumpwm.d/custom-module-loader.lisp") ; main depd, load first
+(load "~/.stumpwm.d/colors.lisp")
+(load "~/.stumpwm.d/fonts.lisp")
+(load "~/.stumpwm.d/commands.lisp")
+(load "~/.stumpwm.d/keybinds.lisp") ; depd commands
+(load "~/.stumpwm.d/placement.lisp")
+(load "~/.stumpwm.d/modeline.lisp") ; depd windows?
+(load "~/.stumpwm.d/utilities.lisp") ; depd keybinds
+(load "~/.stumpwm.d/theme.lisp")
+
+#+end_src
+
+* _Load other modules in main_
+
+Modules to consider using:
+- stumpwm-mullvad
+- stump-nm
+
+#+begin_src common-lisp
+
+  ;;; Modules -------------------
+
+(ri/load-module "beckon") ; teleport cursor when switch window
+(ri/load-module "end-session") ; prompt to close applications when quitting wm
+(ri/load-module "globalwindows") ; navigate between windows from all workspaces
+(ri/load-module "mpd") ; mpd
+(ri/load-module "urgentwindows") ; pop-up urgent windows
+
+;; end-session command
+(setf end-session:*end-session-command* "loginctl")
+
+;; mpd connect
+(mpd:mpd-connect)
+
+;; enable which-key-mode if not enabled
+(unless (find 'which-key-mode-key-press-hook *key-press-hook*)
+  (which-key-mode))
+
+#+end_src
+
+* _The below are the config files -------_
+
+* _TODO Colors_
+
+#+begin_src common-lisp :tangle colors.lisp
+
+  ;;; Colors [TODO]
+(print "colors")
+
+#+end_src
+
+* _Commands_
+
+#+begin_src common-lisp :tangle commands.lisp
+
+  ;;; Commands ----------------------
+
+(defvar *terminal* "alacritty")
+(defvar *emacs-vterm* (format nil "~A~A" "emacsclient -ce '(vterm)' -a " *terminal*))
+(defvar *emacs-multi-vterm* (format nil "~A~A" "emacsclient -ce '(multi-vterm)' -a " *terminal*))
+
+(defcommand firefox () ()
+	    (run-or-raise "firefox" '(:class "firefox")))
+
+(defcommand emacsclient () ()
+	    (run-shell-command "emacsclient -c -a emacs"))
+
+(defcommand term () ()
+	    (run-shell-command (format nil "~A" *terminal*)))
+
+(defcommand emacs-vterm () ()
+	    (run-shell-command (format nil "~A" *emacs-vterm*)))
+
+(defcommand emacs-multi-vterm () ()
+	    (run-shell-command (format nil "~A" *emacs-multi-vterm*)))
+
+;; half-split term (not best...):
+;; vsplit fnext term
+;; remove 
+
+;; real scratchpad... (just import module? yeah best solution...)
+
+
+;; espeak-ng 
+(defcommand text-to-speech () ()
+	    (run-shell-command "~/.bin/text-to-speech-clipboard.sh"))
+(defcommand killall-tts () ()
+	    (run-shell-command "killall espeak-ng"))
+
+#+end_src
+
+* _Keybinds_
+** general keybinds
+
+#+begin_src common-lisp :tangle keybinds.lisp
+
+;;; Keybinds
+;; notes: *root-map* is C-z, *top-map* is Super.
+
+;; super-key commands
+
+(defcommand send-key (key) ((:string "Enter key: "))
+            "Send key to the current window."
+            (send-meta-key (current-screen) (kbd key)))
+
+(define-key *top-map* (kbd "s-z") "send-key C-z")
+(define-key *top-map* (kbd "s-Z") "send-key C-Z")
+
+(define-key *top-map* (kbd "s-C-H") "exec loginctl hibernate")
+
+(define-key *top-map* (kbd "s-h") "move-focus left")
+(define-key *top-map* (kbd "s-t") "move-focus up")
+(define-key *top-map* (kbd "s-n") "move-focus down")
+(define-key *top-map* (kbd "s-s") "move-focus right")
+
+(define-key *top-map* (kbd "s-H") "move-window left")
+(define-key *top-map* (kbd "s-T") "move-window up")
+(define-key *top-map* (kbd "s-N") "move-window down")
+(define-key *top-map* (kbd "s-S") "move-window right")
+
+;; command for swapping specific windows
+
+;; Windows ---
+
+;; s-g for fother? feel nice
+(define-key *top-map* (kbd "s-g") "fother")
+(define-key *top-map* (kbd "s-g") "grouplist")
+;; (define-key *top-map* (kbd "s-g") "fnext")
+(define-key *top-map* (kbd "s-c") "fprev") ; y
+(define-key *top-map* (kbd "s-M-g") "fprev")
+(define-key *top-map* (kbd "s-M-c") "fnext") ; y
+(define-key *top-map* (kbd "s-m") "fnext")
+(define-key *top-map* (kbd "s-b") "fprev")
+(define-key *top-map* (kbd "s-M-b") "fnext")
+(define-key *top-map* (kbd "s-M-m") "fprev")
+
+(defvar *my-frames-float-keymap* nil)
+(setf *my-frames-float-keymap*
+  (let ((m (make-sparse-keymap)))
+    (define-key m (kbd "f") "float-this")
+    (define-key m (kbd "F") "unfloat-this")
+    (define-key m (kbd "u") "unfloat-this")
+    (define-key m (kbd "C-f") "flatten-floats")
+    m))
+(define-key *top-map* (kbd "s-w") '*my-frames-float-keymap*)
+
+;;; Groups ---
+
+(define-key *top-map* (kbd "s-M-h") "gprev")
+(define-key *top-map* (kbd "s-M-s") "gnext")
+(define-key *top-map* (kbd "s-M-g") "gprev")
+(define-key *top-map* (kbd "s-M-c") "gnext")
+(define-key *top-map* (kbd "s-M-b") "gprev")
+(define-key *top-map* (kbd "s-M-m") "gnext")
+(define-key *top-map* (kbd "s-M-t") "gother")
+;; (define-key *top-map* (kbd "s-$") "gother")
+;; testing...
+(define-key *top-map* (kbd "s-;") "gother")
+;; consider s-w s-v gnext/gprev
+(define-key *top-map* (kbd "s-TAB") "gother")
+;; (define-key *top-map* (kbd "s-TAB") "fnext")
+;; (define-key *top-map* (kbd "s-M-b") "gprev")
+;; (define-key *top-map* (kbd "s-M-m") "gnext")
+
+(defcommand ri/gselect (&optional num) (:rest)
+            (if num
+                (let ((init-group (screen-current-group (current-screen)))
+                      (dest-group (select-group (current-screen) num)))
+                  (if (eq init-group dest-group)
+                      (gother)
+                      (gselect num)))
+                (grouplist)))
+
+(define-key *top-map* (kbd "s-&") "ri/gselect 1")
+(define-key *top-map* (kbd "s-[") "ri/gselect 2")
+(define-key *top-map* (kbd "s-{") "ri/gselect 3")
+(define-key *top-map* (kbd "s-}") "ri/gselect 4")
+(define-key *top-map* (kbd "s-(") "ri/gselect 5")
+(define-key *top-map* (kbd "s-=") "ri/gselect 6")
+(define-key *top-map* (kbd "s-*") "ri/gselect 7")
+(define-key *top-map* (kbd "s-)") "ri/gselect 8")
+(define-key *top-map* (kbd "s-+") "ri/gselect 9")
+(define-key *top-map* (kbd "s-]") "ri/gselect 0")
+(define-key *top-map* (kbd "s-$") "ri/gselect 0")
+(define-key *top-map* (kbd "s-%") "gmove 1")
+(define-key *top-map* (kbd "s-7") "gmove 2")
+(define-key *top-map* (kbd "s-5") "gmove 3")
+(define-key *top-map* (kbd "s-3") "gmove 4")
+(define-key *top-map* (kbd "s-1") "gmove 5")
+(define-key *top-map* (kbd "s-9") "gmove 6")
+(define-key *top-map* (kbd "s-0") "gmove 7")
+(define-key *top-map* (kbd "s-2") "gmove 8")
+(define-key *top-map* (kbd "s-4") "gmove 9")
+(define-key *top-map* (kbd "s-6") "gmove 0")
+(define-key *top-map* (kbd "s-~") "gmove 0")
+
+(define-key *top-map* (kbd "s-,") "grouplist")
+
+#+end_src
+
+** run programs and commands
+
+#+begin_src common-lisp :tangle keybinds.lisp
+
+;; personal applicant map
+(defvar *my-applications-keymap* nil)
+(setf *my-applications-keymap*
+      (let ((m (make-sparse-keymap)))
+	(define-key m (kbd "f") "exec firefox") ; do i need exec? 
+	(define-key m (kbd "l") "exec flatpak run io.gitlab.librewolf-community")
+	(define-key m (kbd "p") "exec firejail keepassxc") ; firejail-guix-run keepassxc?
+	(define-key m (kbd "d") "exec flatpak run dev.vencord.Vesktop")
+	(define-key m (kbd "s") "exec flatpak run com.spotify.Client")
+	(define-key m (kbd "c") "exec flatpak run com.valvesoftware.Steam")
+	(define-key m (kbd "e") "exec emacsclient -a '' -c")
+	(define-key m (kbd "r") "exec run-renoise")
+	m))
+(define-key *root-map* (kbd "a") '*my-applications-keymap*)
+
+;; personal function commands map
+(defvar *my-function-commands-map* nil)
+(setf *my-function-commands-map*
+      (let ((m (make-sparse-keymap)))
+	(define-key m (kbd "f") "exec playerctl next")
+	(define-key m (kbd "b") "exec playerctl previous")
+	m))
+(define-key *root-map* (kbd ",") '*my-function-commands-map*)
+
+;; personal misc commands map
+(defvar *my-misc-commands-map* nil)
+(setf *my-misc-commands-map*
+      (let ((m (make-sparse-keymap)))
+	(define-key m (kbd "l") "ri/load-module")
+	(define-key m (kbd "r") "run-shell-command")
+	(define-key m (kbd "s") "exec ~/.bin/sct-auto-adjust.sh")
+	(define-key m (kbd "t") "text-to-speech")
+	(define-key m (kbd "T") "killall-tts")
+	m))
+(define-key *root-map* (kbd ".") '*my-misc-commands-map*)
+
+;; prompt the user for an interactive command. The first arg is an
+;; optional initial contents.
+(defcommand colon1 (&optional (initial "")) (:rest)
+	    (let ((cmd (read-one-line (current-screen) ": " :initial-input initial)))
+	      (when cmd
+		(eval-command cmd t))))
+
+;; end-session, replace quit-session
+(define-key *root-map* (kbd "q") "end-session")
+;; Delete window
+(define-key *root-map* (kbd "d") "delete")
+(define-key *root-map* (kbd "C-d") "delete")
+;; other window (alt: o, C-o)
+(define-key *root-map* (kbd "C-o") "fnext")
+
+;; emacsclient-or-emacs
+(define-key *root-map* (kbd "e") "emacsclient")
+(define-key *root-map* (kbd "C-e") "emacsclient")
+;; alacritty
+;; (define-key *root-map* (kbd "s-RET") "term")
+;; (define-key *root-map* (kbd "c") "term")
+(define-key *top-map* (kbd "s-RET") "emacs-vterm")
+(define-key *top-map* (kbd "s-S-RET") "emacs-multi-vterm")
+(define-key *root-map* (kbd "c") "emacs-vterm")
+(define-key *root-map* (kbd "C") "emacs-multi-vterm")
+;; Browse somewhere
+;; (define-key *root-map* (kbd "b") "colon1 exec firefox http://www.")
+;; Ssh somewhere
+(define-key *root-map* (kbd "C-s") "colon1 exec xterm -e ssh ")
+;; Lock screen
+(define-key *root-map* (kbd "C-l") "exec xlock")
+;; Grouplist
+(define-key *root-map* (kbd "C-t") "grouplist")
+
+;; Web jump (works for DuckDuckGo and Imdb)
+(defmacro make-web-jump (name prefix)
+  `(defcommand ,(intern name) (search) ((:rest ,(concatenate 'string name " search: ")))
+	       (nsubstitute #\+ #\Space search)
+	       (run-shell-command (concatenate 'string ,prefix search))))
+
+(make-web-jump "duckduckgo" "firefox https://duckduckgo.com/?q=")
+(make-web-jump "imdb" "firefox http://www.imdb.com/find?q=")
+
+;; C-t M-s is a terrble binding, but you get the idea.
+(define-key *root-map* (kbd "M-s") "duckduckgo")
+(define-key *root-map* (kbd "i") "imdb")
+
+#+end_src
+
+** fn-keys
+
+#+begin_src common-lisp :tangle keybinds.lisp
+
+  ;;; XF86keys
+(define-key *top-map*
+    (kbd "XF86AudioPlay") "exec playerctl play-pause")
+(define-key *top-map*
+    (kbd "XF86AudioMute") "exec pactl set-sink-mute @DEFAULT_SINK@ toggle")
+
+(define-key *top-map*
+    (kbd "XF86AudioLowerVolume") "exec pactl set-sink-volume @DEFAULT_SINK@ -10%")
+(define-key *top-map*
+    (kbd "XF86AudioRaiseVolume") "exec pactl set-sink-volume @DEFAULT_SINK@ +10%")
+
+(define-key *top-map*
+    (kbd "S-XF86AudioLowerVolume") "exec pactl set-sink-volume @DEFAULT_SINK@ -5%")
+(define-key *top-map*
+    (kbd "S-XF86AudioRaiseVolume") "exec pactl set-sink-volume @DEFAULT_SINK@ +5%")
+
+(define-key *top-map*
+    (kbd "XF86MonBrightnessDown") "exec brightnessctl set 10%-")
+(define-key *top-map*
+    (kbd "XF86MonBrightnessUp") "exec brightnessctl set +10%")
+(define-key *top-map*
+    (kbd "S-XF86MonBrightnessDown") "exec brightnessctl set 5%-")
+(define-key *top-map*
+    (kbd "S-XF86MonBrightnessUp") "exec brightnessctl set +5%")
+
+#+end_src
+
+* _Fonts_
+
+#+begin_src common-lisp :tangle fonts.lisp
+
+;; Message window font
+(set-font "-xos4-terminus-medium-r-normal--14-140-72-72-c-80-iso8859-15")
+
+;; ttf-fonts
+;; (add-to-load-path "/run/current-system/profile/share/common-lisp/sbcl/stumpwm-ttf-fonts")
+;; (require :ttf-fonts)
+;; (setf xft:*font-dirs* '("/run/current-system/profile/share/fonts/"))
+;; (setf clx-truetype:+font-cache-filename+ (concat (getenv "HOME") "/.fonts/font-cache.sexp"))
+;; (xft:cache-fonts)
+;; (set-font (make-instance 'xft:font :family "DejaVu Sans Mono" :subfamily "Book" :size 9))
+
+#+end_src
+
+* _Placement_
+** Window Styling
+
+#+begin_src common-lisp :tangle placement.lisp
+
+  ;;; Window Theming
+(setf *normal-border-width* 0) ; def 1 ; ?
+(setf *window-border-style* :none)
+(setf *ignore-wm-inc-hints* t) ; fixes emacs border
+
+;; [[Key: %m space, %n number, %s */+/-/last, %c program, %t title ]]
+(setf *window-format* "%n:%t") ; def %m%n%s%c
+;; (setf *window-format* "%m%n%s%c") ; def %m%n%s%c
+;; ---floating windows---
+;; (setf *float-window-border* 0) ; def 1 ; ??
+;; (setf *float-window-title-height* 15) ; def 10 ; ???
+
+  ;;; Message and input windows
+(setf *input-window-gravity* :top-right) ; [Eval: prompt]
+(setf *message-window-gravity* :top-right) ; [message]
+(setf *message-window-padding* 7) ; def 5, left message padding?
+(setf *message-window-y-padding* 1) ; def 0, top message padding?
+
+#+end_src
+
+** Window Gaps
+
+- TODO: for enable, unless gaps is on, turn on.
+  
+placement.lisp
+#+begin_src common-lisp :tangle nil
+
+(ri/load-module "swm-gaps")
+
+;; head gaps, along edges of monitor, affects modeline placement
+(setf swm-gaps:*head-gaps-size* 8) ; def 0 ; rec 8
+;; between windows
+(setf swm-gaps:*inner-gaps-size* 4) ; def 5
+;; between window border and screen border 
+(setf swm-gaps:*outer-gaps-size* 10) ; def 30
+
+;; enable
+;; (swm-gaps::toggle-gaps-on)
+
+  ;;; Commands
+
+;; reload command
+(defcommand reload-gaps () () 
+            (swm-gaps:toggle-gaps)
+            (swm-gaps:toggle-gaps))
+
+;; (reload-gaps)
+
+#+end_src
+
+** Groups
+
+improve by defining gname by number, recallable.
+- new func, go to group 1 if not already, rename, go to next, rename, loop until go through every item in list names.
+
+maybe dont create a bunch of excess windows, and make s-"#" keys jump to groups with the number associated with them, irrespective of actual group name? actually that wouldnt go well...
+
+make s-$ (visually s-`) do gother, but that would get rid of group other... 
+
+#+begin_src common-lisp :tangle placement.lisp
+
+;; (defvar *groups-list* 
+;;   '((0 . "other")
+;;     (1 . "dev")
+;;     (2 . "web")
+;;     (3 . "prod")
+;;     (4 . "four")
+;;     (5 . "five")
+;;     (6 . "six")
+;;     (7 . "seven")
+;;     (8 . "eight")
+;;     (9 . "nine")
+;;     ))
+
+;; (defun set-default-groups ())
+;;   "Goes through every group and defines"
+
+(when *initializing*
+  (grename "dev") ; 1
+  (gnewbg "code") ; 2
+  (gnewbg "web") ; 3
+  (gnewbg "notes") ; 4
+  (gnewbg "five") ; 5
+  (gnewbg "social") ; 6
+  (gnewbg "games") ; 7
+  (gnewbg "music") ; 8
+  (gnewbg "nine") ; 9
+  (gnewbg "xtra") ; 0
+  )
+
+#+end_src
+
+** Window Placement Policy
+
+#+begin_src common-lisp :tangle placement.lisp
+
+  ;;; Define window placement policy...
+
+;; Clear rules
+(clear-window-placement-rules)
+
+;; Last rule to match takes precedence!
+;; TIP: if the argument to :title or :role begins with an ellipsis, a substring
+;; match is performed.
+;; TIP: if the :create flag is set then a missing group will be created and
+;; restored from *data-dir*/create file.
+;; TIP: if the :restore flag is set then group dump is restored even for an
+;; existing group using *data-dir*/restore file.
+;; (define-frame-preference "Default"
+;;   ;; frame raise lock (lock AND raise == jumpto)
+;;   (0 t nil :class "Konqueror" :role "...konqueror-mainwindow")
+;;   (1 t nil :class "XTerm"))
+
+;; (define-frame-preference "Ardour"
+;;   (0 t   t   :instance "ardour_editor" :type :normal)
+;;   (0 t   t   :title "Ardour - Session Control")
+;;   (0 nil nil :class "XTerm")
+;;   (1 t   nil :type :normal)
+;;   (1 t   t   :instance "ardour_mixer")
+;;   (2 t   t   :instance "jvmetro")
+;;   (1 t   t   :instance "qjackctl")
+;;   (3 t   t   :instance "qjackctl" :role "qjackctlMainForm"))
+
+;; (define-frame-preference "Shareland"
+;;   (0 t   nil :class "XTerm")
+;;   (1 nil t   :class "aMule"))
+
+;; (define-frame-preference "Emacs"
+;;   (1 t t :restore "emacs-editing-dump" :title "...xdvi")
+;;   (0 t t :create "emacs-dump" :class "Emacs"))
+
+
+#+end_src
+
+* _Modeline_
+
+** TODO formatting
+
+- TODO: create more space between tray icons, stumpwm popup showing current percent and if mute (use shellscripts if need be)
+  
+- TODO: Rewrite the mem module % display by rewriting into a custom function, like in that one person's config! [[https://github.com/stumpwm/stumpwm-contrib/blob/master/modeline/mem/mem.lisp][mem source code]]
+
+#+begin_src common-lisp :tangle modeline.lisp
+
+  ;;; Modeline -------
+
+(setf *mode-line-timeout* 2)
+
+;; format
+(setf *mode-line-position* :BOTTOM) ; def :TOP
+(setf *mode-line-border-width* 1) ; def 1
+(setf *mode-line-pad-y* 1) ; def 1
+(setf *mode-line-pad-x* 5) ; def 5
+
+;; time
+;; ($man date) 
+;; %a Day :: Thu
+;; %b Month :: Nov
+;; %e Date# :: 09
+;; %k Hour# 0-23 :: 18
+;; %H Hr#00-23 :: 46
+;; %M Min#
+;; %F 2023-10-29
+(setf *time-modeline-string* "%a %b %e %k:%M")
+
+;; window/group format
+;; (setf *window-format* "%n: %30t") ; phundrak
+(setf *window-format* "%m%n%s%c") ; %s=symbols ; TODO (improve the display of windows)
+;; (setf *group-format* "%t") ; def %s%n%t ; TODO (improve the display of groups)
+
+  ;;; Load modeline modules
+(ri/load-module "clx-xembed" t) ; stumptray depd
+(ri/load-module "stumptray")
+(ri/load-module "battery-portable")
+(ri/load-module "mpd")
+(ri/load-module "cpu") ; ? 
+(ri/load-module "mem") ; ?
+
+;; set module settings
+(setf cpu::*cpu-modeline-fmt* "%c"
+      cpu::*cpu-usage-modeline-fmt* "C: ^[~A~1D~^] "
+      mem::*mem-modeline-fmt* "M: %a") ; TODO (%p get rid of % and change color (rewrite))
+
+;; display format
+;; %n group-name
+;; %W all-windows-on-current-group (with *window-format*)
+;; %B battery-module
+;; %d time (with *time-modeline-string*)
+(setf *screen-mode-line-format* (list "[^B%n^b] %W"
+                                      "^>"
+                                      "%M | %C | "
+                                      "%B | %d %T"))
+;; enable modeline
+;; (put the modeline on the bottom?
+(enable-mode-line (current-screen) (current-head) t)
+
+;; enable-tray (modeline must be enabled first)
+(when *mode-lines*
+  (stumptray::stumptray))
+
+#+end_src
+  
+** commands
+
+#+begin_src common-lisp :tangle modeline.lisp
+
+;; reload tray command
+(defcommand reload-tray () ()
+            "Reloads stumptray"
+            (stumptray:stumptray)
+            (stumptray:stumptray))
+
+  ;;; reload modeline function (note: destroys tray icons)
+(defcommand reload-modeline-d () ()
+            "Reloads the modeline (usually no need to do this i think...)"
+            (mode-line)
+            (mode-line))
+
+;; (reload-modeline-d)
+
+#+end_src
+
+** TODO theme
+
+#+begin_src common-lisp :tangle modeline.lisp
+
+  ;;; Modeline-theme [TODO]
+(print "modeline-theme")
+
+;; (load "~/.stumpwm.d/colors.lisp")
+
+;; (setf *mode-line-background-color* phundrak-nord1
+;;       *mode-line-foreground-color* phundrak-nord5)
+
+;; (setf *mode-line-background-color* phundrak-nord1
+;;       *mode-line-foreground-color* phundrak-nord5)
+
+
+#+end_src
+
+* _Utilities_
+** Notifications
+*** pomodoro
+utilities.lisp
+#+begin_src common-lisp :tangle nil
+
+;; Utilities ----------
+
+(ri/load-module "notifications")
+(ri/load-module "swm-pomodoro" nil "pomodoro")
+
+;; set sounds?
+
+;; ;; pomodoro keymap
+(defvar *my-pomodoro-map*
+  (let ((m (make-sparse-keymap)))
+    (define-key m (kbd "s") "pomodoro-start-timer")
+    (define-key m (kbd "c") "pomodoro-cancel-timer")
+    (define-key m (kbd "r") "pomodoro-reset")
+    (define-key m (kbd "i") "pomodoro-status")
+    m))
+(define-key *my-misc-commands-map* (kbd "p") '*my-pomodoro-map*)
+(define-key *my-function-commands-map* (kbd "p") '*my-pomodoro-map*)
+
+#+end_src
+
+** Sly hacking
+
+#+begin_src common-lisp :tangle utilities.lisp
+
+  ;;; Hacking from Emacs
+;; https://github.com/c4d3s/dotfiles/blob/master/stumpwm.org
+;; https://www.kaashif.co.uk/2015/06/28/hacking-stumpwm-with-common-lisp/
+;; Depends on Guix 'sbcl-slynk' and Emacs 'sly'
+;; In Emacs, run 'M-x sly-connect' on port 4004 to connect
+(require :slynk)
+(defcommand stump-slynk-server () ()
+            (slynk:create-server :port 4004
+                                 :dont-close t))
+(stump-slynk-server)
+
+#+end_src
+
+* TODO _Theme_
+
+#+begin_src common-lisp :tangle theme.lisp
+
+;; TODO
+(print "test")
+
+#+end_src
+
+* _Finalizing_
+
+#+begin_src common-lisp
+
+  ;;; Final ------
+
+(setf *startup-message* "hewwo!")
+
+#+end_src

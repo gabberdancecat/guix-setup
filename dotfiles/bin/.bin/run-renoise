@@ -1,0 +1,72 @@
+#!/bin/sh
+
+###
+### Script for starting renoise inside a Xephyr server running a WM
+###
+
+## 
+## Note: it is expected to have a ~/.fluxbox/startup file or an equivalent
+## that launches renoise and closes the WM. For example:
+##
+##   alacritty -e bash -c \
+##   'pw-jack renoise ; \
+##    read in ; [ $in = "q" ] \
+##    && $(fluxbox-remote quit && killall Xephyr) \
+##    || bash' &
+##
+## Upon running this script, it will open a Xephyr server, start a WM,
+##  launch renoise (using openbox autostart), and kill the Xephyr server
+##  when the WM session closes.
+##
+
+### Run Commands ###
+set_vars()
+{
+    Xephyr_Run="Xephyr -br -ac -noreset -parent -screen -resizeable -no-host-grab -verbosity 10 :1"
+    WM_Run="startfluxbox"
+    WM_Name="fluxbox"
+}
+
+### process status ###
+get_status()
+{
+    Xephyr_Running=0
+    WM_Running=0
+    if [ `pgrep "Xephyr"` ]; then
+	Xephyr_Running=1 
+    fi
+    
+    if [ `pgrep "$WM_Name"` ]; then
+	WM_Running=1
+    fi
+}
+
+### execute stuff ###
+execute()
+{
+    # run Xephyr, then run WM
+    if [ "$Xephyr_Running" = 0 ]; then
+	DISPLAY=:0 $Xephyr_Run &
+    fi
+    
+    if [ "$WM_Running" = 0 ]; then
+	DISPLAY=:1 $WM_Run
+    fi
+
+    # note: if i dont run under WM, it might not use my keybinds
+    # get_status
+    # if [ "$Xephyr_Running" = 1 ] && [ "$WM_Running" = 0 ]; then
+    # 	killall Xephyr
+    # 	echo "killed Xephyr."
+    # fi
+}
+
+## Note: Launching Renoise, closing the WM, and closing Xephyr must be
+## done outside this script. Refer to the notes at the top for examples.
+
+
+### Main ###
+
+set_vars
+get_status
+execute

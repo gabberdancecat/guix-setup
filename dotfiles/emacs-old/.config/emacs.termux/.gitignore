@@ -1,0 +1,9 @@
+*
+
+!config.org
+!init.el
+!install-script.sh
+!.bashrc
+!.gitignore
+!exwm/
+!exwm/*

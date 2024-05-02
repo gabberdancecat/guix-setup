@@ -1,0 +1,2 @@
+(in-package :stumpwm)
+(setf *debug-level* 20)

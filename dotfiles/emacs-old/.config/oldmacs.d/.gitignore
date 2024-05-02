@@ -1,0 +1,11 @@
+*
+
+!.gitignore
+!custom.el
+!Emacs.org
+!init.el
+!Workflow.org
+!exwm/
+!exwm/*
+!lisp/
+!lisp/*

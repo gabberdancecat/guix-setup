@@ -1,0 +1,17 @@
+## KeepassXC browser integration
+noblacklist ${RUNUSER}/app
+whitelist ${RUNUSER}/kpxc_server
+whitelist ${RUNUSER}/org.keepassxc.KeePassXC.BrowserServer
+
+## ETC
+#
+# native notifications
+dbus-user.talk org.freedesktop.Notifications
+#
+# inhibiting screensavers
+dbus-user.talk org.freedesktop.ScreenSaver
+
+# fixes sound?
+# include firefox-common-addons.profile
+# whitelist ${RUNUSER}/pulse
+# ignore whitelist ${RUNUSER}/*firefox*

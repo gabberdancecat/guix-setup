@@ -1,0 +1,14 @@
+#!/bin/sh
+## this script is edited in System.org
+
+# Navigate to the directory of this script (generally ~/.dotfiles/.bin)
+cd $(dirname $(readlink -f $0))
+cd ..
+
+if [ -f ".stow-local-ignore" ]; then
+    emacsclient -e '(org-save-all-org-buffers)' -a "echo 'Emacs is not currently running'"
+    stow .
+    echo "Finished stow."
+else
+    echo "ERROR: .stow-local-ignore could not be found in the directory running \"stow .\" on"
+fi

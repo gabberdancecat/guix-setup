@@ -1,0 +1,19 @@
+#!/bin/sh
+. ~/.profile
+
+# setup
+flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+# install packages
+echo "checking for updates..."
+flatpak install --or-update --user \
+      com.github.tchx84.Flatseal \
+      com.discordapp.Discord \
+      com.spotify.Client \
+      org.prismlauncher.PrismLauncher \
+      sh.ppy.osu \
+      fm.reaper.Reaper \
+      dev.vencord.Vesktop
+      # io.gitlab.librewolf-community \
+# us.zoom.Zoom 
+# org.keepassxc.KeePassXC # broken, better to use raw firefox?
+# flatpak update (already covered... also doesn't exit after command is done...)

@@ -1,0 +1,2538 @@
+#+title: Desktop Configuration
+#+property: header-args:emacs-lisp :tangle .emacs.d/lisp/ri-desktop.el
+#+auto_tangle: t
+#+startup: content
+
+* Intro
+
+This file includes my EXWM configuration and packages to install using Guix, as well as general package configurations in =.config=.
+
+* EXWM Window Management
+
+EXWM wiki:
+https://github.com/ch11ng/exwm/wiki
+
+|----------+----------------------------------|
+| Keybinds |                                  |
+|----------+----------------------------------|
+| C-c RET  | move window to another workspace |
+|----------+----------------------------------|
+
+notes:
+- exwm-input-release-keyboard for char mode, manage-finish-hook, make a program auto.
+- (interactive) is used for functions that are dependent on keybindings as well, like switch workspace!
+
+to implement:
+- make it so you can access and jump to any exwm buffer from any workspace
+  - run ivy-switch-buffer starting with the name of current buffer.
+- the reason why windows were glitching out was because opening ANY new window puts it into another workspace!!!
+- make it so when any exwm window appears, switch to that workspace and focus on that buffer.
+- char-mode line-mode toggle
+- translation-map doesn't work on exwm buffers.
+  - solution 1: create translation in exwm-mode-map.
+  - solution 2: find a better way to translate keybinds.
+- make it so char/line mode swap happens on the same keybind.
+- make it so when a new window appears, switch to that workspace and focus on that buffer.
+- in spawn librewolf, make it so if new window has the property of floating using xdotool, then don't move. if that's not an option, then check the name/title of the X window and compare names (the default should all be the same... i think... further experimentation is needed.
+
+TODO:
+- no guix package available (make my own and then contribute?):
+  - exwm-mff
+  - librewolf
+- instead of having several manifest files in scheme, what about several text files with a list of strings, and use a script to create the actual manifest by printing the contents of all the manifests in a scheme manifest block (supports different manifests by machine too)
+
+** variables, systray, resolution, enable
+
+systray-addons, cursor, exwm-in-all-buffer-menus, xrandr resolution.
+
+#+begin_src emacs-lisp
+
+  (setup (:pkg exwm)
+    ;; Systray addons
+    (require 'exwm)
+    (setq display-time-day-and-date t
+          display-time-24hr-format t
+          display-time-mode t
+          display-battery-mode t
+          display-time-default-load-average nil)
+    (setq exwm-workspace-number 9 ; 0-8
+          focus-follows-mouse nil ; click-to-focus
+          ;; exwm-workspace-warp-cursor t ; ?
+          exwm-debug t) ; enable for debug mode
+
+    ;; See all X windows with exwm-switch-to-buffer, so can pull into current workspace
+    (setq exwm-layout-show-all-buffers nil)
+
+    ;; Display all EXWM buffers in every workspace buffer list
+    ;; Could always have another keybind that shows all active EXWM buffers...
+    (setq exwm-workspace-show-all-buffers nil) ; def nil, better?
+
+    ;; Detach the minibuffer (restart req) (show it with exwm-workspace-toggle-minibuffer)
+    (setq exwm-workspace-minibuffer-position nil)
+
+    ;; set screen resolution (arandr to graphically extract xrandr command)
+    ;;  (call before exwm-init!)
+    (require 'exwm-randr)
+    (exwm-randr-enable) ; set resolution before init.
+    (start-process-shell-command "xrandr" nil "xrandr --output eDP-1 --primary --mode 1920x1080 --pos 0x0 --rotate normal --output HDMI-1 --off --output DP-1 --off --output DP-2 --off --output DP-3 --off --output DP-4 --off")
+
+    ;; Load the system tray before exwm-init
+    (require 'exwm-systemtray)
+    (setq exwm-systemtray-height nil)
+    (exwm-systemtray-enable)
+
+    (exwm-enable))
+
+#+end_src
+
+*Guix Packages:*
+
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+
+  ;; Emacs EXWM
+  "emacs-exwm"
+  ;; "emacs-desktop-environment"
+
+#+end_src
+
+** buffer renaming
+
+#+begin_src emacs-lisp
+
+  ;; -- buffer rename hooks ---
+
+  (defun ri/exwm-update-class ()
+    (exwm-workspace-rename-buffer (format "EXWM: %s" exwm-class-name)))
+
+  ;; When window "class" updates, use it to set the buffer name
+  (when ri/exwm-enabled
+    (add-hook 'exwm-update-class-hook #'ri/exwm-update-class))
+
+  (defun ri/exwm-update-title ()
+    (pcase exwm-class-name
+      ("librewolf" (exwm-workspace-rename-buffer (format "Librewolf: %s" exwm-title)))
+      ("vterm" (exwm-workspace-rename-buffer (format "vterm: %s" exwm-title)))))
+
+  ;; When window title updates, use it to set the buffer name
+  (when ri/exwm-enabled
+    (add-hook 'exwm-update-title-hook #'ri/exwm-update-title))
+
+#+end_src
+
+** helper functions (move more things into here!)
+
+#+begin_src emacs-lisp
+
+  ;; --- helper functions
+
+  ;; need (interactive) ?
+  (defun ri/run-in-background (command)
+    (let ((command-parts (split-string command "[ ]+")))
+      (apply #'call-process `(,(car command-parts) nil 0 nil ,@(cdr command-parts)))))
+
+  (defun ri/position-window ()
+    (let* ((pos (frame-position))
+           (pos-x (car pos))
+           (pos-y (cdr pos)))
+      (exwm-floating-move (- pos-x) (- pos y))))
+
+#+end_src
+
+** init-hook
+
+#+begin_src emacs-lisp
+
+  ;; --- exwm startup functions ---
+
+  ;; depends on nm-applet, pasystray(?), pavucontrol(?), and blueman
+  (defun ri/exwm-init-hook ()
+    ;; (with-eval-after-load ;'perspective
+      ;; Make workspace 1 be the one where we land at startup
+      (exwm-workspace-switch-create 0)
+      ;; Launch programs at startup
+      ;; (eshell)
+      ;; Run programs in background at startup
+      ;; (ri/run-in-background "nm-applet")
+      ;; (ri/run-in-background "pasystray")
+      ;; (ri/run-in-background "blueman-applet")
+      ;; (ri/run-in-background "snixembed && iwgtk -i")
+      (ri/run-in-background (concat user-emacs-directory "exwm/prepare-exwm.sh"))
+      )
+
+  ;; When EXWM starts up, run some functions
+  (when ri/exwm-enabled
+    (add-hook 'exwm-init-hook #'ri/exwm-init-hook))
+
+#+end_src
+
+** Keybinds
+*** helper functions (workspaces)
+
+#+begin_src emacs-lisp
+
+  ;; --- commands for navigating workspaces ---
+
+  ;; switch to last workspace (hack)
+  (defvar ri/exwm-workspace--switch-history-hack (cons exwm-workspace-current-index '()))
+  (defun ri/exwm-workspace-switch-to-last ()
+    "Switch to the workspace that was used before current workspace"
+    (interactive)
+    (exwm-workspace-switch (cdr ri/exwm-workspace--switch-history-hack)))
+  ;;
+  (defun ri/exwm-workspace-switch-to-last-hack ()
+    "Save location of current workspace when switching, so it can be used by switch-to-last"
+    (interactive)
+    (message " [%s]" exwm-workspace-current-index)
+    (setq ri/exwm-workspace--switch-history-hack
+          (cons exwm-workspace-current-index
+                (car ri/exwm-workspace--switch-history-hack))))
+  ;;
+  (when ri/exwm-enabled
+    (add-hook 'exwm-workspace-switch-hook #'ri/exwm-workspace-switch-to-last-hack))
+
+  ;; if workspace switch to the same one, go to the last one
+
+  ;; switch to next workspace
+  (defun ri/exwm-workspace-switch-to-next ()
+    "Switch to the next workspace"
+    (interactive)
+    (exwm-workspace-switch (+ exwm-workspace-current-index 1)))
+
+  ;; switch to previous workspace
+  (defun ri/exwm-workspace-switch-to-previous ()
+    "Switch to the previous workspace"
+    (interactive)
+    (exwm-workspace-switch (- exwm-workspace-current-index 1)))
+
+  ;; switch to last window (any frame inclusive)
+  (defun ri/switch-to-last-window-any-frame ()
+    "Switch to the last window, including "
+    (interactive)
+    (let ((win (get-mru-window t t t)))
+      (unless win (error "Last window not found"))
+      (let ((frame (window-frame win)))
+        (select-frame-set-input-focus frame)
+        (select-window win))))
+
+  ;; switch to last window (unused)
+  (defvar ri/last-window-direction 1)
+  (defun ri/switch-to-last-window ()
+    (interactive)
+    (other-window ri/last-window-direction)
+    (setq ri/last-window-direction (- 0 ri/last-window-direction)))
+
+#+end_src
+
+*** EXWM keybinds
+
+#+begin_src emacs-lisp
+
+  (when ri/exwm-enabled
+    ;; translate "s-`" to "s-0" so that i can access workspace zero (for non-DVP)
+    (define-key key-translation-map (kbd "s-`") (kbd "s-0"))
+
+    ;; an alist of dvp keybinds (car) to key-translation-map to (cdr)
+    (setq ri/dvp-super-translation-alist
+          '(("s-$" . "s-0")
+            ("s-&" . "s-1")
+            ("s-[" . "s-2")
+            ("s-{" . "s-3")
+            ("s-}" . "s-4")
+            ("s-(" . "s-5")
+            ("s-=" . "s-6")
+            ("s-*" . "s-7")
+            ("s-)" . "s-8")
+            ("s-+" . "s-9")
+            ("s-]" . "s-0")))
+    ;; perform dvp key-translation map
+    (cl-loop for (input . output) in ri/dvp-super-translation-alist
+             do (define-key key-translation-map (kbd input) (kbd output)))
+    ;; (mapcar (lambda (pair)
+    ;;           (let ((input (car pair))
+    ;;                 (output (cdr pair)))
+    ;;             (define-key key-translation-map (kbd input) (kbd output))))
+    ;;         ri/dvp-super-translation-alist)
+
+    ;; send to emacs instead of X application
+    (setq exwm-input-prefix-keys
+          '(?\M-x
+            ?\M-:
+            ?\M-` ; text-mode menubar
+            ?\M-o
+            ?\M-& ; async-shell command
+            ?\C-x
+            ?\C-h
+            ?\C-u ; new C-x
+            ?\C-\M-- ; does this even work?
+            ?\C-\M-g ; does this even work?
+            ?\s-`     ;; for translate "s-`" to "s-0" hack
+            ?\C-\M-\)  ;; for adjust/move windows
+            ?\s-\M-t  ;; last workspace
+            ?\s-\M-h  ;; prev workspace
+            ?\s-\M-s  ;; next workspace
+            ?\C-\     ;; C-<space> (open application)
+            ?\s-\C-L ; Enter Hibernation
+            ;; dvorak accomidations
+            ?\s-$
+            ?\s-&
+            ?\s-\[
+            ?\s-{
+            ?\s-}
+            ?\s-\(
+            ?\s-=
+            ?\s-*
+            ?\s-\)
+            ?\s-+
+            ?\s-\]
+            ))
+
+    ;; C-q to send next key to X-applicaiton
+    (define-key exwm-mode-map [?\C-q] 'exwm-input-send-next-key)
+
+    ;; Already auto-defined???
+    ;; (define-key exwm-mode-map (kbd "C-c <return>") 'exwm-workspace-move-window)
+
+    ;; Set up global key bindings.  These always work, no matter the input state!
+    ;; Keep in mind that changing this list after EXWM initializes has no effect.
+    (setq exwm-input-global-keys
+          `(,@
+            ;; 's-N': Switch to certain workspace with Super (Win) plus a number key (0 - 9)
+            (mapcar (lambda (i)
+                      `(,(kbd (format "s-%d" i)) .
+                        (lambda ()
+                          (interactive)
+                          ;; if input is same as current workspace, go to last
+                          (if (eq ,i exwm-workspace-current-index)
+                              (ri/exwm-workspace-switch-to-last)
+                            (exwm-workspace-switch-create ,i)))))
+                    (number-sequence 0 9))
+
+            ;; Reset to line-mode
+            ;; (C-c C-k switches to char-mode via exwm-input-release-keyboard)
+            (,(kbd "s-r") . exwm-reset)
+
+            ;; Move between windows
+            (,(kbd "s-h") . windmove-left)
+            (,(kbd "s-t") . windmove-up)
+            (,(kbd "s-n") . windmove-down)
+            (,(kbd "s-s") . windmove-right)
+
+            ;; Move windows
+            (,(kbd "s-H") . windmove-swap-states-left)
+            (,(kbd "s-T") . windmove-swap-states-up)
+            (,(kbd "s-N") . windmove-swap-states-down)
+            (,(kbd "s-S") . windmove-swap-states-right)
+
+            ;; Shortcuts for windows
+            (,(kbd "s-g") . (lambda () (interactive) (other-window -1)))
+            (,(kbd "s-c") . (lambda () (interactive) (other-window 1)))
+            (,(kbd "s-d") . delete-window)
+
+            ;; alternatively, s-g + s-S-g for windows, and s-c for launcher or sum (comfy?)
+            ;; or maybe s-o for windows and s-u s-i for buffers?
+
+            ;; buffers and more
+            (,(kbd "s-o") . meow-last-buffer)
+            (,(kbd "s-b") . counsel-switch-buffer)
+
+            ;; Toggles
+            (,(kbd "s-F") . exwm-floating-toggle-floating)
+            (,(kbd "s-f") . exwm-layout-toggle-fullscreen)
+            (,(kbd "s-m") . exwm-layout-toggle-mode-line)
+
+            ;; Launch applications via shell command
+            (,(kbd "s-a") . (lambda (command)
+                              (interactive (list (read-shell-command "$ ")))
+                              (start-process-shell-command command nil command)))
+
+            ;; Special
+            (,(kbd "s-C-H") . (lambda () (interactive)
+                                (start-process-shell-command "hibernate" nil
+                                                             "loginctl hibernate")))
+            (,(kbd "s-C-L") . (lambda () (interactive)
+                                (desktop-environment-lock-screen)))
+
+            ;; Switch workspace
+            (,(kbd "s-w") . exwm-workspace-switch)
+            (,(kbd "s-M-t") . ri/exwm-workspace-switch-to-last)
+            (,(kbd "s-M-h") . (lambda () (interactive) (ri/exwm-workspace-switch-to-previous)))
+            (,(kbd "s-M-s") . (lambda () (interactive) (ri/exwm-workspace-switch-to-next)))
+
+            ))
+
+    (exwm-input-set-key (kbd "s-<tab>") 'ri/exwm-workspace-switch-to-last)
+    (exwm-input-set-key (kbd "s-SPC") 'counsel-linux-app)
+    (exwm-input-set-key (kbd "s-<return>") 'multi-vterm-dedicated-toggle))
+
+#+end_src
+
+** window startup
+
+#+begin_src emacs-lisp
+
+  ;; if game has trouble put it in exwm-input-release-keyboard, and then s-r to reset.
+  ;; shrink and expand windows...
+  ;; spawn mpv in corner of screen so can watch youtube video.
+  ;; make function keys work in fullscreen... always pass to emacs instead of exwm.
+  ;; move focus onto popup window.
+
+  ;; Run when startup floating window
+  ;;  (happens before exwm-manage-finish-hook (configure-window-startup))
+  (defun ri/exwm-configure-floating-setup ()
+    (interactive)
+    (exwm-layout-hide-mode-line))
+
+  ;; Hide the modeline on all floating windows
+  (when ri/exwm-enabled
+    (add-hook 'exwm-floating-setup-hook #'ri/exwm-configure-floating-setup))
+
+  ;; does this even work?
+  (defun ri/exwm--custom-switch-to-buffer (buffer-or-name)
+    (interactive)
+    ;; if on EXWM buffer.
+    (if (eq exwm--frame exwm-workspace--current)
+        ;; On the current workspace/not floating.
+        (if (not exwm--floating-frame)
+            (switch-to-buffer buffer-or-name)
+          ;; Select the floating frame.
+          (message "DEBUG in exwm-workspace-switch-to-buffer: is a floating frame on current workspace")
+          (select-frame-set-input-focus exwm--floating-frame)
+          (select-window (frame-root-window exwm--floating-frame)))
+      ;; On another workspace/floating (below is always off)
+      (if exwm-layout-show-all-buffers
+          (exwm-workspace-move-window exwm-workspace--current
+                                      exwm--id)
+        (let ((window (get-buffer-window buffer-or-name exwm--frame)))
+          (if window
+              (set-frame-parameter exwm--frame
+                                   'exwm-selected-window window)
+            (message "DEBUG in exwm-workspace-switch-to-buffer: another wksp: %s" exwm--frame)
+            (set-window-buffer (frame-selected-window exwm--frame)
+                               buffer-or-name)))
+        (exwm-workspace-switch exwm--frame))))
+
+  ;; (define-key exwm-mode-map (kbd "C-c C-o")
+  ;;   (lambda () (interactive)
+  ;;     ;; ri/exwm--custom-previous-floating-frame
+  ;;     (select-frame-set-input-focus ri/exwm--custom-previous-floating-frame)
+  ;;     (select-window (frame-root-window ri/exwm--custom-previous-floating-frame))
+  ;;     ))
+
+  ;; Run when startup any window
+  ;;  Enable (interactive) ?
+  (defun ri/exwm-configure-window-startup ()
+    (interactive)
+    (message "Window '%s' appeared!" exwm-class-name)
+    (pcase exwm-class-name
+      ("mpv" (exwm-floating-toggle-floating))
+      ))
+
+  ;; Configure windows as they're created (includes spawn in certain wkspaces)
+  ;; For automoving to workspace, use a function.
+  (when ri/exwm-enabled
+    (add-hook 'exwm-manage-finish-hook #'ri/exwm-configure-window-startup))
+
+#+end_src
+
+** window startup pt. 2 (merge the two together)
+
+#+begin_src emacs-lisp
+
+  (defvar apps-num-alist '((discord   . 6)
+                           (steam     . 7)
+                           (spotify   . 8)
+                           (librewolf . 3)
+                           (firefox   . 2)
+                           (keepassxc . 5))
+    "Workspace index associated to application.")
+
+  (defun get-apps-num-alist-num (name) 
+    (cdr (assoc name apps-num-alist)))
+
+  (defvar apps-bind-alist '((discord   . "d")
+                            (steam     . "c")
+                            (spotify   . "s")
+                            (librewolf . "l")
+                            (keepassxc . "p")
+                            (firefox   . "f"))
+    "Last letter of keybind for each application.")
+
+  (defvar apps-run-alist '((discord   . ri/run-discord)
+                           (steam     . ri/run-steam)
+                           (spotify   . ri/run-spotify)
+                           (librewolf . ri/run-librewolf)
+                           (keepassxc . ri/run-keepassxc)
+                           (firefox   . ri/run-firefox))
+    "Run command for starting")
+
+  ;; only run this function (called by hook) if the variable is true.
+  (defvar ri/open-app-in-alist-workspace nil)
+  (defun ri/exwm-custom-configure-window-startup ()
+    "If a window starts up and the variable is enabled, run the following"
+    (interactive)
+    (message "DEBUG: Entering custom-config-window-startup hook")
+    (if (eq ri/open-app-in-alist-workspace t)
+        ;; for KeePassXC, when you try to autofill when the database is locked,
+        ;; it will pop up a new window in the current workspace, but
+        ;; `exwm-workspace-move-window' will move it elsewhere... except it
+        ;; doesn't... and it will fail to autoselect the floating window/frame.
+        ;; So to prevent this, the below is used:
+        (progn
+          (unless (equal exwm-title "Unlock Database - KeePassXC")
+            (cl-loop for (name . num) in apps-num-alist
+                     do (when (equal exwm-class-name name)
+                          (exwm-workspace-move-window
+                           (get-apps-num-alist-num exwm-class-name)))))
+          (setq ri/open-app-in-alist-workspace nil))))
+
+  (defun ri/run-discord ()
+    (interactive)
+    (setq ri/open-app-in-alist-workspace t)
+    (ri/run-in-background "flatpak run com.discordapp.Discord")
+    (exwm-workspace-switch-create
+     (get-apps-num-alist-num 'discord)))
+  ;;
+  (defun ri/run-spotify ()
+    (interactive)
+    (setq ri/open-app-in-alist-workspace t)
+    (ri/run-in-background "flatpak run com.spotify.Client")
+    (exwm-workspace-switch-create
+     (get-apps-num-alist-num 'spotify)))
+  ;;
+  (defun ri/run-librewolf ()
+    (interactive)
+    (setq ri/open-app-in-alist-workspace t)
+    (ri/run-in-background "flatpak run io.gitlab.librewolf-community")
+    (exwm-workspace-switch-create
+     (get-apps-num-alist-num 'librewolf)))
+  ;;
+  (defun ri/run-keepassxc ()
+    (interactive)
+    (setq ri/open-app-in-alist-workspace t)
+    (ri/run-in-background "~/.bin/firejail-guix-run keepassxc")
+    (exwm-workspace-switch-create
+     (get-apps-num-alist-num 'keepassxc)))
+  ;;
+  (defun ri/run-firefox ()
+    (interactive)
+    (setq ri/open-app-in-alist-workspace t)
+    (ri/run-in-background "firefox")
+    ;; (ri/run-in-background "~/.bin/firejail-guix-run firefox")
+    (exwm-workspace-switch-create
+     (get-apps-num-alist-num 'firefox)))
+  ;;
+  (defun ri/run-steam ()
+    (interactive)
+    (setq ri/open-app-in-alist-workspace t)
+    (ri/run-in-background "flatpak run com.valvesoftware.Steam")
+    (exwm-workspace-switch-create
+     (get-apps-num-alist-num 'steam)))
+
+  ;; ------------------------------------------------------------
+
+  (when ri/exwm-enabled
+    ;; binds "s-l *" to run ri/run-____ command
+    (cl-loop for (app . bind-char) in apps-bind-alist
+             do
+             (exwm-input-set-key (kbd (concat "s-l " bind-char))
+                                 (cdr (assoc app apps-run-alist))))
+
+    ;; binds "s-L *" to switch to associated workspace
+    ;; (defvar ri/app-launch-input nil)
+    ;; (cl-loop for (app-bind . bind-char) in apps-bind-alist
+    ;;          for (app-num . num) in apps-num-alist
+    ;;          do
+    ;;          (exwm-input-set-key (kbd (concat "s-L " bind-char))
+    ;;                              (lambda ()
+    ;;                                (interactive)
+    ;;                                `(exwm-workspace-switch-create ,num))))
+    )
+
+  ;; (exwm-input-set-key (kbd "s-L d") (lambda () (interactive) (exwm-workspace-switch-create 6)))
+
+  ;; --------------------
+
+  ;; run the function when a new exwm window appears
+  (when ri/exwm-enabled
+    (add-hook 'exwm-manage-finish-hook #'ri/exwm-custom-configure-window-startup))
+
+#+end_src
+
+** cursor warp
+
+no package in guix yet? contribute by writing my own?
+
+#+begin_src emacs-lisp
+
+  ;; very annoying?
+  ;; makes the cursor visible?
+  ;; only warp when on X window buffer!
+  ;; warps useful when on EXWM-mode with pop-ups
+  ;; when on EXWM, enable mouse. When on emacs, disable mouse.
+  (use-package exwm-mff
+    :config
+    (exwm-mff-mode nil))
+  ;; ^ should already be nil...
+
+  ;; warp cursor to center when switch to a X window buffer.
+  (when ri/exwm-enabled
+    (add-hook 'exwm-manage-finish-hook (lambda () (exwm-mff-warp-to-selected))))
+
+#+end_src
+
+** wallpaper, cosmetics, setup
+
+#+begin_src emacs-lisp
+
+  ;; set wallpaper (after xrandr so can get correct dimensions)
+  (defun ri/set-wallpaper ()
+    (interactive)
+    (let ((def-wallpaper-path (concat user-emacs-directory "exwm/oneshot-wallpaper3.jpg"))
+          (home-wallpaper-path "~/.fehbg"))
+      (if (file-exists-p home-wallpaper-path)
+          (progn
+            (start-process-shell-command
+             "feh" nil (concat "sh " "~/.fehbg")))
+        (progn
+          (start-process-shell-command
+           "feh" nil
+           (concat "feh --bg-fill " def-wallpaper-path))))))
+
+  ;; random wallpaper
+  ;; (defun ri/random-wallpaper ()
+  ;;   (interactive))
+
+  (when ri/exwm-enabled
+    ;; night light
+    ;; (ri/run-in-background (expand-file-name "exwm/sct-auto-adjust.sh" user-emacs-directory))
+    ;; run prepare-exwm.sh
+    ;; (no longer needed since .xsession works)
+    ;; (ri/run-in-background (expand-file-name "exwm/prepare-exwm.sh" user-emacs-directory))
+    ;; wallpaper
+    (ri/set-wallpaper))
+
+#+end_src
+
+** desktop-environment
+
+#+begin_src emacs-lisp
+
+  ;; depends on scrot (screenshot), brightnessctl (brightness), and playerctl (player)
+  (use-package desktop-environment
+    :after exwm
+    :config
+    (setq desktop-environment-update-exwm-global-keys :global)
+    (unbind-key "s-l" desktop-environment-mode-map)
+    (desktop-environment-mode)
+    :custom
+    ;; brightness
+    (desktop-environment-brightness-normal-increment "10%+")
+    (desktop-environment-brightness-normal-decrement "10%-")
+    (desktop-environment-brightness-small-increment "5%+")
+    (desktop-environment-brightness-small-decrement "5%-")
+    ;; volume
+    (desktop-environment-volume-normal-decrement "-10%")
+    (desktop-environment-volume-normal-increment "+10%")
+    (desktop-environment-volume-small-decrement "-5%")
+    (desktop-environment-volume-small-increment "+5%")
+    (desktop-environment-volume-set-command "sh ~/.emacs.d/exwm/pactl-increment-volume.sh %s")
+    (desktop-environment-volume-get-command "sh ~/.emacs.d/exwm/pactl-print-volume-w-mute.sh")
+    (desktop-environment-volume-get-regexp "\\(.*\\)")
+    (desktop-environment-volume-toggle-command "pactl set-sink-mute @DEFAULT_SINK@ toggle && bash ~/.emacs.d/exwm/pactl-print-mute.sh")
+    (desktop-environment-volume-toggle-regexp "\\(.*\\)" )
+    ;; screenshot
+    (desktop-environment-screenshot-command "flameshot gui"))
+
+#+end_src
+
+*Guix Packages:*
+
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+
+  "emacs-desktop-environment"
+
+#+end_src
+
+** Ivy-posframe
+
+#+begin_src emacs-lisp
+
+  ;; for floating minibuffer...
+  ;; ; maybe have disappearing minibuffer above the modeline?
+  ;; ; show minibuffer in separate frame?
+  ;; ; show minibuffer on polybar? make it pop up from under polybar?
+  ;; ; auto-hiding minibuffer at top of screen, and posframe for all else but quit.
+  ;; ; polybar at top, print minibuffer messages, stable, bottom is only modeline
+
+  (use-package ivy-posframe
+    :disabled
+    :after (exwm)
+    :config
+    (setq ivy-posframe-height-alist '((swiper . 20)
+                                      (counsel-M-x . 40)))
+
+    (setq ivy-posframe-display-functions-alist
+          '((swiper          . ivy-display-function-fallback)
+           ;; (counsel-M-x    . ivy-posframe-display-at-window-bottom-left)
+            (counsel-M-x     . ivy-display-function-fallback)
+            (counsel-switch-buffer . ivy-display-function-fallback)
+            (complete-symbol . ivy-posframe-display-at-point)
+            (t               . ivy-posframe-display)))
+    ;; (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-center)))
+    ;; (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-window-center)))
+    ;; (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-bottom-left)))
+    ;; (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-window-bottom-left)))
+    ;; (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-top-center)))
+    (ivy-posframe-mode 0))
+
+#+end_src
+
+*Guix Packages*
+
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+
+  "emacs-ivy-posframe"
+
+#+end_src
+
+** External files
+
+Non elisp stuff (simply output into the respective directories)
+
+*** EXWM Launcher
+
+xinitrc is not in a literate config file as of now.
+
+**** prepare-exwm.sh
+
+The below runs a bunch of commands that needs to be run before starting exwm. Commands like xmodmap, picom, xsettingsd, and key repeat speed.
+
+#+begin_src shell :tangle .emacs.d/exwm/prepare-exwm.sh :shebang #!/bin/sh
+
+  # This script is configured in Desktop.org
+
+  Run() {
+      if $(which $1 >/dev/null 2>&1 ; echo $?); then
+          $@ &
+      else
+          echo "Command not found: $@" >> ~/.my-wm-errors.log
+      fi
+  }
+
+  if [ "$PREPARE_EXWM_SCRIPT_RAN" -eq "1" ]; then
+      echo "DEBUG: ran prepare-exwm.sh twice!"
+      exit 0
+  fi
+
+  # Set screen DPI (for high DPI displays) (before compton)
+  #xrdb ~/.emacs.d/exwm/Xresources
+
+  # set up dvorak and nocaps (symbols: compose:sclk)
+  # (only run if not in guix system, because otherwise will be configured).
+  if ! [ $(cat /etc/*-release | grep "^ID=" | sed "s/.*=//") == "guix" ]; then
+      setxkbmap -layout 'us,us' -variant 'dvp,' -option grp:sclk_toggle ctrl:nocaps
+  fi
+
+  # binds S-<Ctrl> to escape (might break functionality!) and remove caps (not needed).
+  #xmodmap ~/.emacs*/exwm/Xmodmap
+
+  # make menu super
+  xmodmap -e "keysym Menu = Super_R"
+
+  # if laptop is thinkpad, load special keybinds
+  if grep -q "ThinkPad L520" "/sys/devices/virtual/dmi/id/product_family"; then
+      xmodmap ~/.emacs*/exwm/Xmodmap-thinkpad
+  fi
+
+  # set hold type startup and speed (delay rate)
+  # xset r rate 240 60
+  xset r rate 220 70
+
+  # set cursor type (what if not enabled?)
+  xsetroot -cursor_name left_ptr
+
+  # Screen compositor
+  picom &
+
+  # set screen temperature
+  [ -f "$HOME/.bin/sct-auto-adjust.sh" ] && ~/.bin/sct-auto-adjust.sh &
+
+  # Enable screen locking on suspend
+  # xss-lock -- slock &
+
+  # run xsettingsd
+  xsettingsd &
+
+  # dunst notifications
+  dunst &
+
+  # nm-applet
+  nm-applet &
+
+  # volume systray applet
+  pasystray &
+
+  # numlock on
+  numlockx &
+
+#+end_src
+
+**** start-exwm.sh
+
+#+begin_src shell :tangle .emacs.d/exwm/start-exwm.sh :shebang #!/bin/sh
+
+  # This script is configured in Desktop.org
+
+  # Start Emacs w/ EXWM
+  # exec dbus-launch --sh-syntax --exit-with-session emacs -q --load "~/.emacs.d/init.el" -mm --debug-init -l ~/.emacs.d/desktop.el
+  exec dbus-launch --sh-syntax --exit-with-session emacs -q --load "~/.emacs.d/init.el" -mm --debug-init --start-exwm
+
+#+end_src
+
+**** xsession file (disabled)
+
+This file will be prioritized over any .desktop files.
+
+Maybe in order to launch exwm from any location, i must source all the profiles at the beginning? Like in daviwil's config? I should try this in the future.
+~.xsession~
+
+#+begin_src shell :tangle .xsession :shebang #!/bin/sh
+
+  exec dbus-launch --exit-with-session stumpwm
+
+  # This file is configured in Desktop.org
+
+  # ~/.emacs.d/exwm/prepare-exwm.sh # run startup commands
+
+  # exec dbus-launch --exit-with-session emacs --start-exwm # much faster!!
+
+#+end_src
+
+**** .desktop file
+
+For login manager.
+
+*You must create a symbolic link with the command for xsessions file!*
+
+#+begin_src sh :tangle no
+
+  doas ln -f ~/.emacs.d/exwm/EXWM.desktop /usr/share/xsessions/EXWM.desktop
+
+#+end_src
+
+#+begin_src shell :tangle .emacs.d/exwm/EXWM.desktop
+
+  [Desktop Entry]
+  Name=EXWM
+  Comment=Emacs Window Manager
+  Exec=sh /home/mio/.emacs.d/exwm/start-exwm.sh
+  TryExec=sh
+  Type=Application
+  X-LightDM-DesktopName=exwm
+  DesktopName=exwm
+
+#+end_src
+
+Note: you are using Guix System, the execute command must be exwm, not emacs.
+This is what the default desktop file in =/run/current-system/profile/share/xsessions/exwm.desktop= might look like:
+#+begin_src desktop :tangle no
+[Desktop Entry]
+Type=Application
+Name=emacs-exwm
+Comment=Emacs X window manager
+Exec=/gnu/store/a420wvmwx38n0xihig7dwh4xpkv0ri9d-emacs-exwm-0.27/bin/exwm
+TryExec=/gnu/store/a420wvmwx38n0xihig7dwh4xpkv0ri9d-emacs-exwm-0.27/bin/exwm
+#+end_src
+
+*** pactl volume set and get
+
+*Set/increment volume and prevent if too loud*
+
+#+begin_src shell :tangle .emacs.d/exwm/pactl-increment-volume.sh :shebang #!/bin/sh
+
+  volume=$(pactl get-sink-volume @DEFAULT_SINK@ | awk '{print $5}' | sed s/%//) # e.g. 60
+  origInput="$1" # e.g. +5%
+  posOrNeg=$(echo $origInput | awk '{print substr($0,0,1)}') # e.g. +
+  input=${origInput//[!0-9]/} # e.g. 5
+
+  if [[ "$posOrNeg" == "+" ]]; then
+      newVol=$(($volume + $input)) # e.g. 65
+  elif [[ "$posOrNeg" == "-" ]]; then
+      newVol=$(($volume - $input)) # e.g. 65
+  else
+      echo "input doesn't contain + or - !!"
+      exit 1
+  fi
+
+  if [[ "$newVol" -le "100" ]]; then
+      pactl set-sink-volume @DEFAULT_SINK@ $posOrNeg$input%
+  fi
+
+#+end_src
+
+*Prints current volume and "mute" if muted:*
+
+#+begin_src shell :tangle .emacs.d/exwm/pactl-print-volume-w-mute.sh :shebang #!/bin/sh
+
+  volume=$(pactl get-sink-volume @DEFAULT_SINK@ | awk '{print $5}' | sed s/%//)
+  muted=$(pactl get-sink-mute @DEFAULT_SINK@ | awk '{print $2}')
+
+  if [[ "$muted" == "yes" ]]; then
+          echo "$volume | muted "
+  else
+          echo "$volume"
+  fi
+
+#+end_src
+
+
+*Prints the current mute status when toggling:*
+
+#+begin_src shell :tangle .emacs.d/exwm/pactl-print-mute.sh :shebang #!/bin/sh
+
+  muted=$(pactl get-sink-mute @DEFAULT_SINK@ | awk '{print $2}')
+
+  if [[ "$muted" == "yes" ]]; then
+      echo "MUTED"
+  else
+      echo "ENABLED"
+  fi
+
+#+end_src
+
+*** Keyboard remapping
+
+#+begin_src conf-unix :tangle .emacs.d/exwm/Xmodmap
+
+  # clear lock
+  # keycode 66 = Control_L Escape
+
+  keysym Menu = Super_R
+
+#+end_src
+
+*** High DPI screens
+
+#+begin_src shell :tangle .emacs.d/exwm/Xresources
+
+  Xft:dpi:  100  # set this to your desired DPI
+
+#+end_src
+
+* Stumpwm
+
+** guix packages
+
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+
+  "stumpwm:lib" ; doesn't work if system-installed...? (only when loading modules? wtf?)
+  ;; "sbcl-slynk" ; slime instead? ; stumpwm-with-slynk installed in system profile.
+  "stumpish" ; stumpwm interactive shell for stumpwm-mode
+  "sbcl-clx-xembed" ; stumptray depd
+  "snixembed" ; stumptray depd???
+
+#+end_src
+
+** Config
+
+The StumpWM config file is defined in a separate org document:
+[[file:.stumpwm.d/README.org][<Link to Config>]]
+
+* System Configurations
+
+unix applications go here
++ firejail
+move these to desktop instead of Emacs? might create bloat
+Move these to systems!!!
+
+** Fonts and Themes
+
+*** fonts.conf
+
+need to specify fonts location to be able to access them from the desktop profile
+
+tangle to .config/fontconfig/fonts.conf
+
+#+begin_src xml :tangle .config/fontconfig/fonts.conf
+
+  <?xml version="1.0"?>
+  <!--This file is configured in Desktop.org!-->
+  <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+  <fontconfig>
+    <dir>~/.guix-extra-profiles/desktop/desktop/share/fonts</dir>
+  </fontconfig>
+
+#+end_src
+
+*** xsettingsd
+
+Use [[https://codeberg.org/derat/xsettingsd][xsettingsd]] to configure gtk themes, font antialiasing/hinting, and UI sound effects.
+
+Use dump_xsettings to get settings from current session... read docs for more!
+
+: gsettings get org.gnome.desktop.interface
+
+tangle to  .config/xsettingsd/xsettingsd.conf
+
+#+begin_src conf :tangle .config/xsettingsd/xsettingsd.conf
+
+  ## Theme:
+  Net/ThemeName "Matcha-dark-azul"  ## widget theme
+  Net/IconThemeName "Papirus-Dark"  ## icon theme
+  ## GTK3
+  # Gtk/DecorationLayout "menu:minimize,maximize,close"
+  # Gtk/FontName "Cantarell 11"
+  # Gtk/MonospaceFontName "Fira Mono 10"
+  # Gtk/CursorThemeName "Adwaita"
+  ## Xft
+  # Xft/Antialias 1
+  # Xft/Hinting 0
+  # Xft/HintStyle "hintnone"
+  # Xft/DPI <<dpi()>> # 1024 * DPI
+
+#+end_src
+
+*** GTK2 config (disabled)
+
+GTK2 has to be configured with =.gtkrc-2.0= i think.
+
+tangle to .gtkrc-2.0
+
+#+begin_src conf-unix :tangle no
+
+  # ~/.gtkrc-2.0
+
+  gtk-can-change-accels = 1
+
+  gtk-icon-theme-name = "Papirus-dark"
+  gtk-theme-name = "Matcha-dark-azul"
+
+  style "user-font"
+  {
+          font_name="Terminus 12"
+  }
+  widget_class "*" style "user-font"
+  gtk-font-name = "Terminus 12"
+
+#+end_src
+
+*** relevant guix packages
+
+*Guix Packages*
+
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+
+  ;; configure these with xsettingsd?
+  "xsettingsd" ; gtk3
+  "kvantum" ; qt
+
+  "matcha-theme" ; theme
+  "papirus-icon-theme" ; icon
+  "breeze-icons" ; kde icons
+
+  "fontconfig" ; fonts.conf
+
+  ;; fonts
+  "font-fira-code"
+  "font-hack"
+  "font-jetbrains-mono"
+
+  "font-liberation"
+  "font-dejavu"
+  "font-libertinus" ; provides latex? try for org?
+  "font-ipa-ex" ; japanese? not working...
+  "font-microsoft-times-new-roman"
+  "font-microsoft-cascadia"
+
+  "font-awesome"
+
+#+end_src
+
+** Default launch applications (disabled)
+
+Use =mimeapps.list= to specify default applications
+
+(use =.desktop= file for value)
+
+tangle to .config/mimeapps.list
+
+#+begin_src conf :tangle no
+
+  [Default Applications]
+  text/html=qutebrowser.desktop
+  x-scheme-handler/http=qutebrowser.desktop
+  x-scheme-handler/https=qutebrowser.desktop
+  x-scheme-handler/about=qutebrowser.desktop
+  x-scheme-handler/unknown=qutebrowser.desktop
+
+#+end_src
+
+** Shepherd user services (disabled)
+
+Todo: make a pipewire startup service and mcron for trimming.
+
+#+begin_src scheme :tangle .config/shepherd/init.scm
+
+  ;; declared in Desktop.org
+
+  (use-modules (shepherd service))
+
+  (define gpg-agent
+    (service '(gpg-agent)
+             #:respawn? #t
+             #:start (make-system-constructor "gpg-connect-agent /bye")
+             #:stop (make-system-destructor "gpgconf --kill gpg-agent")))
+
+  (define syncthing
+    (service '(syncthing)
+             #:respawn? #t
+             #:start (make-forkexec-constructor '("syncthing" "-no-browser"))
+             #:stop  (make-kill-destructor)))
+
+  (define pulseaudio
+    (service '(pulseaudio)
+             #:respawn? #t
+             #:start (make-forkexec-constructor '("pulseaudio"))
+             #:stop  (make-kill-destructor)))
+
+  ;; (define mullvad
+  ;;   (service '(mullvad)
+  ;;            #:respawn? #t
+  ;;            #:start (make-forkexec-constructor '("mullvad-daemon" "-v"))
+  ;;            #:stop  (make-kill-destructor)))
+
+  (register-services (list gpg-agent syncthing pulseaudio)) ; make into services
+
+  (action 'shepherd 'daemonize) ; start shepherd
+
+  (for-each start '(gpg-agent syncthing pulseaudio)) ; start each new service
+
+#+end_src
+
+** Generic Guix programs to install [guix]:
+*** User programs
+
+personal packages
+
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+
+  "hyfetch"
+  "uwufetch"
+  "sl"
+  "cowsay"
+  ;; experiment in the future
+  "pipewire"
+  "kdeconnect"
+  "extremetuxracer" ; game
+  "supertuxkart" ; game
+
+#+end_src
+
+*** Cybersec
+
+sliver
+
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+
+  ;; "openssh" ; do i need this?
+  "iptables"
+  "gdb"
+  "net-tools"
+
+#+end_src
+
+*** Desktop utils
+
+*Guix Packages*
+
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+
+  "brightnessctl"
+  "xclip"
+  "feh"
+  "sct"
+  "xdg-utils"
+  "scrot"
+  "flameshot"
+  "stow"
+  "picom"
+  "htop"
+  "playerctl"
+  "glib:bin" ; gsettings
+  ;; "network-manager-applet" ; wrong one?
+  "nm-tray"
+  "pasystray"
+  "pavucontrol"
+  "mupdf" ; keybinds: S-w + - j k h l , . m t [0-9]m [0-9]t / n N [0-9]g c S-h
+  "okular" ; pdf reader
+  "yad" ; custom tray icons?
+  "alacritty"
+  "numlockx"
+  "acpi"
+  "fzf"
+  "bat"
+  "xprop"
+  "espeak-ng"
+
+#+end_src
+
+*** System utils
+
+*Guix Packages*
+
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+
+  "trash-cli"
+  "unzip"
+  "zip"
+  "gtk+:bin" ; gtk-launch
+  "tree"
+  "rsync"
+  "unison"
+  "fd"
+  "ffmpeg"
+  "p7zip"
+  "xdot"
+  "strace"
+  "file"
+
+#+end_src
+
+*** System tools
+
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+
+  "dbus"
+  ;; not automatically pulled by system service (maybe add to system packages instead?)
+  "pulseaudio"
+  "rust-cargo" ; ?
+  "rust" ; ?
+  ;; "clang-toolchain" ; ? is gcc better ?
+  "gcc-toolchain"
+  "xorg-server" ; Xephyr
+
+#+end_src
+
+*** Xorg Tools
+
+*Guix Packages*
+
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+
+  "xinit"
+  "xev"
+  "xset"
+  "xmodmap"
+  "setxkbmap"
+  "xsetroot"
+  "xrandr"
+  "arandr"
+  ;; "slock" ; moved to system profile
+  "xss-lock"
+  "libinput"
+  "xinput" ; ? test devices?
+
+#+end_src
+
+*** Media
+
+**** packages
+
+*Guix Packages*
+
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+
+  "mpv"
+  "yt-dlp"
+  "vlc"
+
+#+end_src
+
+**** mpv
+
+#+begin_src conf-unix :tangle .config/mpv/mpv.conf
+
+  #
+
+#+end_src
+
+**** Renoise (+Renoise Guix Profile)
+
+run profile before running any firejail call!!!!!!!!!!!!!!!!!! holy sheeeeeeeeeeeetttt!!!!!!!!!!!!!!!!
+
+TODO: libraries are hell. write a script that adds every guix profile to the env var!! jack lib.
+
+*Guix Packages*
+
+#+begin_src scheme :tangle .config/guix/manifests/renoise.scm
+
+  (specifications->manifest
+   '(
+     ;;; Renoise linker deps ("$ ldd renoise" to find missing deps)
+     "libx11" ; libX11.so.6
+     "libxext" ; libXext.so.6
+     "alsa-lib" ; libasound.so.2
+     "libgccjit" ; libgcc_s.so.1
+     "glibc" ; ?
+     "gcc-unhidden:lib" ; custom package!! libstdc++
+     ;; "gcc-toolchain:lib" 
+     ;; vv jack vv
+     "jack" "jack2" "qjackctl"
+     "dbus"
+     "alsa-utils"
+     "openbox"
+     ))
+
+#+end_src
+
+*** Workstation
+
+Ardour:
+- hello, i have a question on running Windows VST's on linux using Wine (this is a rather technical question and it focuses more on wine and sandboxing so i'm not sure if this is the best place to ask...). I can install and use Ardour through either Flatpak or Nix. For privacy and security reasons, I will be running both Ardour and the proprietary Windows VST plugins in a sandbox, maybe through some combination of Flatseal (if i install Ardour and/or Wine through Flatpak) and Firejail (if I install them using Nix). I've never run Windows VST's in Ardour before, so I dont know the possible issues that may arise if i use Flatpak and Flatseal sandboxing with Wine in Firejail sandboxing, Flatpak+Flatseal sandboxing for both, or Firejail sandboxing for both. If anyone has a similar setup to what i want, do you have any advice on how sandboxed Ardour and proprietary Windows VST's in Wine cooperate, and whether Flatpak sandboxing might create issues when tring to run Windows VST's through Wine? Will installing both Ardour and Wine in either Flatpak or Nix+Firejail prevent complications?
+
+*Guix Packages (Workstation)*  
+
+#+begin_src scheme :noweb-ref workstation :noweb-sep ""
+
+  "gimp"
+  "abiword"
+  "libreoffice"
+  "ardour"
+  "signal-desktop"
+  "ungoogled-chromium"
+  "godot"
+  "obs"
+
+#+end_src  
+
+*** Browser
+
+*Guix Packages*
+
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+
+  "qutebrowser"
+  "firefox-esr"
+
+#+end_src
+
+**** firefox/librewolf
+***** arkenfox user.js
+
+help:
+https://fracturedcode.net/privacy-security/firefox-hardening-arkenfox
+https://github.com/arkenfox/user.js/wiki/3.4-Apply-&-Update-&-Maintain
+
+must set custom: exceptions website list, default browser.
+
+When a new update of firefox is made available:
+- get new user.js and prefsCleaner.sh files. 
+
+#+begin_src javascript :tangle .bin/user-overrides.js
+
+  //I did not read the wiki
+  //Mostly copied from Trafotin:
+  //https://gitlab.com/trafotin/dotfiles/-/blob/main/user-overrides.js
+  //Wiki overrides:
+  //https://github.com/arkenfox/user.js/wiki/3.2-Overrides-%5BCommon%5D
+
+  //Dark theme (prolly doesn't work)
+  user_pref("extensions.activeThemeID", "firefox-compact-dark@mozilla.org");
+  user_pref("browser.theme.content-theme", 0); // dark on librewolf
+  user_pref("browser.theme.toolbar-theme", 0);
+
+  //Default search engine (doesn't work)
+  user_pref("browser.urlbar.placeholderName", "DuckDuckGo"); // Set DuckDuckGo as a search provider
+
+  //DNS over HTTPS
+  //Protects web requests from an ISP
+  //Please pick a provider you trust.
+  //Disable if you use PiHole, but tools like pfBlocker work fine.
+  // Cloudflare (default in US & Canada).
+  //Quad 9: https://dns.quad9.net/dns-query
+  //Cloudflare: https://mozilla.cloudflare-dns.com/dns-query
+  user_pref("network.trr.uri", "https://doh.mullvad.net/dns-query");
+  user_pref("network.trr.mode", 2);
+
+  //Leave IPv6 enabled
+  user_pref("network.dns.disableIPv6", false);
+
+  //Reenable search engines
+  user_pref("keyword.enabled", true);
+  //Enable Search Engine suggestion
+  user_pref("browser.search.suggest.enabled", false);
+  user_pref("browser.urlbar.suggest.searches", false);
+  //Disk caching, which might improve performance if enabled.
+  user_pref("browser.cache.disk.enable", false);
+  //Enable favicons, the icons in bookmarks
+  user_pref("browser.shell.shortcutFavicons", true);
+  //Enable Mozilla Container Tabs
+  //Redundant with Total Cookie Protection, but useful if you have multiple accounts
+  //with the same provider (e.g. a work Google account and a personal Google account)
+  user_pref("privacy.userContext.enabled", true);
+  user_pref("privacy.userContext.ui.enabled", true);
+
+  // Strict third party requests, may cause images/video to break.
+  // user_pref("network.http.referer.XOriginPolicy", 2); // too strict
+  user_pref("network.http.referer.XOriginPolicy", 0); // librewolf default
+
+  //Always send a "Do Not Track" signal
+  user_pref("privacy.donottrackheader.enabled", true); // [DEFAULT: false]
+
+  //WebRTC settings, things like video calls
+  // user_pref("media.peerconnection.enabled", false);
+  // Disable Media Plugins
+  // user_pref("media.gmp-provider.enabled", false);
+  // Disable DRM, FCKDRM
+  // user_pref("media.gmp-widevinecdm.enabled", false);
+  user_pref("media.eme.enabled", false);
+  //Autoplaying settings
+  //0=Allow all, 1=Block non-muted media (default), 5=Block all
+  // user_pref("media.autoplay.default", 5);
+  //If some websites REALLY need autoplaying...
+  //0=sticky (default), 1=transient, 2=user
+  // user_pref("media.autoplay.blocking_policy", 2);
+  user_pref("media.autoplay.blocking_policy", 0); // librewolf default
+
+  //Use Disconnect's blocklist to block ads
+  user_pref("browser.contentblocking.category", "strict");
+
+  //Delete cookies on close, but see below to make exceptions
+  /* 2801: delete cookies and site data on exit
+  //* 0=keep until they expire (default), 2=keep until you close Firefox
+  ,* [NOTE] A "cookie" block permission also controls localStorage/sessionStorage, indexedDB,
+  ,* sharedWorkers and serviceWorkers. serviceWorkers require an "Allow" permission
+  ,* [SETTING] Privacy & Security>Cookies and Site Data>Delete cookies and site data when Firefox is closed
+  ,* [SETTING] to add site exceptions: Ctrl+I>Permissions>Cookies>Allow
+  ,* [SETTING] to manage site exceptions: Options>Privacy & Security>Permissions>Settings ***/
+  user_pref("network.cookie.lifetimePolicy", 2);
+  //Disabling disk cache is better, but try this if you like performance
+  // user_pref("privacy.clearsitedata.cache.enabled", true);
+
+  // MISC: restore pages? (unsure)
+  user_pref("browser.startup.page", 3); // 0102
+
+  //Clear data on shutdown
+  user_pref("privacy.sanitize.sanitizeOnShutdown", true);
+  user_pref("privacy.clearOnShutdown.cache", true);     // [DEFAULT: true]
+  user_pref("privacy.clearOnShutdown.cookies", true);   // [DEFAULT: true]
+  user_pref("privacy.clearOnShutdown.history", false);   // [DEFAULT: true]
+  user_pref("privacy.clearOnShutdown.downloads", false); // [DEFAULT: true]
+  user_pref("privacy.clearOnShutdown.formdata", true);  // [DEFAULT: true]
+  user_pref("privacy.clearOnShutdown.sessions", false);  // [DEFAULT: true]
+  user_pref("privacy.clearOnShutdown.offlineApps", false); // [DEFAULT: false]
+  // user_pref("privacy.clearOnShutdown.siteSettings", false); // [DEFAULT: false]
+  // Manual wiping, such as the forget-me-not button
+  user_pref("privacy.cpd.cache", true);    // [DEFAULT: true]
+  user_pref("privacy.cpd.formdata", true); // [DEFAULT: true]
+  user_pref("privacy.cpd.history", true);  // [DEFAULT: true]
+  user_pref("privacy.cpd.sessions", true); // [DEFAULT: true]
+  user_pref("privacy.cpd.offlineApps", false); // [DEFAULT: false]
+  user_pref("privacy.cpd.cookies", false);
+  // user_pref("privacy.cpd.downloads", true); // not used, see note above
+  // user_pref("privacy.cpd.passwords", false); // [DEFAULT: false] not listed
+  // user_pref("privacy.cpd.siteSettings", false); // [DEFAULT: false]
+  // Delete everything ever.
+  user_pref("privacy.sanitize.timeSpan", 0);
+  //Delete history, although might be security theater.
+  //Helps against forensic tools.
+  user_pref("places.history.enabled", true); // [DEFAULT: false]
+
+  //WebGL is a security risk, but sometimes breaks things like 23andMe
+  //or Google Maps (not always).
+  user_pref("webgl.disabled", true);
+
+  //Firefox stores passwords in plain text and obsolete if you use a password manager.
+  //Mozilla also told people to stop using their password manager.
+  user_pref("signon.rememberSignons", false);
+  //Disable Pocket, it's proprietary trash
+  user_pref("extensions.pocket.enabled", false);
+  //Disable Mozilla account
+  user_pref("identity.fxaccounts.enabled", false);
+
+#+end_src
+
+***** arkenfox updater script
+
+#+begin_src sh :tangle .bin/arkenfox-updater.sh :shebang #!/bin/sh
+
+  ## This file is configured in Desktop.org
+
+  profile="jq517rs9.default"
+
+  die() { echo "$*" 1>&2 ; exit 1; }
+
+  # identify and enter the profile directory
+  initial() {
+      # enter firefox directory. if not exists, exit.
+      if [ -d "$HOME/.mozilla/firefox" ]; then
+          cd ~/.mozilla/firefox
+      else
+          die "Firefox is not installed you dummy ;3"
+      fi
+      # print list of firefox profiles
+      echo "profiles dir:"
+      echo "-------------------"
+      ls -1
+      echo "-------------------"
+      # ask if $profile is the correct profile
+      echo "Is \"$profile\" the correct profile? (\"n\" or else)"
+      echo -n "> "
+      read in
+      # if not correct profile, prompt for the full name of the profile
+      if [ "$in" = "n" ]; then
+          echo -en "Enter the name of profile (\"exit\"/\"quit\" if firefox is not installed!):\n> "
+          read profile
+          [ "$profile" = "exit" ] || [ "$profile" = "quit" ] && exit 0
+          echo "NOTE: Make sure to update the script with the default firefox profile!"
+      fi
+      # create profile backup if not already exists
+      if [ "$(ls| grep -c 'backup')" -eq 0 ]; then
+        echo "Missing backup profile, create with Enter..."
+        read in
+        cp -r $profile $profile-backup
+      fi
+      # go to profile dir and exit if incorrect $profile
+      cd $profile || die "bruh wtf, wrong profile: $profile"
+      # symlink user-overrides.js if not already present in profile dir
+      if ! [ -L "$HOME/.mozilla/firefox/$profile/user-overrides.js" ]; then
+        echo "user-overrides.js does not exist, symlinking..."
+        ln -s ~/.bin/user-overrides.js ~/.mozilla/firefox/$profile/user-overrides.js
+      fi
+      # check if user.js and prefsCleaner.sh exist and exit if not
+      [ -e "$HOME/.mozilla/firefox/$profile/user.js" ] || die "user.js doesn't exist, please install first, exiting..."
+      [ -e "$HOME/.mozilla/firefox/$profile/prefsCleaner.sh" ] || die "prefsCleaner.sh doesn't exist, please install first, exiting..."
+  }
+
+  prompt_action() {
+      while : ; do
+        echo "What action would you like to take?"
+        echo "Note: run both scripts if modified user-overrides.js or updated firefox."
+        echo "m|y|1) run updater.sh and prefsCleaner.sh (<default>)"
+        echo "u|2) run only updater.sh"
+        echo "c|3) run only prefsCleaner.sh"
+        echo -n "> "
+        read in
+        [ "$in" = "" ] && in="m"
+        case $in in
+              m|y|1)
+                run_updater
+                run_cleaner
+                exit 0
+                ;;
+              u|2)
+                run_updater
+                exit 0
+                ;;
+              c|3)
+                run_cleaner
+                exit 0
+                ;;
+              ,*)
+                echo "invalid option, try again..."
+                continue
+        esac
+      done
+  }
+
+  run_updater() {
+      ./updater.sh
+  }
+
+  run_cleaner() {
+      echo
+      echo "Make sure Firefox is closed! enter to continue..."
+      read in
+      ./prefsCleaner.sh
+  }
+
+  main() {
+      initial
+      prompt_action
+  }
+
+  main
+
+#+end_src
+
+***** website exceptions list
+
+in personal org document
+
+**** qutebrowser
+
+qutebrowser configuration
+
+#+begin_src python :tangle .config/qutebrowser/config.py
+
+  # Autogenerated config.py
+  #
+  # NOTE: config.py is intended for advanced users who are comfortable
+  # with manually migrating the config file on qutebrowser upgrades. If
+  # you prefer, you can also configure qutebrowser using the
+  # :set/:bind/:config-* commands without having to write a config.py
+  # file.
+  #
+  # Documentation:
+  #   qute://help/configuring.html
+  #   qute://help/settings.html
+
+  # Change the argument to True to still load settings configured via autoconfig.yml
+  config.load_autoconfig(True)
+
+  # Load a restored tab as soon as it takes focus.
+  # Type: Bool
+  c.session.lazy_restore = True
+
+  # Always restore open sites when qutebrowser is reopened. Without this
+  # option set, `:wq` (`:quit --save`) needs to be used to save open tabs
+  # (and restore them), while quitting qutebrowser in any other way will
+  # not save/restore the session. By default, this will save to the
+  # session which was last loaded. This behavior can be customized via the
+  # `session.default_name` setting.
+  # Type: Bool
+  c.auto_save.session = True
+
+  # Automatically start playing `<video>` elements.
+  # Type: Bool
+  c.content.autoplay = False
+
+  # Which cookies to accept. With QtWebEngine, this setting also controls
+  # other features with tracking capabilities similar to those of cookies;
+  # including IndexedDB, DOM storage, filesystem API, service workers, and
+  # AppCache. Note that with QtWebKit, only `all` and `never` are
+  # supported as per-domain values. Setting `no-3rdparty` or `no-
+  # unknown-3rdparty` per-domain on QtWebKit will have the same effect as
+  # `all`. If this setting is used with URL patterns, the pattern gets
+  # applied to the origin/first party URL of the page making the request,
+  # not the request URL. With QtWebEngine 5.15.0+, paths will be stripped
+  # from URLs, so URL patterns using paths will not match. With
+  # QtWebEngine 5.15.2+, subdomains are additionally stripped as well, so
+  # you will typically need to set this setting for `example.com` when the
+  # cookie is set on `somesubdomain.example.com` for it to work properly.
+  # To debug issues with this setting, start qutebrowser with `--debug
+  # --logfilter network --debug-flag log-cookies` which will show all
+  # cookies being set.
+  # Type: String
+  # Valid values:
+  #   - all: Accept all cookies.
+  #   - no-3rdparty: Accept cookies from the same origin only. This is known to break some sites, such as GMail.
+  #   - no-unknown-3rdparty: Accept cookies from the same origin only, unless a cookie is already set for the domain. On QtWebEngine, this is the same as no-3rdparty.
+  #   - never: Don't accept cookies at all.
+  config.set('content.cookies.accept', 'all', 'chrome-devtools://*')
+
+  # Which cookies to accept. With QtWebEngine, this setting also controls
+  # other features with tracking capabilities similar to those of cookies;
+  # including IndexedDB, DOM storage, filesystem API, service workers, and
+  # AppCache. Note that with QtWebKit, only `all` and `never` are
+  # supported as per-domain values. Setting `no-3rdparty` or `no-
+  # unknown-3rdparty` per-domain on QtWebKit will have the same effect as
+  # `all`. If this setting is used with URL patterns, the pattern gets
+  # applied to the origin/first party URL of the page making the request,
+  # not the request URL. With QtWebEngine 5.15.0+, paths will be stripped
+  # from URLs, so URL patterns using paths will not match. With
+  # QtWebEngine 5.15.2+, subdomains are additionally stripped as well, so
+  # you will typically need to set this setting for `example.com` when the
+  # cookie is set on `somesubdomain.example.com` for it to work properly.
+  # To debug issues with this setting, start qutebrowser with `--debug
+  # --logfilter network --debug-flag log-cookies` which will show all
+  # cookies being set.
+  # Type: String
+  # Valid values:
+  #   - all: Accept all cookies.
+  #   - no-3rdparty: Accept cookies from the same origin only. This is known to break some sites, such as GMail.
+  #   - no-unknown-3rdparty: Accept cookies from the same origin only, unless a cookie is already set for the domain. On QtWebEngine, this is the same as no-3rdparty.
+  #   - never: Don't accept cookies at all.
+  config.set('content.cookies.accept', 'all', 'devtools://*')
+
+  # Value to send in the `Accept-Language` header. Note that the value
+  # read from JavaScript is always the global value.
+  # Type: String
+  config.set('content.headers.accept_language', '', 'https://matchmaker.krunker.io/*')
+
+  # User agent to send.  The following placeholders are defined:  *
+  # `{os_info}`: Something like "X11; Linux x86_64". * `{webkit_version}`:
+  # The underlying WebKit version (set to a fixed value   with
+  # QtWebEngine). * `{qt_key}`: "Qt" for QtWebKit, "QtWebEngine" for
+  # QtWebEngine. * `{qt_version}`: The underlying Qt version. *
+  # `{upstream_browser_key}`: "Version" for QtWebKit, "Chrome" for
+  # QtWebEngine. * `{upstream_browser_version}`: The corresponding
+  # Safari/Chrome version. * `{qutebrowser_version}`: The currently
+  # running qutebrowser version.  The default value is equal to the
+  # unchanged user agent of QtWebKit/QtWebEngine.  Note that the value
+  # read from JavaScript is always the global value. With QtWebEngine
+  # between 5.12 and 5.14 (inclusive), changing the value exposed to
+  # JavaScript requires a restart.
+  # Type: FormatString
+  config.set('content.headers.user_agent', 'Mozilla/5.0 ({os_info}) AppleWebKit/{webkit_version} (KHTML, like Gecko) {upstream_browser_key}/{upstream_browser_version} Safari/{webkit_version}', 'https://web.whatsapp.com/')
+
+  # User agent to send.  The following placeholders are defined:  *
+  # `{os_info}`: Something like "X11; Linux x86_64". * `{webkit_version}`:
+  # The underlying WebKit version (set to a fixed value   with
+  # QtWebEngine). * `{qt_key}`: "Qt" for QtWebKit, "QtWebEngine" for
+  # QtWebEngine. * `{qt_version}`: The underlying Qt version. *
+  # `{upstream_browser_key}`: "Version" for QtWebKit, "Chrome" for
+  # QtWebEngine. * `{upstream_browser_version}`: The corresponding
+  # Safari/Chrome version. * `{qutebrowser_version}`: The currently
+  # running qutebrowser version.  The default value is equal to the
+  # unchanged user agent of QtWebKit/QtWebEngine.  Note that the value
+  # read from JavaScript is always the global value. With QtWebEngine
+  # between 5.12 and 5.14 (inclusive), changing the value exposed to
+  # JavaScript requires a restart.
+  # Type: FormatString
+  config.set('content.headers.user_agent', 'Mozilla/5.0 ({os_info}; rv:90.0) Gecko/20100101 Firefox/90.0', 'https://accounts.google.com/*')
+
+  # User agent to send.  The following placeholders are defined:  *
+  # `{os_info}`: Something like "X11; Linux x86_64". * `{webkit_version}`:
+  # The underlying WebKit version (set to a fixed value   with
+  # QtWebEngine). * `{qt_key}`: "Qt" for QtWebKit, "QtWebEngine" for
+  # QtWebEngine. * `{qt_version}`: The underlying Qt version. *
+  # `{upstream_browser_key}`: "Version" for QtWebKit, "Chrome" for
+  # QtWebEngine. * `{upstream_browser_version}`: The corresponding
+  # Safari/Chrome version. * `{qutebrowser_version}`: The currently
+  # running qutebrowser version.  The default value is equal to the
+  # unchanged user agent of QtWebKit/QtWebEngine.  Note that the value
+  # read from JavaScript is always the global value. With QtWebEngine
+  # between 5.12 and 5.14 (inclusive), changing the value exposed to
+  # JavaScript requires a restart.
+  # Type: FormatString
+  config.set('content.headers.user_agent', 'Mozilla/5.0 ({os_info}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99 Safari/537.36', 'https://*.slack.com/*')
+
+  # Load images automatically in web pages.
+  # Type: Bool
+  config.set('content.images', True, 'chrome-devtools://*')
+
+  # Load images automatically in web pages.
+  # Type: Bool
+  config.set('content.images', True, 'devtools://*')
+
+  # Enable JavaScript.
+  # Type: Bool
+  config.set('content.javascript.enabled', True, 'chrome-devtools://*')
+
+  # Enable JavaScript.
+  # Type: Bool
+  config.set('content.javascript.enabled', True, 'devtools://*')
+
+  # Enable JavaScript.
+  # Type: Bool
+  config.set('content.javascript.enabled', True, 'chrome://*/*')
+
+  # Enable JavaScript.
+  # Type: Bool
+  config.set('content.javascript.enabled', True, 'qute://*/*')
+
+  # Enable smooth scrolling for web pages. Note smooth scrolling does not
+  # work with the `:scroll-px` command.
+  # Type: Bool
+  c.scrolling.smooth = True
+
+  ## User Configs -----------------
+
+  # Scale pages and UI better for hidpi
+  # c.zoom.default = "<<get-setting(name="qutebrowser/default-zoom")>>%"
+  # c.fonts.hints = "bold 20pt monospace" # what's this do?
+
+  # Better default fonts
+  # c.fonts.web.family.standard = "Bitstream Vera Sans"
+  # c.fonts.web.family.serif = "Bitstream Vera Serif"
+  # c.fonts.web.family.sans_serif = "Bitstream Vera Sans"
+  # c.fonts.web.family.fixed = "Fira Mono"
+  # c.fonts.statusbar = "18pt Cantarell"
+
+  # Use dark mode where possible
+  c.colors.webpage.darkmode.enabled = True
+  c.colors.webpage.darkmode.policy.images = "never"
+  c.colors.webpage.bg = "black"
+
+  # Automatically turn on insert mode when a loaded page focuses a text field
+  c.input.insert_mode.auto_load = True
+
+  # Edit fields in Emacs with Ctrl+E
+  c.editor.command = ["emacsclient", "+{line}:{column}", "{file}"]
+
+  # Make Ctrl+g quit everything like in Emacs
+  config.bind('<Ctrl-g>', 'leave-mode', mode='insert')
+  config.bind('<Ctrl-g>', 'leave-mode', mode='command')
+  config.bind('<Ctrl-g>', 'leave-mode', mode='prompt')
+  config.bind('<Ctrl-g>', 'leave-mode', mode='hint')
+  config.bind('v', 'spawn ~/.dotfiles/bin/umpv {url}') # overwrites carot/visual
+  config.bind('V', 'hint links spawn ~/.dotfiles/bin/umpv {hint-url}')
+
+  # Tweak some keybindings
+  # config.unbind('d') # Don't close window on lower-case 'd'
+  config.bind('yy', 'yank') # no difference?
+
+  # Vim-style movement keys in command mode
+  config.bind('<Ctrl-j>', 'completion-item-focus --history next', mode='command')
+  config.bind('<Ctrl-k>', 'completion-item-focus --history prev', mode='command')
+
+  # Disable JavaScript for https websites
+  # Type: Bool
+  # config.set('content.javascript.enabled', False, 'https://*/*')
+  # config.set('content.javascript.enabled', False, 'http://*/*')
+
+  # More binding hints here: https://gitlab.com/Kaligule/qutebrowser-emacs-config/blob/master/config.py
+
+#+end_src
+
+** Syncthing
+
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+
+  "syncthing"
+  "syncthing-gtk" ; necessary??
+
+#+end_src
+
+** Dunst
+
+https://github.com/dunst-project/dunst
+
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+
+  "dunst"
+  "libnotify" ; notify-send
+
+#+end_src
+
+** Flatpak
+
+*Actually,* i dont like flatpak, it's bloated as heck. Just use nix instead.
+
+Ok so until i can get nix with firejail to work, i'll have to resort to flatpak.
+(note: flatpak firefox + keepassxc is not good. apparmor for firefox instead? maybe not...)
+
+Debugging librewolf + keepassxc:
+https://github.com/keepassxreboot/keepassxc-browser/issues/1631
+https://unix.stackexchange.com/questions/584521/how-to-setup-firefox-and-keepassxc-in-a-flatpak-and-get-the-keepassxc-browser-ad
+https://github.com/xhorak/firefox-devedition-flatpak/issues/92
+
+*Applications to Install*
+- librewolf? (browser integration is too unreliable... maybe flatseal can save it? use firefox instead?)
+- keepassxc? (No. Browser integration requires complex script. use firejail hack instead)
+- flatseal
+- spotify
+- steam
+- discord?
+
+#+begin_src sh :tangle .bin/flatpak-update :shebang #!/bin/sh
+
+  . ~/.profile
+
+  # setup
+  flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+  # install packages
+  flatpak install --or-update --user \
+        com.github.tchx84.Flatseal \
+        io.gitlab.librewolf-community \
+        com.valvesoftware.Steam \
+        com.discordapp.Discord \
+        com.spotify.Client \
+        org.prismlauncher.PrismLauncher \
+        sh.ppy.osu \
+        fm.reaper.Reaper
+  # us.zoom.Zoom 
+  # org.keepassxc.KeePassXC # broken, better to use raw firefox?
+  # flatpak update (already covered... also doesn't exit after command is done...)
+
+#+end_src
+
+*To fix librewolf keepassxc:*
+(doesn't work...)
+(just use built-in or separate manager? bitwarden? pass?)
+
+#+begin_src shell :tangle no
+
+  sudo flatpak override \
+       --filesystem=xdg-run/app/org.keepassxc.KeePassXC/org.keepassxc.KeePassXC.BrowserServer \
+       io.gitlab.librewolf-community
+
+#+end_src
+
+*Guix Packages*
+
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+
+  "flatpak"
+  "xdg-desktop-portal" ; ?
+  "xdg-desktop-portal-gtk" ; for file manager
+
+#+end_src
+
+** Nix
+
+Maybe copy system crafters method of using flatpaks for proprietary.
+
+Add channel:
+
+#+begin_src conf :tangle .nix-channels
+
+  https://nixos.org/channels/nixpkgs-unstable nixpkgs
+
+#+end_src
+
+Update the channel:
+
+#+begin_src sh :tangle no
+
+  nix-channel --update
+
+#+end_src
+
+Declarative nix-env file:
+https://nixos.org/manual/nixpkgs/stable/#sec-declarative-package-management
+
+To fix bug:
+ restart nix-daemon.
+
+Experimental:
+
+*** config.nix
+
+~sudo herd restart nix-daemon~
+
+#+begin_src conf :tangle .config/nixpkgs/config.nix
+
+  # This is configured in Desktop.org
+  # To update: nix-env -iA nixpkgs.myPackages
+  # with import <nixpkgs> {}; {
+  {
+    packageOverrides = pkgs: with pkgs; {
+      myPackages = pkgs.buildEnv {
+        name = "my-packages";
+        paths = [
+          # librewolf
+          signal-desktop
+          # rust-analyzer-unwrapped
+          rust-analyzer
+          clippy
+          rustfmt
+          # mullvad-vpn
+          gh # github-cli
+          ghidra-bin # hacking
+          # mysql-workbench # python backend
+        ];
+        pathsToLink = [ "/share/man" "/share/doc" "/bin" ];
+        extraOutputsToInstall = [ "man" "doc" ];
+      };
+    };
+    programs.firejail = pkgs: with pkgs; {
+      enable = true;
+      wrappedBinaries = {
+        librewolf = {
+          executable = "${pkgs.librewolf}/bin/librewolf";
+          profile = "${pkgs.firejail}/etc/firejail/librewolf.profile";
+          extraArgs = [
+            # Required for U2F USB stick
+            "--ignore=private-dev"
+            # Enforce dark mode
+            "--env=GTK_THEME=Adwaita:dark"
+            # Enable system notifications
+            "--dbus-user.talk=org.freedesktop.Notifications"
+          ];
+        };
+        signal-desktop = {
+          executable = "${pkgs.signal-desktop}/bin/signal-desktop";
+        profile = "${pkgs.firejail}/etc/firejail/signal-desktop.profile";
+        extraArgs = [
+          # FIXME
+          "--env=LC_ALL=C"
+        ];
+        };
+      };
+    };
+    fonts.fonts = pkgs: with pkgs; [
+      liberation_ttf
+      fira-code
+      fira-code-symbols
+    ];
+  }
+
+#+end_src
+
+*** Nix update script:
+
+#+begin_src sh :tangle .bin/nix-update-packages :shebang #!/bin/sh
+
+  ## edited in Desktop.org
+
+  echo -ne "Update channel? (\"y\" or else)\n> "
+  if [[ "$1" == "y" ]]; then
+      in="y"
+  else
+      read in
+  fi
+  if [[ "$in" == "y" ]]; then
+      echo "Updating channel..."
+      nix-channel --update
+  fi
+
+  nix-env -iA nixpkgs.myPackages
+
+#+end_src
+
+*** configuration.nix (disabled)
+
+#+begin_src conf :tangle no
+
+  # { config, pkgs, ... }:
+
+  {
+    packageOverrides = pkgs: with pkgs; {
+      myPackages = pkgs.buildEnv {
+        name = "my-packages";
+        paths = [
+          librewolf
+          firefox
+          signal-desktop
+  	mullvad-vpn
+        ];
+        pathsToLink = [ "/share/man" "/share/doc" "/bin" ];
+        extraOutputsToInstall = [ "man" "doc" ];
+      };
+    };
+  }
+  #   programs.firejail = pkgs: with pkgs; {
+  #     enable = true;
+  #     wrappedBinaries = {
+  #       librewolf = {
+  #         executable = "${pkgs.librewolf}/bin/librewolf";
+  #         profile = "${pkgs.firejail}/etc/firejail/librewolf.profile";
+  #         extraArgs = [
+  #           # Required for U2F USB stick
+  #           "--ignore=private-dev"
+  #           # Enforce dark mode
+  #           "--env=GTK_THEME=Adwaita:dark"
+  #           # Enable system notifications
+  #           "--dbus-user.talk=org.freedesktop.Notifications"
+  #         ];
+  #       };
+  #       signal-desktop = {
+  #         executable = "${pkgs.signal-desktop}/bin/signal-desktop";
+  #         profile = "${pkgs.firejail}/etc/firejail/signal-desktop.profile";
+  #         extraArgs = [
+  #           # FIXME
+  #           "--env=LC_ALL=C"
+  #         ];
+  #       };
+  #     };
+  #   };
+  # }
+
+#+end_src
+
+** Secure
+
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+
+  "keepassxc"
+  ;; note: firejail is declared in the system configuration
+
+#+end_src
+
+*** Firejail
+**** Long rants
+
+firefox through guix works!!!! But librewolf through nix doesnt...
+
+However, with my script, I cant run firejail with "exec", because of the way guix handles setuid.
+When running firejail from my little script, because I run firejail without exec, some programs (like qutebrowser) dont work. But if i run the contents of my script in an ordinary shell/terminal, it works. I guess running the program with exec is trivial in order for the exported env vars to work properly.
+
+Hi all!
+
+I'm trying to get Firejail, an SUID containerization program, to work on Guix System. I tried finding a workaround but I've reached a dead end. My next steps forward are to study how Nix implements firejail and figure out a workaround, and maybe in the future try to package it myself (though i only started using guix a few months ago, so it might be a while lol).
+
+First and foremost, here's how I set up firejail on my system:
+#+begin_src elisp :tangle no
+  (use-modules (gnu)
+               (gnu system setuid)
+             (gnu packages linux))
+
+  (operating-system
+   (packages (append
+              (list (specification->package "firejail"))
+            %base-packages))
+   (setuid-programs
+    (append (list (setuid-program
+                 (program (file-append firejail "/bin/firejail"))))
+          %setuid-programs)))
+#+end_src
+
+How firejail is run:
+Firejail is run by prepending an executable command with firejail (e.g. "$ firejail qutebrowser").
+
+The issue:
+Running "$ firejail qutebrowser" will print "Error: no suitable qutebrowser executable found". This is because the command "qutebrowser" doesn't point to the qutebrowser executable itself. Rather, it points to a wrapper script that first sets environment variables, then executes the program with exec. For example, running "$ which qutebrowser" points to "h/home/user/.guix-proflie/bin/qutebrowser", which is a wrapper script, and the exec command at the end of the script says "exec -a "$0" "g/gnu/store/hashhashhashhash-qutebrowser-2.5.4/bin/.qutebrowser-real" "$@"". Firejail doesn't seem to work unless the environment variables that come before exec are run, outside of firejail.
+
+Hacky attempt at a workaround:
+I got it to work by first running/exporting all the env vars in the script, then running the exec command at the very bottom with firejail prepended to it ("$ firejail g/gnu/store/hashhashhashhash-qutebrowser-2.5.4/bin/.qutebrowser-real"). And so, my hacky workaround is to make a shell script that extracts the location of the wrapper (using "$ which qutebrowser"), then extracting the contents of that file and executing everything in it except the last line, then run firejail with the path used in the exec command.
+However, I came across several issues. With my script, I cant run firejail with "exec", because of the way guix handles setuid. I'm not sure how trivial this is, but when i try to run qutebrowser, it crashes at startup, unable to locate a library. But if i run the contents of my script in a terminal manually, it works. So the lack of "exec" might be causing issues with the exported env vars in the wrapper script.
+
+Has anyone else got firejail working on Guix System?
+
+Thanks!!
+
+you know what? until they package it, i'll not use firejail. i'll instead use apparmor, but for now, just plain ol firefox with arkenfox (set up next), then keepassxc. both can have issues if either are in a sandbox, so yaya.
+
+It does work on regular Guix packages though!!
+
+maybe can fix by creating a tmp file shellscript, then exec it, and have it run the script as a whole with a small modification at the bottom.
+**** Guix mailing list & Firejail Github show&tell - firejail script
+
+Hi all,
+
+I was able to get Firejail, an SUID containerization program, to work on Guix packages on Guix System. Because of the way Guix System handles setuid permission escalation, I had to create a hacky script for it to work. I'm not sure if anyone's made a better solution than mine, but I couldn't find anything after a long while of searching. So I just wanted to showcase how I got firejail working on Guix packages on Guix System, hoping someone else finds it useful, and whether anyone's created a less ugly solution than mine.
+
+First and foremost, firejail needs to be given setuid permissions with the following:
+#+begin_src elisp :tangle no
+  (setuid-programs
+   (append (list (setuid-program
+                (program (file-append firejail "/bin/firejail"))))
+           %setuid-programs))
+#+end_src
+This depends on (gnu system setuid) and (gnu system linux).
+Firejail also needs to be installed globally and not in a user profile.
+
+The main issues I came across:
+Running "$ firejail qutebrowser" will print "Error: no suitable qutebrowser executable found". This is because the executable "qutebrowser" in the $PATH isn't actually the program binary itself, but rather a wrapper script that sets env-vars first, then executes the binary. I guess firejail expects the executable to be an actual binary and not a wrapper script? A bit strange. The line in the wrapper script that executes the actual binary uses the "exec" command. If I were to simply prepend "firejail" to the exec command body, that doesn't work either. It seems like running firejail using exec doesn't give it proper setuid permissions like usual, when not run using exec.
+
+And so, my solution would be to run that wrapper script like usual, but replace that last line with a regular firejail launch command, not in an "exec" command (I'm not sure what implication this will have, but it seems to work fine. I have a script below that does this.
+
+A small issue that appeared was firejail not finding xdg-dbus-proxy, despite it being installed. It seems like firejail checks /usr/bin for xdg-dbus-proxy, not $PATH for some reason, so you have to symlink it to /usr/bin. I do something like "sudo ln -s $(which xdg-dbus-proxy) /usr/bin/xdg-dbus-proxy". That way you can get dbus filtering through xdg-dbus-proxy.
+There were a few other minor issues (that may be trivial), like:
+"Error: dumpable process"
+"Remove read permission on fseccomp executable"
+"Warning: cannot find /var/run/utmp"
+"Remove read permission on fsec-optimize executable"
+
+**** firejail runscript for Guix packages (and Nix?)
+
+Here are the debug logs i saw that seemed slightly unusual/problematic (running Firefox in firejail):
+#+begin_example
+Warning: /usr/bin/xdg-dbus-proxy was not found, downgrading dbus-user policy to allow.
+To enable DBus filtering, install xdg-bus-proxy program.
+Ignoring "dbus-user.talk org.freedesktop.Notifications" and 3 other dbus-user filter rules.
+Error: dumpable process
+Remove read permission on fseccomp executable
+Warning: cannot find /var/run/utmp
+Remove read permission on fsec-optimize executable
+#+end_example
+
+Ways to improve script below:
+- create two arrays, keep adding parameters to first array. If "--" exists, add the rest to the second array. if second array is empty, set the first array to program and parameters, and set $program to first element, shift array, then set to program parameters only. If "--" exists, set first array to firejail params, then the second array as program and parameters only. Then repeat what happened earlier.
+- i actually dont need the separator. just append it all to firejail.
+
+#+begin_src shell :tangle no 
+
+  ## NOTE: parameters like --ignore="net eth0" will not work.
+  #  it will be interpreted to ( --ignore=net eth ).
+
+  ## This one is too complex... share the other one.
+
+  # create a tmpfile and delete if exit
+  tmpfile=$(mktemp)
+  trap 'rm -f "$tmpfile"' EXIT
+
+  die() { echo -e "\n$* exiting..." 1>&2 ; exit 1; }
+
+  params=( "$@" )
+
+  # process parameters
+  process_params() {
+      # panic if no params
+      [ "${#params[@]}" -eq 0 ] && die "no inputs provided."
+      # go through each param to identify firejail --profile and program name/path
+      local count=0
+      for i in "${params[@]}"; do
+  	# if match, use explicit firejail --profile=$(params[count])
+  	if [ "$(echo $i| grep -c -- '--profile=')" -eq 1 ]; then
+              profile="$i"
+  	    params[count]="" # get rid of arg from params bc $profile will prepend it
+  	fi
+  	# first non-arg (regex: '[^-]') is program name/path
+  	if [ "$(echo $i| grep -c '^[^-]')" -eq 1 ]; then
+              program="$i"
+  	    paramsProgramIndex=$count # later replace element with $binaryPath 
+              break; # can break bc "--profile=" shouldn't appear after $program
+  	fi
+  	(( count++ ))
+      done
+      # panic if program couldn't be identified
+      [ "$program" = "" ] && die "no program name or path supplied."
+      # automatically define --profile=<program> if not in params
+      if [ "$profile" = "" ]; then
+  	profile="--profile=$(basename $(which $program))"
+      fi
+  }
+
+  # identify wrapper script and copy it to tmpfile
+  copy_script() {
+      # not sure if this is necessary but might as well
+      # [ -f "$HOME/.profile" ] && . ~/.profile
+      # get path to wrapper script
+      wrapperPath=$(which "$program") || die "program not found in path."
+      # copy script to tmpfile
+      cp $wrapperPath $tmpfile || die "cant copy wrapper script to tmpfile."
+  }
+
+  # modify the copied wrapper script to work properly
+  modify_script() {
+      # identify path to program binary
+      binaryPath=$(cat $tmpfile | grep '^exec' | grep -o '/gnu/store/[^\"]*')
+      [ "$binaryPath" = "" ] && die "exec command not found in \"$wrapperPath\"!"
+      params[paramsProgramIndex]=$binaryPath
+
+      # replace exec command in wrapper script with new firejail run prompt 
+      firejailRunPrompt="firejail $profile ${params[@]}"
+      sed -i "s|^exec.*|$firejailRunPrompt|" $tmpfile
+      
+      echo "debug: $firejailRunPrompt"
+
+      # execute
+      sh $tmpfile
+  }
+
+  ## Main
+  process_params
+  copy_script
+  modify_script
+
+#+end_src
+
+*Old script*
+
+#+begin_src shell :tangle .bin/firejail-guix-run :shebang #!/bin/sh
+
+  ## Improved version of firejail-guix-run
+  # Note: quotes in params dont work, and you need to
+  # enter "--" to separate firejail params from program params.
+
+  # create a tmpfile and delete if exit
+  tmpfile=$(mktemp)
+  trap 'rm -f "$tmpfile"' EXIT
+
+  die() { echo -e "\n$* exiting..." 1>&2 ; exit 1; }
+
+  params=( "$@" )
+
+  # process parameters
+  process_params() {
+      # panic if no params
+      [ "${#params[@]}" -eq 0 ] && die "no inputs provided."
+      # if a separator "--" exists in the params, forward the params
+      # that come before it to firejail and after it to the program.
+      paramsForFirejail=()
+      paramsForProgram=()
+      # if "--" does NOT exist in list of params:
+      if ! $(printf '%s\0' '${params[@]}' | grep -Fxqz -- '--'); then
+  	for i in "${params[@]}"; do
+  	    paramsForProgram+=($i)
+  	done
+      else
+  	local passedSeparator=false
+  	for i in "${params[@]}"; do
+  	    if [ "$i" = "--" ]; then
+  		passedSeparator=true
+  		continue;
+  	    fi
+  	    # if loop passed the separator, add to program params.
+  	    if [ "$passedSeparator" = false ]; then
+  		paramsForFirejail+=($i)
+  	    else
+  		paramsForProgram+=($i)
+  	    fi
+    	done
+      fi
+      # get the program name
+      programName="${paramsForProgram[0]}"
+      # shift the values to get rid of program name from parameters
+      paramsForProgram=("${paramsForProgram[@]:1}")
+  }
+
+  # manage if params contains --profile
+  input_profile() {
+      profile=$(printf '%s\0' '${params[@]}' | grep -Fxz -- '--profile=.*')
+      if [ "$profile" = "" ]; then
+  	profile="--profile=$(basename $(which $programName))"
+      fi
+  }
+
+  # identify wrapper script and copy it to tmpfile
+  copy_script() {
+      # not sure if this is necessary but might as well
+      # [ -f "$HOME/.profile" ] && . ~/.profile
+      # get path to wrapper script
+      wrapperPath=$(which "$programName") || die "program not found in path."
+      # copy script to tmpfile
+      cp $wrapperPath $tmpfile || die "cant copy wrapper script to tmpfile."
+  }
+
+  # modify the copied wrapper script to work properly
+  modify_script() {
+      # identify path to program binary
+      binaryPath=$(cat $tmpfile | grep '^exec' | grep -o '/gnu/store/[^\"]*') \
+  	|| die "exec not found in script."
+      [ "$binaryPath" = "" ] && die "exec command not found in \"$wrapperPath\"!"
+
+      # replace exec command in wrapper script with new firejail run prompt 
+      firejailRunPrompt="firejail --profile=$programName ${paramsForFirejail[@]} -- $binaryPath ${paramsForProgram[@]}"
+      sed -i "s|^exec.*|$firejailRunPrompt|" $tmpfile
+
+      # execute
+      sh $tmpfile
+  }
+
+  ## Main
+  process_params
+  input_profile
+  copy_script
+  modify_script
+
+#+end_src
+
+*Old script*
+
+#+begin_src shell :tangle no
+
+  ## A basic script that runs a program installed through Guix
+  ## in Firejail.
+  ## Usage example: "firejail-guix-run qutebrowser"
+  ## To Note: firejail must first have setuid permissions
+  ## (https://guix.gnu.org/manual/en/html_node/Setuid-Programs.html)
+
+  die() { echo "$*" 1>&2 ; exit 1; }
+
+  program="$1"
+  if [ $# -eq 0 ]; then
+      die "no inputs provided. exiting..."
+  fi
+
+  # not sure if this is necessary but might as well
+  . ~/.profile
+
+  # get path to wrapper script
+  wrapperPath=$(which "$program") || die "program not found in path, exiting..."
+
+  # go through each line in wrapper script with loop and execute
+  while read line; do
+      if [ "$(echo $line| grep -c '^#!.*')" -eq 1 ]; then
+  	continue ## skip shebang
+      elif [ "$(echo $line| grep -c '^exec.*')" -eq 1 ]; then
+  	binPath=$(echo $line| grep -o '/gnu/store/[^\"]*')
+  	# ^extracts path to the actual program binary
+      else
+  	$line # execute line of script
+      fi
+  done < $wrapperPath # load script into loop
+
+  # if no binPath found in exec statement, then exit
+  if [ "$binPath" = "" ]; then
+      die "exec command not found in \"$wrapperPath\"! exiting..."
+  fi
+
+  # shift parameters over by one so that $1 (e.g. 'qutebrowser')
+  # wont be included in $@
+  shift
+  # note: using exec will make firejail setuid complain
+  firejail --profile=$program $binPath "$@"
+
+#+end_src
+
+*original*
+
+#+begin_src shell :tangle no
+
+  echo "Note: this script does not work for Nix packages, only Guix, for now..."
+
+  program="$1"
+  if [ $# -eq 0 ]; then
+      echo "no inputs provided. exiting..."
+      exit 1
+  fi
+
+  . ~/.profile
+
+  whichPath=$(which "$program") \
+      || echo "program not found in path, exiting..." || exit 1;
+
+  # determine if the package is a nix program
+  if [ "$(echo $whichPath| grep -c 'nix-profile')" -ge 1 ]; then
+      isNixPackage=1
+  else
+      isNixPackage=0
+  fi
+
+  # go through each line in wrapper script with loop
+  while read line; do
+      if [ "$(echo $line| grep -c '^exec.*')" -eq 1 ]; then
+        runPath=$(echo $line| grep -o '/gnu/store/[^\"]*')
+      elif [ "$(echo $line| grep -c '^#!.*')" -eq 1 ]; then
+        continue # skip shebang
+      elif [ "$isNixPackage" -eq 1 ]; then
+        bash -e $line
+      else
+        $line
+      fi
+  done < $whichPath # load script into loop
+
+  ## debug
+  echo "debug: wrapper path: $whichPath"
+  echo "debug: exec path: $runPath"
+
+  # if no exec match made in loop, then exit
+  if [ "$runPath" = "" ]; then
+      echo "exec command not found in \"$whichPath\"! exiting..."
+      exit 1
+  fi
+
+  # shift parameters over by one so that $1 (e.g. 'qutebrowser')
+  # wont be included in $@
+  shift
+  # note: using exec will make firejail setuid complain
+  firejail --profile=$program $runPath "$@"
+
+#+end_src
+
+**** disable-common.local
+
+#+begin_src conf-unix :tangle .config/firejail/disable-common.local
+
+  blacklist ${HOME}/Documents/secure
+  blacklist ${HOME}/School/school/Important-docs
+
+#+end_src
+
+**** keepassxc.local
+
+#+begin_src conf-unix :tangle .config/firejail/keepassxc.local
+
+  ## Browser Integration
+  # So can access database and keyfile
+  noblacklist ${HOME}/Documents/secure
+  # Allow browser profile, required for browser integration (i think)
+  # noblacklist ${HOME}/.librewolf
+  # On github wiki for needed
+  noblacklist ${RUNUSER}/app
+  #
+  ##
+
+  ## ETC
+  #
+  #dbus-user.talk org.freedesktop.secrets
+  #
+  dbus-user.talk org.freedesktop.Notifications
+  #
+  ##
+
+#+end_src
+
+**** librewolf.local
+
+#+begin_src conf-unix :tangle .config/firejail/librewolf.local
+
+  #whitelist ${RUNUSER}/run/user/$UID/librewolf
+
+  ## KeepassXC browser integration
+  noblacklist ${RUNUSER}/app
+  whitelist ${RUNUSER}/kpxc_server
+  whitelist ${RUNUSER}/org.keepassxc.KeePassXC.BrowserServer
+  #
+  noblacklist ${HOME}/.mozilla
+  whitelist ${HOME}/.mozilla
+  #
+  noblacklist ${HOME}/Documents/secure
+  #
+
+  ## ETC
+  #
+  # native notifications
+  dbus-user.talk org.freedesktop.Notifications
+  #
+  # inhibiting screensavers
+  dbus-user.talk org.freedesktop.ScreenSaver
+
+#+end_src
+
+**** firefox.profile
+
+#+begin_src conf-unix :tangle .config/firejail/firefox.local
+
+  ## KeepassXC browser integration
+  noblacklist ${RUNUSER}/app
+  whitelist ${RUNUSER}/kpxc_server
+  whitelist ${RUNUSER}/org.keepassxc.KeePassXC.BrowserServer
+
+  ## ETC
+  #
+  # native notifications
+  dbus-user.talk org.freedesktop.Notifications
+  #
+  # inhibiting screensavers
+  dbus-user.talk org.freedesktop.ScreenSaver
+
+  # fixes sound?
+  # include firefox-common-addons.profile
+  # whitelist ${RUNUSER}/pulse
+  # ignore whitelist ${RUNUSER}/*firefox*
+
+#+end_src
+
+**** firefox-common-addons.profile
+
+#+begin_src conf-unix :tangle .config/firejail/firefox-common-addons.local
+
+  # fixes audio problem
+  # whitelist ${RUNUSER}/pulse
+
+#+end_src
+
+**** steam.local
+
+#+begin_src conf-unix :tangle .config/firejail/steam.local
+
+  #ignore seccomp
+
+  # private-bin is disabled while in testing, but is known to work with multiple games.
+  # Add the next line to your steam.local to enable private-bin.
+  #private-bin awk,basename,bash,bsdtar,bzip2,cat,chmod,cksum,cmp,comm,compress,cp,curl,cut,date,dbus-launch,dbus-send,desktop-file-edit,desktop-file-install,desktop-file-validate,dirname,echo,env,expr,file,find,getopt,grep,gtar,gzip,head,hostname,id,lbzip2,ldconfig,ldd,ln,ls,lsb_release,lsof,lspci,lz4,lzip,lzma,lzop,md5sum,mkdir,mktemp,mv,netstat,ps,pulseaudio,python*,readlink,realpath,rm,sed,sh,sha1sum,sha256sum,sha512sum,sleep,sort,steam,steamdeps,steam-native,steam-runtime,sum,tail,tar,tclsh,test,touch,tr,umask,uname,update-desktop-database,wc,wget,wget2,which,whoami,xterm,xz,zenity
+
+  # To view screenshots add the next line to your steam.local.
+  #private-bin eog,eom,gthumb,pix,viewnior,xviewer
+
+#+end_src
+
+* Desktop Guix profile
+
+*.config/guix/manifests/desktop.scm:*
+
+#+begin_src scheme :tangle .config/guix/manifests/desktop.scm :noweb yes
+
+  (specifications->manifest
+   '(
+     <<packages>>
+     ))
+
+#+end_src
+
+* Workstation Guix profile
+
+*.config/guix/manifests/workstation.scm:*
+
+#+begin_src scheme :tangle .config/guix/manifests/workstation.scm :noweb yes
+
+  (specifications->manifest
+   '(
+     <<workstation>>
+     ))
+
+#+end_src
+
+* Provide the ri-desktop package
+
+#+begin_src emacs-lisp
+
+  ;; THIS DOESN'T WORK!
+  (provide 'ri-desktop)
+
+#+end_src

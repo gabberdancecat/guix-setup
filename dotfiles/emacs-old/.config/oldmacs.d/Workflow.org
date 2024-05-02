@@ -1,0 +1,385 @@
+#+Title: Workflow.el
+#+PROPERTY: header-args:emacs-lisp :tangle ./lisp/ri-workflow.el
+#+startup: content
+#+auto_tangle: t
+
+* Info
+
+[[https://zettelkasten.de/posts/overview/][The Zettelkasten method (introduction)]]
+[[https://karl-voit.at/2020/05/03/current-org-files/][UOMF: My current org mode files and heading structure (w/ explanations)]]
+[[https://karl-voit.at/2020/01/20/start-using-orgmode/][UOMF: How to start with Emacs Org mode (organizational advice and technique for organizing)]]
+
+* Help
+
+- TODO: 
+ - flag icon w/colors to priorities.
+
+- ~C-c C-t~ - todo - ~SPC o t~
+- ~C-c C-s~ - schedule - ~SPC o s~
+- ~C-c C-d~ - deadline - ~SPC o d~
+- ~C-c ,~ - priority - ~SPC o ,~ (bad keybind... "SPC o p p" ?)
+
+- =org-todo-list= - all todo items (even items w/no schedule)
+
+* set org-directory
+
+#+begin_src emacs-lisp
+
+  (setq org-directory "~/Notes")
+
+#+end_src
+
+* helper functions
+
+#+begin_src emacs-lisp
+
+#+end_src
+
+* Configuring Org-Agenda:
+
+** general settings
+
+agenda query (custom-agenda-views) documentation: https://orgmode.org/manual/Custom-Agenda-Views.html#Custom-Agenda-Views
+
+org agenda stuff
+- when in agenda-commands view, C-n and C-p to move up and down
+  - how to move up and down in other views? change size so can see more?
+
+#+begin_src emacs-lisp
+
+  ;; --- org-agenda ------
+  (setq org-deadline-warning-days 14
+        org-agenda-start-with-log-mode t ; enable log-mode by def
+        org-log-done 'time
+        org-log-into-drawer t) ; ?
+
+  ;; --- agenda files ------ (turn this into a flet func?)
+  (setq org-agenda-files (directory-files-recursively "~/Notes/School/classes/current/" "\\.org$"))
+
+  (let ((files (append (list ;; "~/Notes/org/"
+                             "~/Notes/School/"
+                             "~/Notes/School/classes/")
+                       (mapcar #'file-name-directory
+                               (directory-files-recursively 
+                                "~/Notes/School/classes/current/" "\\.org$")))))
+    (setq org-agenda-files
+          (delete nil
+                  (delete-dups
+                   (mapcar (lambda (file)
+                             (if (f-dir-p file)
+                                 file))
+                           files)))))
+
+  (defvar ri/agenda.org "~/Notes/org/agenda.org") ; just extra
+
+#+end_src
+
+** todo keywords/states
+
+"!" - time stamp
+"@" - note entry
+"@/!" - note when entering state, time stamp when leaving state.
+
+#+begin_src emacs-lisp
+
+  ;; --- todo keywords ------
+  (setq org-todo-keywords '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)")))
+  ;; (setq org-todo-keywords
+  ;;       '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)")
+  ;;         (sequence "BACKLOG(b)" "PLAN(p)" "READY(r)" "ACTIVE(a)" "REVIEW(v)" "WAIT(w@/!)" "HOLD(h)" "|" "COMPLETED(c)" "CANC(k@)")))
+
+#+end_src
+
+** org-tags
+
+to add tags to a heading,
+- org-set-tags-command
+  - C-c C-q / C-c o q
+
+#+begin_src emacs-lisp
+
+  ;; --- commonly known tasks to appear when counsel-org-tag ------
+  ;; org-set-tags-command ?
+  (setq org-tag-alist
+        '((:startgroup)
+          ;; Put mutually exclusive tags here
+          (:endgroup)
+          ("habit" . ?h)
+          ("daily" . ?d)
+          ("event" . ?e)
+          ("assignment" . ?a)
+          ;; ("personal" . ?p)
+          ("Math" . ?m)
+          ("CS" . ?c)
+          ("Cyber" . ?C)
+          ("Presentation" . ?p)
+          ("Other" . ?o)
+          ))
+
+  ;; ("@errand" . ?E)
+  ;; ("@home" . ?H)
+  ;; ("@work" . ?W)
+  ;; ("agenda" . ?a)
+  ;; ("planning" . ?p)
+  ;; ("daily" . ?d)
+  ;; ("publish" . ?P)
+  ;; ("batch" . ?b)
+  ;; ("note" . ?n)
+  ;; ("idea" . ?i)
+
+  (setq org-agenda-tags-column 0)
+
+#+end_src
+
+** custom agenda views
+
+#+begin_src emacs-lisp
+
+  ;; --- Custom Agenda Views! ------
+  ;; (easier with org-ql)
+  (setq org-agenda-custom-commands
+        '(("d" "Dashboard"
+           ((agenda "" ((org-deadline-warning-days 7)))
+            (todo "NEXT"
+                  ((org-agenda-overriding-header "Next Tasks")))
+            (tags-todo "agenda/ACTIVE" ((org-agenda-overriding-header "Active Projects")))))
+
+          ("n" "Next Tasks"
+           ((todo "NEXT"
+                  ((org-agenda-overriding-header "Next Tasks")))))
+
+          ;; ("W" "Work Tasks" tags-todo "+work-email")
+
+          ;; Low-effort next actions
+          ("e" tags-todo "+TODO=\"NEXT\"+Effort<15&+Effort>0"
+           ((org-agenda-overriding-header "Low Effort Tasks")
+            (org-agenda-max-todos 20)
+            (org-agenda-files org-agenda-files)))
+
+          ;; ("w" "Workflow Status"
+          ;;  ((todo "WAIT"
+          ;;         ((org-agenda-overriding-header "Waiting on External")
+          ;;          (org-agenda-files org-agenda-files)))
+          ;;   (todo "REVIEW"
+          ;;         ((org-agenda-overriding-header "In Review")
+          ;;          (org-agenda-files org-agenda-files)))
+          ;;   (todo "PLAN"
+          ;;         ((org-agenda-overriding-header "In Planning")
+          ;;          (org-agenda-todo-list-sublevels nil)
+          ;;          (org-agenda-files org-agenda-files)))
+          ;;   (todo "BACKLOG"
+          ;;         ((org-agenda-overriding-header "Project Backlog")
+          ;;          (org-agenda-todo-list-sublevels nil)
+          ;;          (org-agenda-files org-agenda-files)))
+          ;;   (todo "READY"
+          ;;         ((org-agenda-overriding-header "Ready for Work")
+          ;;          (org-agenda-files org-agenda-files)))
+          ;;   (todo "ACTIVE"
+          ;;         ((org-agenda-overriding-header "Active Projects")
+          ;;          (org-agenda-files org-agenda-files)))
+          ;;   (todo "COMPLETED"
+          ;;         ((org-agenda-overriding-header "Completed Projects")
+          ;;          (org-agenda-files org-agenda-files)))
+          ;;   (todo "CANC"
+          ;;         ((org-agenda-overriding-header "Cancelled Projects")
+          ;;          (org-agenda-files org-agenda-files)))))
+          ))
+
+#+end_src
+
+** capture templates
+
+Docs: 
+: (helpful-variable 'org-capture-templates)
+- Customize with 'C'
+- (keys, description, type, target, template)
+
+|---------------+---------------------------------------------------------------|
+| Key           |                                                               |
+|---------------+---------------------------------------------------------------|
+| entry         | entry type: subheading (def: "* %?\n %a").                    |
+| item          | entry type: plain list (def: "- %?").                         |
+| <misc>        | checkitem, table-line, plain.                                 |
+|---------------+---------------------------------------------------------------|
+| file+olp      | path,heading1,heading2...                                     |
+| <misc>        | file+headline, file+olp+datetree, file+function, clock, ...   |
+|---------------+---------------------------------------------------------------|
+| :empty-lines  | lines after new item (def: 0, rec: 1).                        |
+| :prepend      | first item, reverse.                                          |
+| <misc>        | :jump-to-captured, :clock-in, ...                             |
+|---------------+---------------------------------------------------------------|
+| %?            | after completing template, position cursor here.              |
+| %t, %T, %U, ^ | timestamp: date+day :: +time :: +inactive :: prompt(%^, ...). |
+| %a, %A, %l    | link to current: desc=heading :: desc=prompt :: desc=literal. |
+| %i            | initial content (text before %i on every line).               |
+| %c, %^C, %x   | kill-ring head :: +interactive :: current clipboard.          |
+| %k, %K        | currently clocked task: title :: link to.                     |
+| %^g, %^G      | prompt for tags, completion in: target file :: all files.     |
+| \%i           | escape, print "%i".                                           |
+| <misc>        | %(sexp), %^{prop}p, %^{prompt}, ...                           |
+|---------------+---------------------------------------------------------------|
+
+#+begin_src emacs-lisp
+
+  ;; --- Org Capture Templates! ------
+  (setq org-default-notes-file "org/misc.org") ; if no path specified below
+  ;; (basically quickly add new entries mindlessly)
+  (setq org-capture-templates
+        `(("t" "Tasks / Projects")
+          ("tt" "Task" entry (file+olp "org/agenda.org" "Main")
+           "* TODO %?\n  %T\n  %i" :empty-lines 1)
+          ("tc" "At-point" entry (file+olp "org/agenda.org" "Main")
+           "* TODO %?\n  %T\n  %a\n  %i" :empty-lines 1)
+          ("tf" "File-task" entry (file+olp ri/agenda.org "Main")
+           "* TODO %?\n  %T\n  %i" :empty-lines 1)
+
+          ("j" "Journal Entries")
+          ("jj" "Journal" entry
+           (file+olp+datetree "org/journal.org")
+           "\n* %<%I:%M %p> - Journal :journal:\n\n%?\n\n"
+           ;; ,(dw/read-file-as-string "~/Notes/Templates/Daily.org")
+           :clock-in :clock-resume
+           :empty-lines 1)
+
+          ("jm" "Meeting" entry
+           (file+olp+datetree "org/journal.org")
+           "* %<%I:%M %p> - %a :meetings:\n\n%?\n\n"
+           :clock-in :clock-resume
+           :empty-lines 1)
+
+          ("w" "Workflows")
+          ("we" "Checking Email" entry (file+olp+datetree "~/Notes/org/journal.org")
+           "* Checking Email :email:\n\n%?" :clock-in :clock-resume :empty-lines 1)
+
+          ("m" "Metrics Capture")
+          ("mw" "Weight" table-line (file+headline "org/metrics.org" "Weight")
+           "| %U | %^{Weight} | %^{Notes} |" :kill-buffer t)))
+
+#+end_src
+
+** org-refile
+
+move this to main Emacs file?
+
+#+begin_src emacs-lisp
+
+  ;; --- org-refile ------
+  ;; (add target locations for org-refile)
+  (setq org-refile-targets
+        '(("Archive.org" :maxlevel . 1)
+          ("work.org" :maxlevel . 1)))
+  ;; save org buffers after refiling!
+  (advice-add 'org-refile :after 'org-save-all-org-buffers)
+
+#+end_src
+
+** org-habit
+
+#+begin_src emacs-lisp
+
+  ;; --- org-habit ------
+  ;; (require 'org-habit)
+  ;; (add-to-list 'org-modules 'org-habit)
+  ;; (setq org-habit-graph-column 60)
+
+#+end_src
+
+* journal
+
+https://github.com/bastibe/org-journal
+
+#+begin_src emacs-lisp
+
+  ;; --- org-journal ------
+  (use-package org-journal
+    :config
+    (setq org-journal-dir "~/Notes/org/journal/"
+          ;; org-journal-date-format "%B %d, %Y (%A) "
+          ;; org-journal-file-format "%Y-%m-%d.org"
+          ))
+
+#+end_src
+
+* Provide ri-workflow
+
+#+begin_src emacs-lisp
+
+  (provide 'ri-workflow)
+
+#+end_src
+
+* WIP
+
+** icalendar
+
+Two methods:
+- native icalendar-import-file to diary :: toggle diary entries in org-agenda-views. can you make it only show diary entries?
+- uhan :: uatnh
+  - :: uhtonuo
+    htuno
+  - uhan
+    - huna
+      hutno
+     Hack to get around issues with this method:
+     
+#+begin_src elisp :tangle no
+
+  (setq tmp-diary (make-temp-file "diary"))
+  (icalendar-import-file "/path/to/office.ics" tmp-diary)
+
+  ;; make it the default...
+  (setq diary-file tmp-diary)
+  ;; so that org-agenda can find it
+  (setq org-agenda-include-diary t)
+
+  ;; delete the tmp diary on exit
+  (add-to-list 'kill-emacs-hook
+    (function
+      (lambda ()
+        (delete-file tmp-diary))))
+
+#+end_src
+
+- use a script that converts icalendar to org file :: more controlled, can apply specific filters to org doc and stuff.
+  [[https://github.com/ical2org-py/ical2org.py][ical2org - github]]
+
+
+#+begin_src emacs-lisp :tangle no
+
+  (require 'icalendar)
+  (let ((file "~/Downloads/fall.ics"))
+    (if (f-file-p file)
+        (icalendar-import-file file (concat user-emacs-directory "/var/diary"))))
+
+  ;; use org-agenda-toggle-diary to toggle
+  (setq org-agenda-include-diary t)
+
+  ;; gnus ical?
+
+#+end_src
+
+** ics2org wrapper script
+
+[[https://orgmode.org/worg/org-tutorials/org-google-sync.html][script expaination site]]
+
+https://github.com/ical2org-py/ical2org.py
+
+#+begin_src emacs-lisp :tangle no
+
+  (setq ics-url "https://calendar.ucf.edu/ical/2023/summer")  ; path to url of ics file
+  (setq ics2org-command "path to ics2org command") ; path to ics2org command (not work on guix?)
+  (setq output-orgfile "")            ; path to org file to export to
+  (setq tmp-icsfile (make-temp-file "icsfile"))  ; output file for wget
+                                            ; instead, check if command is available?
+  (start-process-shell-command
+   "wget ics2org" nil (concat "wget -O " (tmp-icsfile) " " (ics-url)))
+
+  ;; wait till the prev is done (use built in shell func instead?
+  (start-process-shell-command
+   "ics2org convert" nil (concat (ics2org-command) " " (tmp-icsfile) " " (output-orgfile)))
+
+  (delete-file tmp-icsfile)
+
+#+end_src
+
+

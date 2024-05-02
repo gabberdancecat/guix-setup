@@ -1,0 +1,15 @@
+#!/bin/sh
+## edited in Desktop.org
+
+echo -ne "Update channel? (\"y\" or else)\n> "
+if [[ "$1" == "y" ]]; then
+    in="y"
+else
+    read in
+fi
+if [[ "$in" == "y" ]]; then
+    echo "Updating channel..."
+    nix-channel --update
+fi
+
+nix-env -iA nixpkgs.myPackages

@@ -1,0 +1,3 @@
+
+
+alacritty -e bash -c 'pw-jack renoise ; read in ; [ $in = "q" ] && openbox --exit || bash' &
