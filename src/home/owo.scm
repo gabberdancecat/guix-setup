@@ -3,7 +3,7 @@
 (use-modules (src home modules shells) ; bash, aliases
              (src home modules desktop) ; wayland env+theme, pipewire, gpg, fontconfig, nix
              ;; (src home modules system) ; channels
-             ;; (src home modules config) ; dotfiles
+             (src home modules setup) ; dotfiles
              (src home modules renoise) ; renoise(packages)
              ;; depend
              (gnu home)
@@ -25,7 +25,7 @@
             ;; bash+aliases
             my/bash-service
             ;; dotfiles
-            ;; my/setup-service
+            my/setup-service
             )))
 
 ;; Ideas:

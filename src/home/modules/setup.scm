@@ -1,6 +1,8 @@
 (define-module (src home modules setup))
 
-(use-modules (guix utils)
+(use-modules (gnu home services dotfiles)
+             (gnu home services)
+             (guix utils)
              (ice-9 pretty-print))
 
 (export my/setup-service)
@@ -13,11 +15,8 @@
             (home-dotfiles-configuration
              (directories '("../../../dotfiles"))
              (layout 'stow)
-             ;; (packages )
-             ;; (excluded '(".*~" ".*\\.swp" "\\.git" "\\.gitignore" "\\.archive" "\\.files"))
-             ;; (excluded '(".*~" ".*\\.swp"
-             ;;             "\\.gitignore" ".*README\\.org" "\\.stow-local-ignore"
-             ;;             "\\.git" "\\.archive" "\\.files"))
-             ;; xclude "~" tilde files, "." dot files, and README file
-             (excluded '(".*~" "\\..*" "README\\.org")) ; for parent dir of dotfiles dir
-             ))))
+             ;; for parent dir of dotfiles dir
+             (excluded '(".*~" "\\..*" "\\.archive" "\\.files" "README\\.org"))))))
+
+(define my/setup-service
+  (append my-dotfiles-service))

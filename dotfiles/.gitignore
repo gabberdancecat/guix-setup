@@ -28,3 +28,5 @@ tmp/
 
 
 .README.org.old
+
+X-wm/.stumpwm.d/modules/*
