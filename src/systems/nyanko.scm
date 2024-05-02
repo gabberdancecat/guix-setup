@@ -98,15 +98,37 @@ EndSection
 ;;; Services:
 
 (define %my-base-services
-  (modify-services %base-services
-    (sysctl-service-type
-     config => (sysctl-configuration
-                (settings (append '(("vm.swappiness" . "1"))
-                                  %default-sysctl-settings))))))
+  (cons*
+   ;; nonguix substitute server
+   (simple-service 'nonguix-substitute-server
+                   guix-service-type
+                   (guix-extension
+                    (substitute-urls
+                     (append (list "https://substitutes.nonguix.org")
+                             %default-substitute-urls))
+                    (authorized-keys
+                     (append (list nonguix-substitute-server-key)
+                             %default-authorized-guix-keys))))
+   ;; lower swappiness
+   (modify-services %base-services
+     (sysctl-service-type
+      config => (sysctl-configuration
+                 (settings (append '(("vm.swappiness" . "1"))
+                                   %default-sysctl-settings)))))))
 
-(define %my-base-services
+(define %my-session-services
   (cond (ri/use-wayland
-         (cons*
+         ;; delete some from base services, dont return
+         (set! %my-base-services
+           (modify-services %my-base-services
+             ;; greetd-service-type provides "greetd" PAM service
+             (delete login-service-type)
+             ;; and can be used in place of mingetty-service-type
+             (delete mingetty-service-type)
+             ;; delete default fonts
+             (delete console-font-service-type)))
+         ;; return these new services
+         (list
           ;; use custom fonts
           (service console-font-service-type
                    (map (lambda (tty)
@@ -127,222 +149,149 @@ EndSection
                        (terminal-switch #t))
                       ;; Set up remaining TTYs for terminal use
                       (greetd-terminal-configuration (terminal-vt "2"))
-                      (greetd-terminal-configuration (terminal-vt "3")))))))
-         ;; modify base services
-         (modify-services %my-base-services
-           ;; greetd-service-type provides "greetd" PAM service
-           (delete login-service-type)
-           ;; and can be used in place of mingetty-service-type
-           (delete mingetty-service-type)
-           ;; delete default fonts
-           (delete console-font-service-type))))
-  (else
-   
-   ))
-
-
-(define %my-session-services
-  (apply modify-services %base-services
+                      (greetd-terminal-configuration (terminal-vt "3"))))))))
+        ;; NOT wayland:
+        (else
          (list
-          ;; greetd-service-type provides "greetd" PAM service
-          (delete login-service-type)
-          ;; and can be used in place of mingetty-service-type
-          (delete mingetty-service-type)
-          ;; dont use default fonts
-          (delete console-font-service-type)
-          ;; use custom
-          (service console-font-service-type
-                   (map (lambda (tty)
-                          ;; Use a larger font for HIDPI screens
-                          (cons tty (file-append
-                                     font-terminus
-                                     "/share/consolefonts/ter-132n")))
-                        '("tty1" "tty2" "tty3")))
-          ;; greetd-wayland session
-          (service greetd-service-type
-                   (greetd-configuration
-                    (greeter-supplementary-groups (list "video" "input"))
-                    (terminals
-                     (list
-                      ;; TTY1 is the graphical login screen for Sway
-                      (greetd-terminal-configuration
-                       (terminal-vt "1")
-                       (terminal-switch #t))
-                      ;; Set up remaining TTYs for terminal use
-                      (greetd-terminal-configuration (terminal-vt "2"))
-                      (greetd-terminal-configuration (terminal-vt "3")))))))
-         ))
+          ;; login manager
+          (service slim-service-type (slim-configuration
+        		              (display ":0")
+        		              (vt "vt4")
+        		              (xorg-configuration
+                                       (xorg-configuration
+                                        (keyboard-layout my-keyboard-layout)
+                                        ;; IMPORTANT! Libinput.
+                                        (extra-config (list %xorg-libinput-config))))))
+          ;; screen lock
+          (service screen-locker-service-type
+                   (screen-locker-configuration
+                    (name "slock")
+                    (program (file-append slock "/bin/slock"))
+                    (using-pam? #t)
+                    (using-setuid? #t)))))))
 
-(cond (ri/use-wayland
-       ;; greetd-service-type provides "greetd" PAM service
-       (delete login-service-type)
-       ;; and can be used in place of mingetty-service-type
-       (delete mingetty-service-type)
-       ;; dont use default fonts
-       (delete console-font-service-type)
-       ;; use custom
-       (service console-font-service-type
-                (map (lambda (tty)
-                       ;; Use a larger font for HIDPI screens
-                       (cons tty (file-append
-                                  font-terminus
-                                  "/share/consolefonts/ter-132n")))
-                     '("tty1" "tty2" "tty3")))
-       ;; greetd-wayland session
-       (service greetd-service-type
-                (greetd-configuration
-                 (greeter-supplementary-groups (list "video" "input"))
-                 (terminals
-                  (list
-                   ;; TTY1 is the graphical login screen for Sway
-                   (greetd-terminal-configuration
-                    (terminal-vt "1")
-                    (terminal-switch #t))
-                   ;; Set up remaining TTYs for terminal use
-                   (greetd-terminal-configuration (terminal-vt "2"))
-                   (greetd-terminal-configuration (terminal-vt "3")))))))
-      (else
-       ()))
+(define %my-desktop-services
+  (list
+   ;; -- seat management --------
+   ;; cant use seatd bc wireplumber depends on elogind
+   (service elogind-service-type)
+
+   ;; -- Xorg --------
+   ;; NOTE: Requires (keyboard-layout):
+   (service xorg-server-service-type	; maybe solves xinit?
+            (xorg-configuration
+             (keyboard-layout my-keyboard-layout)))
+
+   ;; x11 socked dir for Xwayland
+   (service x11-socket-directory-service-type)
+
+   ;; -- virtualization -------
+   ;; vm libs
+   (service libvirt-service-type
+            (libvirt-configuration
+             (unix-sock-group "libvirt")
+             (tls-port "16555")))
+   ;; docker service
+   (service docker-service-type)
+
+   ;; -- package management -------
+   ;; nix service type
+   (service nix-service-type)
+   
+   ;; -- desktop -------
+   ;; mpd basic setup
+   (service mpd-service-type)          ; doesn't work, didnt pull depend?
+   ;; auto mount usb devices
+   (service udisks-service-type)
+
+   ;; -- application configurations -------
+   ;; pipewire + brightnessctl udev rules
+   (udev-rules-service 'pipewire-add-udev-rules pipewire)
+   (udev-rules-service 'brightnessctl-udev-rules brightnessctl)
+   ;; for firejail
+   (extra-special-file "/usr/bin/xdg-dbus-proxy"
+		       (file-append xdg-dbus-proxy "/bin/xdg-dbus-proxy"))
+   ;; jack realtime mode
+   (service pam-limits-service-type
+            (list
+             (pam-limits-entry "@realtime" 'both 'rtprio 99)
+	     ;; (pam-limits-entry "@realtime" 'both 'nice -19)
+             (pam-limits-entry "@realtime" 'both 'memlock 'unlimited)))))
+
+(define %my-system-services
+  (list
+   ;; -- networking --------
+   ;; network manager
+   (service network-manager-service-type
+            (network-manager-configuration
+             (vpn-plugins (list network-manager-openvpn))))
+   ;; needed for network-manager backend
+   (service wpa-supplicant-service-type)
+   ;; standalone openvpn client
+   ;; (service openvpn-client-service-type)
+   ;; bluetooth for filesharing
+   (service bluetooth-service-type
+            (bluetooth-configuration
+             (privacy 'network/on)))
+
+   ;; -- system services -------
+   ;; polkit (dont exactly know what this does)
+   (service polkit-service-type)       ; unbound variable???
+   ;; dbus system bus?
+   (service dbus-root-service-type)
+
+   ;; -- system optimizations --------
+   ;; power management
+   (service tlp-service-type
+            (tlp-configuration
+             ;; for renoise/music DAW
+             (cpu-scaling-governor-on-ac (list "performance"))
+             (cpu-scaling-governor-on-bat (list "performance"))
+             (energy-perf-policy-on-ac "performance")
+             (energy-perf-policy-on-bat "performance")))
+   ;; cpu frequency scaling
+   (service thermald-service-type
+            (thermald-configuration
+             (adaptive? #t)))
+   ;; weekly SSD-trim
+   (service fstrim-service-type
+            (fstrim-configuration
+             (schedule "0 22 * * 4")))
+   ;; upower, power consumption monitor?
+   (service upower-service-type)
+
+   ;; -- garbage collection -----
+   (simple-service 'system-cron-jobs
+                   mcron-service-type
+                   (list
+                    ;; Run `guix gc' 5 minutes after midnight every day.
+                    ;; Clean up generations older than 2 months and free
+                    ;; at least 10G of space.
+                    #~(job "5 0 * * *" "guix gc -d 2m -F 10G")))))
+
+(define %my-misc-services
+  (list
+   ;; Add whatever below:
+   ;;
+   ;; -- dev/testing ------
+   ;; mysql for testing
+   ;; (service mysql-service-type)
+   ))
 
 (define %my-services
   (append
    ;; list of services for iwlwifi
    %iwlwifi-fix-services
    ;; modify %base-services
-   ;; services
-   (list
-    ;; -- nonguix substitute server -------
-    (simple-service 'nonguix-substitute-server
-                    guix-service-type
-                    (guix-extension
-                     (substitute-urls
-                      (append (list "https://substitutes.nonguix.org")
-                              %default-substitute-urls))
-                     (authorized-keys
-                      (append (list nonguix-substitute-server-key)
-                              %default-authorized-guix-keys))))
-    ;; -- seat management --------
-    ;; cant use seatd bc wireplumber depends on elogind
-    (service elogind-service-type)
-
-    ;; -- Xorg --------
-    ;; NOTE: Requires (keyboard-layout):
-    (service xorg-server-service-type	; maybe solves xinit?
-             (xorg-configuration
-              (keyboard-layout my-keyboard-layout)))
-    ;; login manager
-    (service slim-service-type (slim-configuration 
-        		        (display ":0")
-        		        (vt "vt4")
-        		        (xorg-configuration
-                                 (xorg-configuration
-                                  (keyboard-layout my-keyboard-layout)
-                                  ;; IMPORTANT! Libinput.
-                                  (extra-config (list %xorg-libinput-config))))))
-    ;; screen lock
-    (service screen-locker-service-type
-             (screen-locker-configuration
-              (name "slock")
-              (program (file-append slock "/bin/slock"))
-              (using-pam? #t)
-              (using-setuid? #t)))
-    ;; x11 socked dir for Xwayland
-    (service x11-socket-directory-service-type)
-
-    ;; -- networking --------
-    ;; network manager
-    (service network-manager-service-type
-             (network-manager-configuration
-              (vpn-plugins (list network-manager-openvpn))))
-    ;; needed for network-manager backend
-    (service wpa-supplicant-service-type)
-    ;; standalone openvpn client
-    (service openvpn-client-service-type)
-    ;; bluetooth for filesharing
-    (service bluetooth-service-type
-             (bluetooth-configuration
-              (privacy 'network/on)))
-
-    ;; -- system services -------
-    ;; polkit (dont exactly know what this does)
-    (service polkit-service-type)       ; unbound variable???
-    ;; dbus system bus?
-    (service dbus-root-service-type)
-    
-    ;; -- virtualization -------
-    ;; vm libs
-    (service libvirt-service-type
-             (libvirt-configuration
-              (unix-sock-group "libvirt")
-              (tls-port "16555")))
-    ;; docker service
-    (service docker-service-type)
-
-    ;; -- package management -------
-    ;; nix service type
-    (service nix-service-type)
-    
-    ;; -- system optimizations --------
-    ;; power management
-    (service tlp-service-type
-             (tlp-configuration
-              ;; for renoise/music DAW
-              (cpu-scaling-governor-on-ac (list "performance"))
-              (cpu-scaling-governor-on-bat (list "performance"))
-              (energy-perf-policy-on-ac "performance")
-              (energy-perf-policy-on-bat "performance")))
-    ;; cpu frequency scaling
-    (service thermald-service-type
-             (thermald-configuration
-              (adaptive? #t)))
-    ;; weekly SSD-trim
-    (service fstrim-service-type
-             (fstrim-configuration
-              (schedule "0 22 * * 4")))
-    ;; upower, power consumption monitor?
-    (service upower-service-type)
-
-    ;; -- desktop -------
-    ;; mpd basic setup
-    (service mpd-service-type)          ; doesn't work, didnt pull depend?
-    ;; auto mount usb devices
-    (service udisks-service-type)
-
-    ;; -- application configurations -------
-    ;; pipewire + brightnessctl udev rules
-    (udev-rules-service 'pipewire-add-udev-rules pipewire)
-    (udev-rules-service 'brightnessctl-udev-rules brightnessctl)
-    ;; for firejail
-    (extra-special-file "/usr/bin/xdg-dbus-proxy"
-		        (file-append xdg-dbus-proxy "/bin/xdg-dbus-proxy"))
-    ;; jack realtime mode
-    (service pam-limits-service-type
-             (list
-              (pam-limits-entry "@realtime" 'both 'rtprio 99)
-	      ;; (pam-limits-entry "@realtime" 'both 'nice -19)
-              (pam-limits-entry "@realtime" 'both 'memlock 'unlimited)))
-
-    ;; -- dev/testing ------
-    ;; mysql for testing
-    (service mysql-service-type)
-
-    ;; -- etc -------
-    ;; pulseaudio
-    ;; (service pulseaudio-service-type) ; disable, user-side
-
-    ;; -- garbage collection -----
-    (simple-service 'system-cron-jobs
-                    mcron-service-type
-                    (list
-                     ;; Run `guix gc' 5 minutes after midnight every day.
-                     ;; Clean up generations older than 2 months and free
-                     ;; at least 10G of space.
-                     #~(job "5 0 * * *" "guix gc -d 2m -F 10G")))
-
-    ;; -- Rest -------
-    ;; returns list of services
-    ;; modify %base-services
-    )))
+   %my-base-services
+   ;; Wayland or X
+   %my-session-services
+   ;; general desktop services
+   %my-desktop-services
+   ;; general system services
+   %my-system-services
+   ;; misc services
+   %my-misc-services))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Main system configuration:
@@ -387,7 +336,7 @@ EndSection
 	   ;; wireguard-tools
 	   "wireguard-tools"
 	   ;; slock
-	   "slock" "xss-lock"
+	   ;; "slock" "xss-lock"
 	   ;; stumpwm stuff
 	   "sbcl" ; if stumpwm:lib is in guix-home profile, add "sbcl" in there as well
 	   "stumpwm-with-slynk"
