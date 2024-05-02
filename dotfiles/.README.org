@@ -1,0 +1,24 @@
+#+title: dotfiles!
+
+These are my dotfiles.
+
+Main attractions:
+- Wayland compositor configs
+- X window manager configs
+- all my shellscripts
+- my old emacs configs (obsolete)
+- and more
+
+  
+Some personal notes:
+
+- * Dont use .stow-local-ignore, bc not interoperable with guix home-dotfiles-service!
+  
+- stow commands:
+  - =-n= test
+  - =-D= delete stowed
+  - =-R= restow 
+
+- to stow all:
+  - =stow -nv ./*=
+    =stow ./*=

@@ -25,3 +25,6 @@ tmp/
 
 ## Emacs .gitignore in another file
 
+
+
+.README.org.old
