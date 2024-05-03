@@ -9,14 +9,14 @@
 
 ;; stow dotfiles
 
-(define my-dotfiles-service
-  (list
-   (service home-dotfiles-service-type
-            (home-dotfiles-configuration
-             (directories '("../../../dotfiles"))
-             (layout 'stow)
-             ;; for parent dir of dotfiles dir
-             (excluded '(".*~" "\\..*" "\\.archive" "\\.files" "README\\.org"))))))
+;; (define my-dotfiles-service
+;;   (list
+;;    (service home-dotfiles-service-type
+;;             (home-dotfiles-configuration
+;;              (directories '("../../../dotfiles"))
+;;              (layout 'stow)
+;;              ;; for parent dir of dotfiles dir
+;;              (excluded '(".*~" "\\..*" "\\.archive" "\\.files" "README\\.org"))))))
 
-(define my/setup-service
-  (append my-dotfiles-service))
+;; (define my/setup-service
+;;   (append my-dotfiles-service))

@@ -25,7 +25,7 @@
             ;; bash+aliases
             my/bash-service
             ;; dotfiles
-            my/setup-service
+            ;; my/setup-service
             )))
 
 ;; Ideas:

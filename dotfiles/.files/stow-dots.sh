@@ -1,12 +1,24 @@
 #!/bin/sh
 
 scriptpath=$(realpath "$0")
-scriptdir=$(dirname "$scriptdir")
+scriptdir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+dotfilesdir=$(dirname "$scriptdir")
 
-echo $scriptpath
+echo "> ScriptPath: $scriptpath"
+echo "> ScriptDir: $scriptdir"
+echo "> DotfilesDir: $dotfilesdir"
 
-# stow -nv "$scriptdir/*"
-# stow "$scriptdir/*"
+cd "$dotfilesdir"
 
-echo "incomplete code"
+echo "> Modules:"
+ls
 
+echo -e "> Stow pre:"
+stow -nv *
+
+echo -e "\n> Proceed? (enter to continue, C-c to exit)"
+read stdin
+
+stow *
+
+echo -e "\n> Done!"
