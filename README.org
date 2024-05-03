@@ -1,6 +1,20 @@
-#+TITLE: notes to self
+#+TITLE: Description
 
-* Post-installation
+* GNU Guix System config + misc dotfiles
+
+This repo contains my GNU Guix System configuration, along with various application configs. 
+
+GNU Guix System is a Linux distribution that provides a declarative operating system configuration, just like NixOS. In this repo, I have configs that define everything ranging from system and user-level services, packages separated into manifests, filesystem layout, and much more.
+
+The application configs in this repo include those for several Wayland compositors, several X window managers, sereval old emacs configs (newest one is hosted here: <link>), too many POSIX shellscripts, and etc.
+
+* Info and navigation to parts of repo:
+
+WIP
+
+* Notes to self:
+
+** Post-installation
 
 make sure EVERYTHING is reproducible, in case this happens again
 
@@ -8,7 +22,7 @@ make snapshotting and store integrity-checking system, daily, or at least very f
 
 .guix-profile is never updated, only .guix-extra-profiles. edit the script to ensure that the default profile is being upgraded as well!
 
-* TODO Now
+** TODO Now
 
 - [ ] auto guix upkeep script: verify store integrity, btrfs snapshotting with snapper, make sure guix default profile is being updated, not just the extra profiles (rewrite update script?).
 - [X] move dotfiles to nya guix repo
@@ -28,3 +42,6 @@ Long future:
   - arkenfox-updater, keep expected firefox version in file, compare to output of "firefox --version" | regex !
 - Move some things in .dotfiles into guix-home
 - (l)figure out a way to fix stumpwm root user (get river all set up beforehand)
+- personal website with photos, org mode?
+- sign all commits in emacs repo?
+
