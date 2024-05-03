@@ -1,4 +1,4 @@
-#+TITLE: Description
+#+TITLE: Description:
 
 * GNU Guix System config + misc dotfiles
 
