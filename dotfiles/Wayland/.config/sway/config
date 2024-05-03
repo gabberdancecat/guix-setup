@@ -9,14 +9,16 @@ bindsym $mod+$ctrl+r reload
 
 exec dbus-update-activation-environment SEATD_SOCK DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=sway SDL_VIDEODRIVER=wayland MOZ_ENABLE_WAYLAND=1 QT_QPA_PLATFORM=wayland
 
+# delay: lower = faster
+# rate: higher = faster
 input type:keyboard {
     xkb_layout us,us
     xkb_variant dvp,
     xkb_options ctrl:nocaps,grp:sclk_toggle
-    repeat_delay 220
-    repeat_rate 70
+    repeat_delay 210
+    repeat_rate 80 
 }
-
+	
 input type:touchpad {
     dwt enabled
     tap enabled
@@ -188,7 +190,7 @@ bindsym $mod+space exec fuzzel -w 50 -x 8 -y 8 -r 3 -b 232635ff -t A6Accdff -s A
 
 # Keymaps
 
-set $main_map Launch: [c]application-map, [,]ctrl-map [SPC][e]emacs
+set $main_map Launch: [c]application-map, [,]ctrl-map, [SPC][e]emacs, [n]nm-rofi
 set $application_map Launch: [f]firefox, [p]keepassxc, [d]vencord, [s]spotify, [c]steam, [e]emacs, [r]renoise
 set $ctrl_map Launch: [f]next-song, [b]prev-song
 
@@ -199,6 +201,7 @@ mode "$main_map" {
     bindsym comma mode "$ctrl_map"
     bindsym e exec emacsclient -a '' -c     ; mode "default"
     bindsym Space exec emacsclient -a '' -c ; mode "default"
+    bindsym n exec /home/nya/code/in-use/rofi-network-manager/rofi-network-manager.sh ; mode "default"
     
     bindsym Escape mode "default"
     bindsym Return mode "default"
@@ -270,11 +273,10 @@ for_window [title="^Steam Keyboard$"] floating enable
 output * bg ~/Pictures/Random-images/glt-landscape2.png fill
 
 # autostart applications
-exec waybar
-# exec yambar -c ~/.config/yambar/laptop.yml
+exec_always killall waybar ; waybar
+# exec_always killall yambar ; yambar -c ~/.config/yambar/laptop.yml
 exec mako --border-radius=2 --font="Deva Vu Sans 10" --max-visible=5 --outer-margin=5 --margin=3 --background="#1c1f26" --border-color="#89AAEB" --border-size=1 --default-timeout=7000
 exec nm-applet --indicator
-exec nm-tray
 # exec gammastep-indicator -l 37.983810:23.727539 -t 6500:3500 -b 1.0:0.7
 exec wlsunset -S 08:00 -s 18:30 -t 3000 -T 6500
   

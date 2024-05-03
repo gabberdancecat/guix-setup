@@ -4,8 +4,8 @@
 ;; return a manifest to use by guix custom profile
 (specifications->manifest
  '(;; putting this here fixed some stuff...
-   "emacs"
-   ;; "emacs-pgtk"
+   ;; "emacs"
+   "emacs-pgtk"
    ;; vterm
    "emacs-vterm"
    "cmake"

@@ -230,9 +230,9 @@ EndSection
    ;; standalone openvpn client
    ;; (service openvpn-client-service-type)
    ;; bluetooth for filesharing
-   (service bluetooth-service-type
-            (bluetooth-configuration
-             (privacy 'network/on)))
+   ;; (service bluetooth-service-type
+   ;;          (bluetooth-configuration
+   ;;           (privacy 'network/on)))
 
    ;; -- system services -------
    ;; polkit (dont exactly know what this does)
@@ -282,7 +282,7 @@ EndSection
   (append
    ;; list of services for iwlwifi
    %iwlwifi-fix-services
-   ;; modify %base-services
+   ;; modified %base-services
    %my-base-services
    ;; Wayland or X
    %my-session-services

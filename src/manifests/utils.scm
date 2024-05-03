@@ -68,7 +68,7 @@
 
    ;; Security --
    "pinentry-emacs"
-   "pinentry-rofi" "rofi"
+   "pinentry-rofi" "rofi" "wofi"
    "pinentry-bemenu"
 
    ))

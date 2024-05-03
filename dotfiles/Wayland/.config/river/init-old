@@ -1,45 +1,42 @@
 #!/bin/sh
 
 
+##############
+## Notes:
+##
+## To Add:
+## - lots of extensions & commands to the point where it starts looking like stumpwm.
+## - teleport cursor on focus change
+## - faster grub decryption
+##
+##############
+
+
   ############
 ### Settings ###
   ############
 
 mod="Mod4"
 alt="Mod1"
-riverctl spawn "dbus-update-activation-environment SEATD_SOCK DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=river SDL_VIDEODRIVER=wayland"
+ctrl="Control"
+riverctl spawn "dbus-update-activation-environment SEATD_SOCK DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=river SDL_VIDEODRIVER=wayland MOZ_ENABLE_WAYLAND=1 QT_QPA_PLATFORM=wayland"
 
 ## Color
 riverctl background-color 0x946a90
-riverctl background-color-focused 0x1e9c8f
-riverctl background-color-unfocused 0x040a0a
+# riverctl background-color-focused 0x1e9c8f
+# riverctl background-color-unfocused 0x040a0a
 # 0xbbbbbb
 # 0x946a90
 # 0x222222
 
 ## Keyboard repeat rate?
-riverctl set-repeat 80 220
+riverctl set-repeat 80 210
 
 ## keyboard layout
 riverctl keyboard-layout -variant "dvp," -options "grp:sclk_toggle,ctrl:nocaps" us,us
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  ###########
-### Startup ###
-  ###########
-
-# swaybg
-riverctl spawn "swaybg -m fill -i ~/Pictures/wallpapers/chito-yuu-snow-walk.jpg"
-
-# wlsunset
-# riverctl spawn "killall wlsunset"
-# riverctl spawn "wlsunset"
-
-# waybar
-riverctl spawn "killall waybar"
-riverctl spawn "waybar -c $HOME/.config/waybar/config -s $HOME/.config/waybar/style.css"
-
-
+## tap
+riverctl input "pointer-1267-12864-ELAN0412:00_04F3:3240_Touchpad" tap enabled
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -48,13 +45,19 @@ riverctl spawn "waybar -c $HOME/.config/waybar/config -s $HOME/.config/waybar/st
   ##########
 
 # Exit river
-riverctl map normal $mod+Shift Q exit
+riverctl map normal $mod+Shift q exit
 
-# Reload config
+# hibernate
+riverctl map normal $mod+$ctrl+Shift h spawn loginctl hibernate
+
+# Reload config (instead, create new term with this cmd?)
 riverctl map normal $mod+Shift R spawn "~/.config/river/init"
 
 # bemenu
-riverctl map normal $mod P spawn bemenu-run
+riverctl map normal $mod a spawn bemenu-run
+
+# App launcher
+riverctl map normal $mod g spawn 'fuzzel -w 50 -x 8 -y 8 -r 3 -b 232635ff -t A6Accdff -s A6Accdff -S 232635ff -C c792eacc -m c792eacc -f "Iosevka Aile:weight=light:size=11" --no-fuzzy --icon-theme="Papirus-Dark"'
 
 # lock
 #riverctl map normal $mod+Control L spawn "swaylock" 
@@ -68,32 +71,35 @@ riverctl map normal $mod P spawn bemenu-run
 ### Windows ###
   ###########
 
-# Close current window
-riverctl map normal $mod+Shift C close
-
 # Spawn Terminal
-riverctl map normal $mod Return spawn foot
+riverctl map normal $mod Return spawn alacritty
 
+# Spawn Emacs
+riverctl map normal $mod+Alt c spawn "emacsclient -a '' -c"
+
+# Close current window
+riverctl map normal $mod+$alt d close
 
 # next/previous window in the layout stack
-riverctl map normal $mod K focus-view next
-riverctl map normal $mod J focus-view previous
+riverctl map normal $mod n focus-view next
+riverctl map normal $mod t focus-view previous
 
 # next/previous window SWAP in the layout stack
-riverctl map normal $mod+Shift K swap next
-riverctl map normal $mod+Shift J swap previous
+riverctl map normal $mod+Alt n swap next
+riverctl map normal $mod+Alt t swap previous
+
 
 # ratio decrease/increase increments
-riverctl map normal $mod+Shift L send-layout-cmd rivertile "main-ratio +.05"
-riverctl map normal $mod+Shift H send-layout-cmd rivertile "main-ratio -.05"
+riverctl map normal $mod+Alt b send-layout-cmd rivertile "main-ratio +.05"
+riverctl map normal $mod+Alt m send-layout-cmd rivertile "main-ratio -.05"
 
 
 # Bump to focused view
-riverctl map normal $mod+Shift Return zoom
+riverctl map normal $mod+Alt Return zoom
 
 # count decrement/increment in master-stack.
-#riverctl map normal $mod-Shift # send-layout-cmd rivertile "main-count +1"
-#riverctl map normal $mod-Shift # send-layout-cmd rivertile "main-count -1"
+riverctl map normal $mod+$ctrl n send-layout-cmd rivertile "main-count +1"
+riverctl map normal $mod+$ctrl t send-layout-cmd rivertile "main-count -1"
 
 
 # ? Output? next/previous focus-output?
@@ -110,25 +116,25 @@ riverctl map normal $mod+Shift Return zoom
 # change all to $mod, $alt, and (maybe) $ctrl
 
 # floating mode
-riverctl map normal $mod Space toggle-float
+riverctl map normal Super+Shift Space toggle-float
 
 # Super+Alt+{H,J,K,L} to move views
-#riverctl map normal Super+Alt H move left 100
-#riverctl map normal Super+Alt J move down 100
-#riverctl map normal Super+Alt K move up 100
-#riverctl map normal Super+Alt L move right 100
+riverctl map normal Super+Shift h move left 100
+riverctl map normal Super+Shift t move up 100
+riverctl map normal Super+Shift n move down 100
+riverctl map normal Super+Shift s move right 100
 
 # Super+Alt+Control+{H,J,K,L} to snap views to screen edges
-#riverctl map normal Super+Alt+Control H snap left
-#riverctl map normal Super+Alt+Control J snap down
-#riverctl map normal Super+Alt+Control K snap up
-#riverctl map normal Super+Alt+Control L snap right
+riverctl map normal Super+Shift+Control h snap left
+riverctl map normal Super+Shift+Control t snap up
+riverctl map normal Super+Shift+Control n snap down
+riverctl map normal Super+Shift+Control s snap right
 
 # Super+Alt+Shift+{H,J,K,L} to resize views
-#riverctl map normal Super+Alt+Shift H resize horizontal -100
-#riverctl map normal Super+Alt+Shift J resize vertical 100
-#riverctl map normal Super+Alt+Shift K resize vertical -100
-#riverctl map normal Super+Alt+Shift L resize horizontal 100
+riverctl map normal Super+Alt+Shift h resize horizontal -100
+riverctl map normal Super+Alt+Shift t resize vertical 100
+riverctl map normal Super+Alt+Shift n resize vertical -100
+riverctl map normal Super+Alt+Shift s resize horizontal 100
 
 # Left Mouse drag to move floating windows
 riverctl map-pointer normal $mod BTN_LEFT move-view
@@ -138,24 +144,20 @@ riverctl map-pointer normal $mod BTN_RIGHT resize-view
 
 
 
-
-
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ################
 ### Window Modes ###
   ################
 
 # Fullscreen
-riverctl map normal $mod F toggle-fullscreen
+riverctl map normal $mod f toggle-fullscreen
 
 
 ## Layout Orientation
 riverctl map normal $mod Up send-layout-cmd rivertile "main-location top"
-riverctl map normal $mod Up send-layout-cmd rivertile "main-location right"
-riverctl map normal $mod Up send-layout-cmd rivertile "main-location bottom"
-riverctl map normal $mod Up send-layout-cmd rivertile "main-location left"
-
-
+riverctl map normal $mod Right send-layout-cmd rivertile "main-location right"
+riverctl map normal $mod Down send-layout-cmd rivertile "main-location bottom"
+riverctl map normal $mod Left send-layout-cmd rivertile "main-location left"
 
 
 
@@ -164,41 +166,52 @@ riverctl map normal $mod Up send-layout-cmd rivertile "main-location left"
 ### Tags and Focus ###
   ##################
 
-# next tag
-riverctl map normal $mod L spawn "cycle-focused-tags next 9"
-riverctl map normal $mod H spawn "cycle-focused-tags previous 9"
+tr_num_to_symb_name() {
+    case $1 in
+	1) echo "ampersand" ;;
+	2) echo "bracketleft" ;;
+	3) echo "braceleft" ;;
+	4) echo "braceright" ;;
+	5) echo "parenleft" ;;
+	6) echo "equal" ;;
+	7) echo "asterisk" ;;
+	8) echo "parenright" ;;
+	9) echo "plus" ;;
+	*) echo "ERROR: no symb match" >&2 ;;
+    esac
+}
+
+# next tag (requires riverwm-utils/flow/river-shifttags)
+riverctl map normal $mod+Alt s spawn "cycle-focused-tags next 9"
+riverctl map normal $mod+Alt h spawn "cycle-focused-tags previous 9"
+
 
 for i in $(seq 1 9)
 do
-	tags=$((1 << ($i - 1)))
+    tags=$((1 << ($i - 1)))
+    # TODO: get literal key for dvp layout
+    a=$(tr_num_to_symb_name "$i")
 
-	# change focused tag [0-8]
-	riverctl map normal $mod $i set-focused-tags $tags
+    # change focused tag [0-8]
+    riverctl map normal $mod $a set-focused-tags $tags
 
-	# move to another tag (tag the focused window with tag [0-8])
-	riverctl map normal $mod+Shift $i set-view-tags $tags
+    # move to another tag (tag the focused window with tag [0-8])
+    riverctl map normal $mod+Shift $a set-view-tags $tags
 
-	# view windows of another workspace (add tag [0-8] into current focus)
-	riverctl map normal $mod+Control $i toggle-focused-tags $tags
+    # view windows of another workspace (add tag [0-8] into current focus)
+    riverctl map normal $mod+Control $a toggle-focused-tags $tags
 
-	# toggle tag [0-8] of focused view
-	riverctl map normal $mod+Shift+Control $i toggle-view-tags $tags
+    # toggle tag [0-8] of focused view
+    riverctl map normal $mod+Shift+Control $a toggle-view-tags $tags
 done
 
-# focus all tags
+# View all tags ("0" and "`")
 # tag focused view with all tags
 all_tags=$(((1 << 32) - 1))
-riverctl map normal $mod 0 set-focused-tags $all_tags
-riverctl map normal $mod+Shift 0 set-view-tags $all_tags
-
-
-# View all tags
-# Tag focused view with all tags
-all_tags=$(((1 << 32) - 1))
-###riverctl map normal $mod \` set-focused-tags $all_tags
-###riverctl map normal $mod+Shift \` set-view-tags $all_tags
-
-
+riverctl map normal $mod bracketright set-focused-tags $all_tags
+riverctl map normal $mod+Shift bracketright set-view-tags $all_tags
+riverctl map normal $mod dollar set-focused-tags $all_tags
+riverctl map normal $mod+Shift dollar set-view-tags $all_tags
 
 
 
@@ -212,20 +225,22 @@ all_tags=$(((1 << 32) - 1))
 for mode in normal locked
 do
 	# Audio
-	riverctl map $mode None XF86AudioRaiseVolume spawn 'pactl set-sink-volume @DEFAULT_SINK@ +5%'
-	riverctl map $mode None XF86AudioLowerVolume spawn 'pactl set-sink-volume @DEFAULT_SINK@ -5%'
-	riverctl map $mode None XF86AudioMute		 spawn 'pactl set-sink-mute @DEFAULT_SINK@ toggle'
+	riverctl map $mode None XF86AudioRaiseVolume spawn 'volume-adjust.sh +10%'
+	riverctl map $mode None XF86AudioLowerVolume spawn 'volume-adjust.sh -10%'
+	riverctl map $mode Shift XF86AudioRaiseVolume spawn 'volume-adjust.sh +5%'
+	riverctl map $mode Shift XF86AudioLowerVolume spawn 'volume-adjust.sh -5%'
+	riverctl map $mode None XF86AudioMute spawn 'pactl set-sink-mute @DEFAULT_SINK@ toggle'
 	# Brightness
-	riverctl map $mode None XF86MonBrightnessUp   spawn 'light -A 5'
-	riverctl map $mode None XF86MonBrightnessDown spawn 'light -U 5'
+	riverctl map $mode None XF86MonBrightnessUp spawn 'brightnessctl set 10%+'
+	riverctl map $mode None XF86MonBrightnessDown spawn 'brightnessctl set 10%-'
+	riverctl map $mode Shift XF86MonBrightnessUp spawn 'brightnessctl set 5%+'
+	riverctl map $mode Shift XF86MonBrightnessDown spawn 'brightnessctl set 5%-'
 	# Media
-    #riverctl map $mode None XF86AudioMedia spawn 'playerctl play-pause'
-    #riverctl map $mode None XF86AudioPlay  spawn 'playerctl play-pause'
-    #riverctl map $mode None XF86AudioPrev  spawn 'playerctl previous'
-    #riverctl map $mode None XF86AudioNext  spawn 'playerctl next'
-
+	riverctl map $mode None XF86AudioPlay  spawn 'playerctl play-pause'
 done
 
+riverctl map normal None Print spawn grimshot --notify save area
+riverctl map normal Shift Print spawn grimshot --notify save output
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -251,6 +266,31 @@ done
   ########
 
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  ###########
+### Startup ###
+  ###########
+
+# swaybg (TODO: loop: if pgrep >= 2, delete only newest process, iter.)
+riverctl spawn "swaybg -m fill -i ~/Pictures/wallpapers/chito-yuu-snow-walk.jpg"
+
+# notifications
+riverctl spawn 'mako --border-radius=2 --font="Deva Vu Sans 10" --max-visible=5 --outer-margin=5 --margin=3 --background="#1c1f26" --border-color="#89AAEB" --border-size=1 --default-timeout=7000'
+
+# wlsunset
+riverctl spawn "(($(pgrep -cx wlsunset) > 0)) && killall wlsunset ; \
+wlsunset -S 09:00 -s 18:30 -t 3000 -T 6500"
+
+# waybar
+# riverctl spawn "(($(pgrep -cx waybar) > 0)) && killall waybar ; \
+# waybar -c $HOME/.config/waybar/config -s $HOME/.config/waybar/style.css"
+
+# sandbar
+riverctl spawn "(($(pgrep -cx sandbar) > 0)) && killall sandbar ; \
+$HOME/.config/river/bar"
+riverctl spawn "(($(pgrep -cf "sh.*\.config/river/status") > 0)) && kill $(pgrep -f "sh.*\.config/river/status") ; \
+$HOME/.config/river/status"
+
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ################
@@ -266,11 +306,19 @@ done
 #riverctl csd-filter-add app-id "gedit"
 
 
+riverctl spawn 'gsettings set org.gnome.desktop.interface gtk-theme "Matcha-dark-azul"'
+riverctl spawn 'gsettings set org.gnome.desktop.interface icon-theme "Papirus-Dark"'
+riverctl spawn 'gsettings set org.gnome.desktop.interface font-name "Iosevka Aile 11"'
+
+
 
 
 
 ## Default layout generator
 ##### MOVED TO THE BOTTOM
-riverctl default-layout rivertile
+# riverctl default-layout rivertile
 # rivertile -view-padding 6 -outer-padding 6
+
+riverctl spawn rivertile
+riverctl output-layout rivertile
 

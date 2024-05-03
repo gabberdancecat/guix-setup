@@ -14,11 +14,11 @@ echo "> Modules:"
 ls
 
 echo -e "> Stow pre:"
-stow -nv *
+stow -nv * -t $HOME
 
 echo -e "\n> Proceed? (enter to continue, C-c to exit)"
 read stdin
 
-stow *
+stow * -t $HOME
 
 echo -e "\n> Done!"

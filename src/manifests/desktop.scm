@@ -24,6 +24,8 @@
    "foot"
    "bemenu"
    "yambar-wayland"
+   "sandbar"
+   "swaybg"
 
    ;; Wayland utils --
    "xorg-server-xwayland"

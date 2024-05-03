@@ -1,3 +1,5 @@
+# -*- eval: (variable-pitch-mode 0); -*-
+
 #+TITLE: Description:
 
 * Guix System & various application configs
