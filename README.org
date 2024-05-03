@@ -1,6 +1,6 @@
 #+TITLE: Description:
 
-* GNU Guix System config + misc dotfiles
+* Guix System & various application configs
 
 This repo contains my GNU Guix System configuration, along with various application configs. 
 
