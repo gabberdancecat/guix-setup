@@ -1856,6 +1856,10 @@ works:
 - hibernation, swapfile
 -
 
+*** Modifications
+
+https://linux-blog.anracom.com/2018/11/30/full-encryption-with-luks-sha512-aes-xts-plain64-grub2-really-slow/
+
 *** Repair process
 
 **** Grub rescue

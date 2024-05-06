@@ -62,15 +62,16 @@ for arg in $args; do
 done
 
 ## Check firefox version after update and ask to update if version has changed
-# FirefoxVersion="115.2.0"
-# NewVersion="$(firefox --version)"
-# matches="$(echo '$NewVersion' | grep -c '$FirefoxVersion')"
-# if (( "$matches" = 1 )); then
-#     exit 0
-# else
-#     echo "Update arkenfox? (Y/n)"
-#     read in
-#     if ! [ "$in" = "n" ]; then
-#         [ -f "$HOME/.bin/arkenfox-updater.sh" ] && ~/.bin/arkenfox-updater.sh
-#     fi
-# fi
+FirefoxVersion="125.0.2"
+NewVersion="$(firefox --version)"
+matches="$(echo '$NewVersion' | grep -c '$FirefoxVersion')"
+if (( "$matches" = 1 )); then
+    exit 0
+else
+    echo "Firefox updated!"
+    echo "Update arkenfox? (Y/n)"
+    read in
+    if ! [ "$in" = "n" ]; then
+        ~/.bin/arkenfox-updater.sh
+    fi
+fi

@@ -8,6 +8,11 @@
 ## - lots of extensions & commands to the point where it starts looking like stumpwm.
 ## - teleport cursor on focus change
 ## - faster grub decryption
+## - mod+g for regular map, mod+alt+g for set/toggle map (home row/upper row)
+## - for every map command, analyze the map command, and add it to a special list made for each map/mode, so
+##   can show in pop-ups when accessing maps
+## - instead of executing everything, create a long list of commands and execute all of them at the end?
+## - separate file for functions?
 ##
 ##############
 
@@ -23,8 +28,8 @@ riverctl spawn "dbus-update-activation-environment SEATD_SOCK DISPLAY WAYLAND_DI
 
 ## Color
 riverctl background-color 0x946a90
-# riverctl background-color-focused 0x1e9c8f
-# riverctl background-color-unfocused 0x040a0a
+riverctl border-color-focused 0x1e9c8f
+riverctl border-color-unfocused 0x040a0a
 # 0xbbbbbb
 # 0x946a90
 # 0x222222
@@ -48,16 +53,16 @@ riverctl input "pointer-1267-12864-ELAN0412:00_04F3:3240_Touchpad" tap enabled
 riverctl map normal $mod+Shift q exit
 
 # hibernate
-riverctl map normal $mod+$ctrl+Shift h spawn loginctl hibernate
+riverctl map normal $mod+$ctrl+$alt+Shift h spawn "loginctl hibernate"
 
 # Reload config (instead, create new term with this cmd?)
-riverctl map normal $mod+Shift R spawn "~/.config/river/init"
+riverctl map normal $mod+$ctrl r spawn "~/.config/river/init"
 
 # bemenu
-riverctl map normal $mod a spawn bemenu-run
+riverctl map normal $mod a spawn "bemenu-run"
 
 # App launcher
-riverctl map normal $mod g spawn 'fuzzel -w 50 -x 8 -y 8 -r 3 -b 232635ff -t A6Accdff -s A6Accdff -S 232635ff -C c792eacc -m c792eacc -f "Iosevka Aile:weight=light:size=11" --no-fuzzy --icon-theme="Papirus-Dark"'
+riverctl map normal $mod c spawn 'fuzzel -w 50 -x 8 -y 8 -r 3 -b 232635ff -t A6Accdff -s A6Accdff -S 232635ff -C c792eacc -m c792eacc -f "Iosevka Aile:weight=light:size=11" --no-fuzzy --icon-theme="Papirus-Dark"'
 
 # lock
 #riverctl map normal $mod+Control L spawn "swaylock" 
@@ -72,7 +77,7 @@ riverctl map normal $mod g spawn 'fuzzel -w 50 -x 8 -y 8 -r 3 -b 232635ff -t A6A
   ###########
 
 # Spawn Terminal
-riverctl map normal $mod Return spawn alacritty
+riverctl map normal $mod Return spawn "alacritty"
 
 # Spawn Emacs
 riverctl map normal $mod+Alt c spawn "emacsclient -a '' -c"
@@ -90,8 +95,8 @@ riverctl map normal $mod+Alt t swap previous
 
 
 # ratio decrease/increase increments
-riverctl map normal $mod+Alt b send-layout-cmd rivertile "main-ratio +.05"
-riverctl map normal $mod+Alt m send-layout-cmd rivertile "main-ratio -.05"
+riverctl map normal $mod+Alt h send-layout-cmd rivertile "main-ratio +.05"
+riverctl map normal $mod+Alt s send-layout-cmd rivertile "main-ratio -.05"
 
 
 # Bump to focused view
@@ -105,6 +110,13 @@ riverctl map normal $mod+$ctrl t send-layout-cmd rivertile "main-count -1"
 # ? Output? next/previous focus-output?
 # ? Output? next/previous send-to-output?
 
+# focus the next/previous output
+riverctl map normal $mod+$ctrl b focus-output previous
+riverctl map normal $mod+$ctrl m focus-output next
+
+# send the focused view to the next/previous output
+riverctl map normal $mod+$ctrl+$alt b send-to-output next
+riverctl map normal $mod+$ctrl+$alt m send-to-output previous
 
 
 
@@ -182,8 +194,8 @@ tr_num_to_symb_name() {
 }
 
 # next tag (requires riverwm-utils/flow/river-shifttags)
-riverctl map normal $mod+Alt s spawn "cycle-focused-tags next 9"
-riverctl map normal $mod+Alt h spawn "cycle-focused-tags previous 9"
+riverctl map normal $mod+Alt b spawn "cycle-focused-tags previous 9"
+riverctl map normal $mod+Alt m spawn "cycle-focused-tags next 9"
 
 
 for i in $(seq 1 9)
@@ -196,10 +208,10 @@ do
     riverctl map normal $mod $a set-focused-tags $tags
 
     # move to another tag (tag the focused window with tag [0-8])
-    riverctl map normal $mod+Shift $a set-view-tags $tags
+    riverctl map normal $mod+Control $a set-view-tags $tags
 
-    # view windows of another workspace (add tag [0-8] into current focus)
-    riverctl map normal $mod+Control $a toggle-focused-tags $tags
+    # toggle output tag into current output
+    riverctl map normal $mod+Shift $a toggle-focused-tags $tags
 
     # toggle tag [0-8] of focused view
     riverctl map normal $mod+Shift+Control $a toggle-view-tags $tags
@@ -239,8 +251,8 @@ do
 	riverctl map $mode None XF86AudioPlay  spawn 'playerctl play-pause'
 done
 
-riverctl map normal None Print spawn grimshot --notify save area
-riverctl map normal Shift Print spawn grimshot --notify save output
+riverctl map normal None Print spawn "grimshot --notify save area"
+riverctl map normal Shift Print spawn "grimshot --notify save output"
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -272,24 +284,29 @@ riverctl map normal Shift Print spawn grimshot --notify save output
   ###########
 
 # swaybg (TODO: loop: if pgrep >= 2, delete only newest process, iter.)
-riverctl spawn "swaybg -m fill -i ~/Pictures/wallpapers/chito-yuu-snow-walk.jpg"
+# riverctl spawn "swaybg -m fill -i ~/Pictures/wallpapers/chito-yuu-snow-walk.jpg"
+riverctl spawn "pkill -g \"^swaybg\" ; \
+swaybg -m fill -i ~/Pictures/Random-images/glt-landscape2.png"
 
 # notifications
 riverctl spawn 'mako --border-radius=2 --font="Deva Vu Sans 10" --max-visible=5 --outer-margin=5 --margin=3 --background="#1c1f26" --border-color="#89AAEB" --border-size=1 --default-timeout=7000'
 
 # wlsunset
-riverctl spawn "(($(pgrep -cx wlsunset) > 0)) && killall wlsunset ; \
-wlsunset -S 09:00 -s 18:30 -t 3000 -T 6500"
+riverctl spawn "killall wlsunset ; \
+wlsunset -S 10:00 -s 19:00 -t 3000 -T 6500"
 
 # waybar
 # riverctl spawn "(($(pgrep -cx waybar) > 0)) && killall waybar ; \
 # waybar -c $HOME/.config/waybar/config -s $HOME/.config/waybar/style.css"
 
 # sandbar
-riverctl spawn "(($(pgrep -cx sandbar) > 0)) && killall sandbar ; \
+# riverctl spawn "maybe-kill-run-program.sh '$HOME/.config/river/bar' 1"
+riverctl spawn "pkill -f \"^sandbar\" ; \
 $HOME/.config/river/bar"
-riverctl spawn "(($(pgrep -cf "sh.*\.config/river/status") > 0)) && kill $(pgrep -f "sh.*\.config/river/status") ; \
+riverctl spawn "pkill -f \"^sh.*\.config/river/status\" ; \
 $HOME/.config/river/status"
+# riverctl spawn "(($(pgrep -cf "sh.*\.config/river/status") > 0)) && kill $(pgrep -f "sh.*\.config/river/status") ; \
+# $HOME/.config/river/status"
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -312,13 +329,57 @@ riverctl spawn 'gsettings set org.gnome.desktop.interface font-name "Iosevka Ail
 
 
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  ###########
+### Keymaps ###
+  ###########
+
+riverctl declare-mode main
+riverctl map main None g spawn "emacsclient -a '' -c"
+riverctl map -release main None g enter-mode normal
+riverctl map main None n spawn "/home/nya/code/in-use/rofi-network-manager/rofi-network-manager.sh"
+riverctl map -release main None n enter-mode normal
+
+riverctl map -release main $ctrl g enter-mode normal
+riverctl map -release main None Escape enter-mode normal
+riverctl map -release main None Return enter-mode normal
+
+riverctl map normal $mod g enter-mode main
+
+
+riverctl declare-mode apps
+riverctl map apps None f spawn "firefox"
+riverctl map -release apps None f enter-mode normal
+riverctl map apps None p spawn "firejail keepassxc"
+riverctl map -release apps None p enter-mode normal
+riverctl map apps None d spawn "flatpak run dev.vencord.Vesktop"
+riverctl map -release apps None d enter-mode normal
+riverctl map apps None s spawn "flatpak run com.spotify.Client"
+riverctl map -release apps None s enter-mode normal
+riverctl map apps None c spawn "firejail steam"
+riverctl map -release apps None c enter-mode normal
+riverctl map apps None e spawn "emacsclient -a '' -c"
+riverctl map -release apps None e enter-mode normal
+riverctl map apps None r spawn "firejail pw-jack renoise"
+riverctl map -release apps None r enter-mode normal
+
+riverctl map -release apps $ctrl g enter-mode normal
+riverctl map -release apps None Escape enter-mode normal
+riverctl map -release apps None Return enter-mode normal
+
+riverctl map main None a enter-mode apps
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  ###########
+### Layouts ###
+  ###########
 
 
 ## Default layout generator
 ##### MOVED TO THE BOTTOM
-# riverctl default-layout rivertile
-# rivertile -view-padding 6 -outer-padding 6
+riverctl default-layout rivertile
+rivertile -view-padding 6 -outer-padding 6 &
 
-riverctl spawn rivertile
-riverctl output-layout rivertile
+# riverctl spawn "rivertile"
+# riverctl output-layout rivertile
 

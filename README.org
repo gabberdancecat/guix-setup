@@ -26,24 +26,34 @@ make snapshotting and store integrity-checking system, daily, or at least very f
 
 ** TODO Now
 
-- [ ] auto guix upkeep script: verify store integrity, btrfs snapshotting with snapper, make sure guix default profile is being updated, not just the extra profiles (rewrite update script?).
-- [X] move dotfiles to nya guix repo
-- [ ] complete river config
-- [ ] find the perfect taskbar
-- [ ] vpn shuffle through mullvad vpns, set all to don't autoconnect except one random, will update next wake from sleep
-- [ ] (NEXT WEEK) Create persist subvol from chroot, reconfigure, if work, try adding keyfile in /persist/key-file.cpio, hope it works.
-- [ ] test if zstd format works, only in root subvol (also noatime? what does that even do?)
 - [X] Restore firefox bookmarks and add new ones from other laptop
 - [X] save new nyanko.scm
   - [X] FIX GIT GPG ACCESS
 - [X] create modules for stow dotfiles
 - [X] create script for volume-up key, check if current volume is <= 100, if yes, allow inc script arg amount, check val again, if over 100, set back to 100
+- [X] faster grub decrypt:
+  - [X] make key slot 0 the new primary one, with the preferred password, with iterations 1000.
+  - [X] restart to check.
+  - [X] make key slot 1 the old pass, with iterations 1000.
+  - [X] restart to check.
+  - [X] delete slot 2
+- [X] move dotfiles to nya guix repo
+- [ ] wifi indicator on statusbar
+- [ ] auto guix upkeep script (use fzf!!!!!):
+  - [ ] verify store integrity
+  - [ ] btrfs snapshotting with snapper
+  - [ ] make sure guix default profile is being updated, not just the extra profiles (rewrite update script?).
+- [ ] vpn shuffle through mullvad vpns, set all to don't autoconnect except one random, will update next wake from sleep
+- [ ] complete river config + taskbar
+- [ ] (NEXT WEEK) Create persist subvol from chroot, reconfigure, if work, try adding keyfile in /persist/key-file.cpio, hope it works.
+- [ ] test if zstd format works, only in root subvol (also noatime? what does that even do?)
+- [ ] create package definition for python bemenu script, using nix pkg definition.
 
 Long future:
 - improve and neaten arkenfox overrides into neater form
   - arkenfox-updater, keep expected firefox version in file, compare to output of "firefox --version" | regex !
-- Move some things in .dotfiles into guix-home
 - (l)figure out a way to fix stumpwm root user (get river all set up beforehand)
 - personal website with photos, org mode?
 - sign all commits in emacs repo?
+- create music dir (bandcamp lolecore), have all local music on there, rsync to phone easily (in the future, homelab and stream?).
 

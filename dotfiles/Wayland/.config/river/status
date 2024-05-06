@@ -1,11 +1,13 @@
 #!/usr/bin/env sh
 
-cpu() {
-	cpu="$(grep -o "^[^ ]*" /proc/loadavg)"
-}
+## TODO: wifi module, all-round security checks (vpn,etc)
 
 memory() {
 	memory="$(free -h | sed -n "2s/\([^ ]* *\)\{2\}\([^ ]*\).*/\2/p")"
+}
+
+cpu() {
+	cpu="$(grep -o "^[^ ]*" /proc/loadavg)"
 }
 
 disk() {
@@ -19,6 +21,14 @@ datetime() {
 bat() {
 	read -r bat_status </sys/class/power_supply/BAT0/status
 	read -r bat_capacity </sys/class/power_supply/BAT0/capacity
+	if [ "$bat_status" = "Charging" ]; then
+	    bat_status="+"
+	elif [ "$bat_status" = "Discharging" ]; then
+	    bat_status="-"
+	elif [ "$bat_status" = "Full" ]; then
+	    bat_status="o"
+	fi
+	    
 	bat="$bat_status $bat_capacity%"
 }
 
