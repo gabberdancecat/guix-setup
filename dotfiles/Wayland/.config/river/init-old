@@ -53,16 +53,10 @@ riverctl input "pointer-1267-12864-ELAN0412:00_04F3:3240_Touchpad" tap enabled
 riverctl map normal $mod+Shift q exit
 
 # hibernate
-riverctl map normal $mod+$ctrl+$alt+Shift h spawn "loginctl hibernate"
+riverctl map normal $mod F12 spawn "loginctl hibernate"
 
 # Reload config (instead, create new term with this cmd?)
 riverctl map normal $mod+$ctrl r spawn "~/.config/river/init"
-
-# bemenu
-riverctl map normal $mod a spawn "bemenu-run"
-
-# App launcher
-riverctl map normal $mod c spawn 'fuzzel -w 50 -x 8 -y 8 -r 3 -b 232635ff -t A6Accdff -s A6Accdff -S 232635ff -C c792eacc -m c792eacc -f "Iosevka Aile:weight=light:size=11" --no-fuzzy --icon-theme="Papirus-Dark"'
 
 # lock
 #riverctl map normal $mod+Control L spawn "swaylock" 
@@ -72,9 +66,9 @@ riverctl map normal $mod c spawn 'fuzzel -w 50 -x 8 -y 8 -r 3 -b 232635ff -t A6A
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  ###########
-### Windows ###
-  ###########
+  ###############
+### Basic stuff ###
+  ###############
 
 # Spawn Terminal
 riverctl map normal $mod Return spawn "alacritty"
@@ -82,33 +76,37 @@ riverctl map normal $mod Return spawn "alacritty"
 # Spawn Emacs
 riverctl map normal $mod+Alt c spawn "emacsclient -a '' -c"
 
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  ###########
+### Windows ###
+  ###########
+
 # Close current window
 riverctl map normal $mod+$alt d close
 
-# next/previous window in the layout stack
+# change focus in the layout stack
 riverctl map normal $mod n focus-view next
 riverctl map normal $mod t focus-view previous
 
-# next/previous window SWAP in the layout stack
+# swap in the layout stack
 riverctl map normal $mod+Alt n swap next
 riverctl map normal $mod+Alt t swap previous
 
+# bump to focused view
+riverctl map normal $mod+Alt Return zoom
 
-# ratio decrease/increase increments
+
+# ratio
 riverctl map normal $mod+Alt h send-layout-cmd rivertile "main-ratio +.05"
 riverctl map normal $mod+Alt s send-layout-cmd rivertile "main-ratio -.05"
 
-
-# Bump to focused view
-riverctl map normal $mod+Alt Return zoom
-
-# count decrement/increment in master-stack.
+# change count in master and stack
 riverctl map normal $mod+$ctrl n send-layout-cmd rivertile "main-count +1"
 riverctl map normal $mod+$ctrl t send-layout-cmd rivertile "main-count -1"
 
 
-# ? Output? next/previous focus-output?
-# ? Output? next/previous send-to-output?
+## Outputs? monitors? (only use main map for this thingy...)
 
 # focus the next/previous output
 riverctl map normal $mod+$ctrl b focus-output previous
@@ -125,33 +123,33 @@ riverctl map normal $mod+$ctrl+$alt m send-to-output previous
 ### Floating controls ###
   #####################
 
-# change all to $mod, $alt, and (maybe) $ctrl
+# change all to shift
 
 # floating mode
 riverctl map normal Super+Shift Space toggle-float
 
-# Super+Alt+{H,J,K,L} to move views
+# s-S-{h,t,n,s} to move windows around
 riverctl map normal Super+Shift h move left 100
 riverctl map normal Super+Shift t move up 100
 riverctl map normal Super+Shift n move down 100
 riverctl map normal Super+Shift s move right 100
 
-# Super+Alt+Control+{H,J,K,L} to snap views to screen edges
+# s-S-C-{h,t,n,s} to snap views to screen edges
 riverctl map normal Super+Shift+Control h snap left
 riverctl map normal Super+Shift+Control t snap up
 riverctl map normal Super+Shift+Control n snap down
 riverctl map normal Super+Shift+Control s snap right
 
-# Super+Alt+Shift+{H,J,K,L} to resize views
+# s-S-M-{h,t,n,s} to resize views
 riverctl map normal Super+Alt+Shift h resize horizontal -100
 riverctl map normal Super+Alt+Shift t resize vertical 100
 riverctl map normal Super+Alt+Shift n resize vertical -100
 riverctl map normal Super+Alt+Shift s resize horizontal 100
 
-# Left Mouse drag to move floating windows
+# Left click drag to move floating windows
 riverctl map-pointer normal $mod BTN_LEFT move-view
 
-# Left Mouse drag to resize floating windows
+# Right click drag to resize floating windows (obsolete with keybinds)
 riverctl map-pointer normal $mod BTN_RIGHT resize-view
 
 
@@ -164,13 +162,23 @@ riverctl map-pointer normal $mod BTN_RIGHT resize-view
 # Fullscreen
 riverctl map normal $mod f toggle-fullscreen
 
-
 ## Layout Orientation
 riverctl map normal $mod Up send-layout-cmd rivertile "main-location top"
 riverctl map normal $mod Right send-layout-cmd rivertile "main-location right"
 riverctl map normal $mod Down send-layout-cmd rivertile "main-location bottom"
 riverctl map normal $mod Left send-layout-cmd rivertile "main-location left"
 
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  ##################
+### Window rules ###
+  ##################
+
+# Make all views with an app-id that starts with "float" and title "foo" start floating.
+riverctl rule-add -app-id 'float*' -title 'foo' float
+
+# Make all views with app-id "bar" and any title use client-side decorations
+riverctl rule-add -app-id "bar" csd
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -204,16 +212,16 @@ do
     # TODO: get literal key for dvp layout
     a=$(tr_num_to_symb_name "$i")
 
-    # change focused tag [0-8]
+    # change focused tag (0-8)
     riverctl map normal $mod $a set-focused-tags $tags
 
-    # move to another tag (tag the focused window with tag [0-8])
+    # move window to another tag (0-8)
     riverctl map normal $mod+Control $a set-view-tags $tags
 
-    # toggle output tag into current output
+    # toggle tag (0-8)
     riverctl map normal $mod+Shift $a toggle-focused-tags $tags
 
-    # toggle tag [0-8] of focused view
+    # toggle window in another tag [0-8]
     riverctl map normal $mod+Shift+Control $a toggle-view-tags $tags
 done
 
@@ -262,13 +270,13 @@ riverctl map normal Shift Print spawn "grimshot --notify save output"
 
 # Declare a passthrough mode. This mode has only a single mapping to return to
 # normal mode. This makes it useful for testing a nested wayland compositor
-#riverctl declare-mode passthrough
+riverctl declare-mode passthrough
 
 # Super+F11 to enter passthrough mode
-#riverctl map normal Super F11 enter-mode passthrough
+riverctl map normal Super F11 enter-mode passthrough
 
 # Super+F11 to return to normal mode
-#riverctl map passthrough Super F11 enter-mode normal
+riverctl map passthrough Super F11 enter-mode normal
 
 
 
@@ -285,7 +293,7 @@ riverctl map normal Shift Print spawn "grimshot --notify save output"
 
 # swaybg (TODO: loop: if pgrep >= 2, delete only newest process, iter.)
 # riverctl spawn "swaybg -m fill -i ~/Pictures/wallpapers/chito-yuu-snow-walk.jpg"
-riverctl spawn "pkill -g \"^swaybg\" ; \
+riverctl spawn "pkill -f \"^swaybg\" ; \
 swaybg -m fill -i ~/Pictures/Random-images/glt-landscape2.png"
 
 # notifications
@@ -313,6 +321,12 @@ $HOME/.config/river/status"
   ################
 ### Applications ###
   ################
+
+# bemenu
+riverctl map normal $mod a spawn "bemenu-run"
+
+# App launcher
+riverctl map normal $mod c spawn 'fuzzel -w 50 -x 8 -y 8 -r 3 -b 232635ff -t A6Accdff -s A6Accdff -S 232635ff -C c792eacc -m c792eacc -f "Iosevka Aile:weight=light:size=11" --no-fuzzy --icon-theme="Papirus-Dark"'
 
 ## Start floating
 #riverctl float-filter-add app-id float
@@ -379,7 +393,3 @@ riverctl map main None a enter-mode apps
 ##### MOVED TO THE BOTTOM
 riverctl default-layout rivertile
 rivertile -view-padding 6 -outer-padding 6 &
-
-# riverctl spawn "rivertile"
-# riverctl output-layout rivertile
-

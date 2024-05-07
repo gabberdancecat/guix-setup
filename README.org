@@ -38,7 +38,10 @@ make snapshotting and store integrity-checking system, daily, or at least very f
   - [X] restart to check.
   - [X] delete slot 2
 - [X] move dotfiles to nya guix repo
-- [ ] wifi indicator on statusbar
+- [ ] bar
+  - [ ] use darker color title-bg and white title-fg, better.
+  - [ ] wifi indicator on statusbar
+  - [ ] yambar instead?
 - [ ] auto guix upkeep script (use fzf!!!!!):
   - [ ] verify store integrity
   - [ ] btrfs snapshotting with snapper

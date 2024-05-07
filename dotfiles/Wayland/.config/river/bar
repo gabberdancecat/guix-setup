@@ -50,14 +50,14 @@ mkfifo "$FIFO"
 #64819b
 #7996a8
 
-col1="#5b88bd"
+col1="#803846"
 
 while cat "$FIFO"; do :; done | sandbar \
 	-font "monospace:size=16" \
-	-active-fg-color "#000000" \
+	-active-fg-color "#eeeeee" \
 	-active-bg-color "$col1" \
-	-inactive-fg-color "#eeeeee" \
-	-title-fg-color "#000000" \
+	-inactive-fg-color "#dddddd" \
+	-title-fg-color "#dddddd" \
 	-title-bg-color "$col1"
 	# -inactive-bg-color "#000000" \
 	# -urgent-fg-color "#000000" \

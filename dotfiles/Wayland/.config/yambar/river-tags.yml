@@ -1,7 +1,13 @@
 hack: &hack Hack Nerd Font:pixelsize=13
+
+awesome: &awesome Font Awesome 6 Free:style=solid:pixelsize=14
+awesome_brands: &awesome_brands Font Awesome 6 Brands:pixelsize=16
+
 bg_default: &bg_default {stack: [{background: {color: 81A1C1ff}}, {underline: {size: 4, color: D8DEE9ff}}]}
+
+# BAR
 bar:
-  height: 40
+  height: 20
   location: top
   font: JuliaMono:pixelsize=10
   spacing: 2
