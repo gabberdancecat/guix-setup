@@ -130,29 +130,39 @@ If not found, return C."
   ;; t
   )
 
-
-
-(defun river-run (command)
-  "Run riverctl command."
-  (let ((river-full-cmd (format "riverctl %s" command))
-        (river-output)
-        (river-exit-code)
-        (tmp))
-    ;; log command being run
-    (message "LOG: " river-full-cmd)
-    (bufr-message "*river-log*" (concat "> " river-full-cmd))
-    ;; run command and log output and exit code
-    ;; (setq river-cmd-out (shell-command-to-string river-cmd))
-    (setq tmp (with-temp-buffer 
-                (list (apply 'call-process "riverctl" nil (current-buffer) nil
-                             (split-string (format "%s" command) "[[:space:]]"))
-                      (buffer-string))))
-    (message "err: %s" tmp)
-    (setq river-exit-code (nth 0 tmp))
-    (setq river-output (nth 1 tmp))
-    ;; if exit code 
-    (bufr-message "*river-log*"
-                  (concat " (" (substring river-output 0 -1) ")"))))
+(defun river-run (commands)
+  "Run the riverctl command.
+COMMANDS is a single list of arguments."
+  (let* ((commands ; make all elements into strings
+          (mapcar (lambda (x)
+                    (if (stringp x)
+                        ;; escape string doublequote
+                        (format "%S" x)
+                      ;; doublequote symbol
+                      (symbol-name x)))
+                  commands))
+         (commands-string
+          (mapconcat 'identity commands " "))
+         (river-full-cmd (format "riverctl %s" commands-string))
+         (river-output)
+         (river-exit-code)
+         (tmp))
+    (cl-flet ((log-to-buffer
+                '(lambda (x) (bufr-message "*river-log*" x))))
+      ;; log the command being run
+      (log-to-buffer (concat "> " river-full-cmd))
+      (message "LOG: %s" river-full-cmd)
+      ;; run command
+      (message "DEBUG: %S" commands)
+      (setq tmp (with-temp-buffer 
+                  (list (apply 'call-process "riverctl" nil (current-buffer) nil
+                               commands)
+                        (buffer-string))))
+      ;; log output and exit code
+      (setq river-exit-code (nth 0 tmp))
+      (setq river-output (nth 1 tmp))
+      (when river-output
+        (log-to-buffer (concat " (" (substring river-output 0 -1) ")"))))))
 
 (defun river-set-modifier (var visible formal)
   "Updates modifier key name in output config.
@@ -198,34 +208,82 @@ second arg."
 		 `(river-run ,(format "spawn \"%s\"" cmd)))
 	       command)))
 
-(defvar river-set--temp-list nil
-  "Variable utilized in `river-set--process' to build command.")
+(defvar river-set--accumilator nil
+  "Variable utilized in `river-set--convert' to build commands.")
 
-(defun river-set--process (body new)
-  "Process the setting of keybinds for `river-set'
-Recursively go down BODY, pushing results to `river-set--temp-list'."
-  (when-let ((fst (if body (pop body))))
-    ;; (message "DEBUG: fst: %s, new: %s, body: %s" fst new body)
-    (if (listp fst)
-	(river-set--process fst new)
-      ;; fst is an atom
-      (progn
-	;; convert kbd into shell fmt (will skip if stringp nil)
-	(when (and (stringp fst)
-		   (equal 'kbd (car new)))
-          (setq fst (intern (kbd-to-shell fst)))
-	  ;; remove "kbd" from list
-	  (setq new (cdr new)))
-	;; escape strings
-	(if (stringp fst)
-	    (setq fst (prin1-to-string fst)))
-	(push fst new)
-	(unless body
-	  (push (lst-to-str-maybe (reverse new)) river-set--temp-list))))
-    (river-set--process body new))
-  ;; reverse list after complete
-  ;; (nreverse river-set--temp-list)
-  (setq river-set--temp-list (reverse river-set--temp-list)))
+(defun river-set--convert (root traversed)
+  ;; recurse
+  ;; dolist through elemets of root,
+  ;;  if element is a list, recurse (update root and traversed)
+  ;;  if element is nlistp, accumilate (with traversed + element)
+  ;; (message "recurse 1, root: %s, traversed: %s" root traversed)
+  (let ((sublist-found nil))
+    ;; iter through root elements
+    (dolist (elem root)
+      ;; (message "dolist, elem: %s" elem)
+      (if (nlistp elem)
+          ;; item case
+          (progn
+            ;; regular case (not a kbd string)
+            (if (not (equal 'kbd (car (last traversed))))
+                (setq traversed (append traversed (list elem)))
+              ;; kbd string case!
+              (message "KBD CASE, traversed: %s" traversed)
+              (setq elem (mapcar 'intern (split-string (kbd-to-shell elem) " ")))
+              (setq traversed (append (butlast traversed) elem))))
+        ;; recurse case
+        (setq sublist-found t)
+        (river-set--convert elem traversed)))
+    ;; tail case, accumilate
+    (unless sublist-found
+      ;; (message "val of traversed at push: %s" traversed)
+      (push traversed river-set--accumilator))))
+
+;; (defun river-set--process (body new)
+;;   "Process the setting of keybinds for `river-set'
+;; Recursively go down BODY, pushing results to `river-set--temp-list'."
+;;   (when-let ((fst (if body (pop body))))
+;;     ;; (message "DEBUG: fst: %s, new: %s, body: %s" fst new body)
+;;     (if (listp fst)
+;; 	(river-set--process fst new)
+;;       ;; fst is an atom
+;;       (progn
+;; 	;; convert kbd into shell fmt (will skip if stringp nil)
+;; 	(when (and (stringp fst)
+;; 		   (equal 'kbd (car new)))
+;;           (setq fst (intern (kbd-to-shell fst)))
+;; 	  ;; remove "kbd" from list
+;; 	  (setq new (cdr new)))
+;; 	;; escape strings
+;; 	(if (stringp fst)
+;; 	    (setq fst (prin1-to-string fst)))
+;; 	(push fst new)
+;; 	(unless body
+;; 	  (push (lst-to-str-maybe (reverse new)) river-set--temp-list))))
+;;     (river-set--process body new))
+;;   ;; reverse list after complete
+;;   ;; (nreverse river-set--temp-list)
+;;   (setq river-set--temp-list (reverse river-set--temp-list)))
+
+;; (defmacro river-set (&rest commands)
+;;   "Constructs and runs commands from all nested arguments.
+;; For example:
+;; (river-set (map (normal (kbd (\"s-Q\" exit)
+;;                              (\"s-R\" spawn \"~/.config/river/init-elisp\")
+;;                 (locked (kbd (\"XF86AudioMute spawn 
+;;                                               \"pactl-vol-mute.sh\")))))))"
+;;   `(progn
+;;      ,@(let ((ret nil))
+;; 	 ;; (nreverse commands)
+;; 	 ;; (message "DEBUG: river-set commands: %s" commands)
+;; 	 (setq river-set--temp-list nil)
+;; 	 (river-set--process commands nil)
+;; 	 (setq ret
+;; 	       (mapcar (lambda (cmd)
+;; 			 `(river-run ,(format "%s" cmd)))
+;; 		       (reverse river-set--temp-list)))
+;; 	 (setq river-set--temp-list nil)
+;; 	 ret)))
 
 (defmacro river-set (&rest commands)
   "Constructs and runs commands from all nested arguments.
@@ -235,17 +293,16 @@ For example:
                 (locked (kbd (\"XF86AudioMute spawn 
                                               \"pactl-vol-mute.sh\")))))))"
   `(progn
-     ,@(let ((ret nil))
-	 ;; (nreverse commands)
-	 ;; (message "DEBUG: river-set commands: %s" commands)
-	 (setq river-set--temp-list nil)
-	 (river-set--process commands nil)
-	 (setq ret
-	       (mapcar (lambda (cmd)
-			 `(river-run ,(format "%s" cmd)))
-		       (reverse river-set--temp-list)))
-	 (setq river-set--temp-list nil)
-	 ret)))
+     ,@(let (ret)
+         (setq river-set--accumilator nil)
+         (river-set--convert commands nil)
+         ;; (message "DEBUG: convert results: %s" river-set--accumilator)
+         ;; set ret to river-set--accumilator so can reset value
+         (setq ret (mapcar (lambda (cmd)
+                             `(river-run ,(macroexpand `(quote ,cmd))))
+                           river-set--accumilator))
+         (setq river-set--accumilator nil)
+         ret)))
 
 ;; wrappers around river-set:
 

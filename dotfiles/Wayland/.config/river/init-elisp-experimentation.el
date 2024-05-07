@@ -36,7 +36,7 @@ COMMANDS is a single list of arguments."
 
 ;; pre-order traversal down a recursive list, which is basically a tree
 
-(defmacro river-set-test (&rest commands)
+(defmacro river-set (&rest commands)
   `(progn
      ,@(let (ret)
          (setq river-set--accumilator nil)

@@ -30,7 +30,7 @@
 ;; DEBUG
 ;;(shell-run "mod=Mod4")
 ;;(shell-run "alt=Mod1")
-(river-n-bind ("s-RET" spawn "foot"))
+(river-n-bind ("s-RET" spawn "alacritty"))
 ;; test (river-n-bind ("s-M-c" spawn "emacsclient -a '' -c"))
 
 ;;; Color
