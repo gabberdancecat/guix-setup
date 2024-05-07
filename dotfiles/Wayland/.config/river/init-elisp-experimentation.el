@@ -3,13 +3,14 @@
 (defun river-run-test (commands)
   "Run the riverctl command.
 COMMANDS is a single list of arguments."
-  (let* ((commands (mapcar (lambda (x)
-                             (if (stringp x)
-                                 ;; escape doublequote
-                                 (format "%S" x)
-                               ;; doublequote symbol
-                               (symbol-name x)))
-                           commands))
+  (let* ((commands ; make all elements into strings
+          (mapcar (lambda (x)
+                    (if (stringp x)
+                        ;; escape string doublequote
+                        (format "%S" x)
+                      ;; doublequote symbol
+                      (symbol-name x)))
+                  commands))
          (commands-string
           (mapconcat 'identity commands " "))
          (river-full-cmd (format "riverctl %s" commands-string))

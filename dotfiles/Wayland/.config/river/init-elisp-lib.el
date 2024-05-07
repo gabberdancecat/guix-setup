@@ -3,6 +3,7 @@
 
 (require 'cl-lib)
 (require 'cl-extra)
+(require 'cl-macs)
 
 ;;; Important variables
 
@@ -128,6 +129,8 @@ If not found, return C."
   (shell-command (format "%s" command))
   ;; t
   )
+
+
 
 (defun river-run (command)
   "Run riverctl command."
