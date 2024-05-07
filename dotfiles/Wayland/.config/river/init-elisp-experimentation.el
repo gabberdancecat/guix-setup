@@ -22,7 +22,7 @@ COMMANDS is a single list of arguments."
       (log-to-buffer (concat "> " river-full-cmd))
       (message "LOG: %s" river-full-cmd)
       ;; run command
-      (message "TO RUN: %S" commands)
+      (message "DEBUG: %S" commands)
       (setq tmp (with-temp-buffer 
                   (list (apply 'call-process "riverctl" nil (current-buffer) nil
                                commands)
@@ -30,7 +30,8 @@ COMMANDS is a single list of arguments."
       ;; log output and exit code
       (setq river-exit-code (nth 0 tmp))
       (setq river-output (nth 1 tmp))
-      (log-to-buffer (concat " (" (substring river-output 0 -1) ")")))))
+      (when river-output
+        (log-to-buffer (concat " (" (substring river-output 0 -1) ")"))))))
 
 ;; pre-order traversal down a recursive list, which is basically a tree
 
@@ -39,7 +40,7 @@ COMMANDS is a single list of arguments."
      ,@(let (ret)
          (setq river-set--accumilator nil)
          (river-set--convert commands nil)
-         (message "DEBUG: convert results: %s" river-set--accumilator)
+         ;; (message "DEBUG: convert results: %s" river-set--accumilator)
          ;; set ret to river-set--accumilator so can reset value
          (setq ret (mapcar (lambda (cmd)
                              `(river-run-test ,(macroexpand `(quote ,cmd))))
@@ -59,8 +60,14 @@ COMMANDS is a single list of arguments."
       ;; (message "dolist, elem: %s" elem)
       (if (nlistp elem)
           ;; item case
-          (setq traversed (append traversed (list elem)))
-        ;; (message "after adding to traversed: %s" traversed))
+          (progn
+            ;; regular case (not a kbd string)
+            (if (not (equal 'kbd (car (last traversed))))
+                (setq traversed (append traversed (list elem)))
+              ;; kbd string case!
+              (message "KBD CASE, traversed: %s" traversed)
+              (setq elem (mapcar 'intern (split-string (kbd-to-shell elem) " ")))
+              (setq traversed (append (butlast traversed) elem))))
         ;; recurse case
         (setq sublist-found t)
         (river-set--convert elem traversed)))
@@ -69,7 +76,7 @@ COMMANDS is a single list of arguments."
       ;; (message "val of traversed at push: %s" traversed)
       (push traversed river-set--accumilator))))
 
-(river-set-test (map (normal kbd ("s-Q" exit)
-                             ("s-R" spawn "'~/.config/river/init-elisp"))
+(river-set-test (map (normal kbd ("s-q" exit)
+                             ("s-r" spawn "~/.config/river/init"))
                      (locked (kbd ("XF86AudioMute" spawn 
                                    "pactl-vol-mute.sh")))))
