@@ -256,7 +256,7 @@ do
 	riverctl map $mode Shift XF86MonBrightnessUp spawn 'brightnessctl set 5%+'
 	riverctl map $mode Shift XF86MonBrightnessDown spawn 'brightnessctl set 5%-'
 	# Media
-	riverctl map $mode None XF86AudioPlay  spawn 'playerctl play-pause'
+	riverctl map $mode None XF86AudioPlay spawn 'playerctl play-pause'
 done
 
 riverctl map normal None Print spawn "grimshot --notify save area"
@@ -329,7 +329,7 @@ riverctl map normal $mod a spawn "bemenu-run"
 riverctl map normal $mod c spawn 'fuzzel -w 50 -x 8 -y 8 -r 3 -b 232635ff -t A6Accdff -s A6Accdff -S 232635ff -C c792eacc -m c792eacc -f "Iosevka Aile:weight=light:size=11" --no-fuzzy --icon-theme="Papirus-Dark"'
 
 ## Start floating
-#riverctl float-filter-add app-id float
+riverctl float-filter-add app-id float
 #riverctl float-filter-add title "popup title with spaces"
 
 ## Decorations

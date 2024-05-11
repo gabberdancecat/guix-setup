@@ -53,6 +53,31 @@ return as list."
 	(push head new-lst)))
     (reverse new-lst)))
 
+(defvar dvp-numbers-row-sets
+  '((nil "$" "dollar")
+    ("1" "&" "ampersand")
+    ("2" "[" "bracketleft")
+    ("3" "{" "braceleft")
+    ("4" "}" "braceright")
+    ("5" "(" "parenleft")
+    ("6" "=" "equal")
+    ("7" "*" "asterisk")
+    ("8" ")" "parenright")
+    ("9" "+" "plus")
+    ("0" "]" "bracketright")))
+
+(defun num-to-kbd-real-dvp (n)
+  (if (numberp n)
+      (setq n (format "%s" n)))
+  (unless (stringp n)
+    (error "n must be a number or string"))
+  (let (ret)
+    (mapc (lambda (x)
+            (when (equal n (car x))
+              (setq ret (nth 1 x))))
+          dvp-numbers-row-sets)
+    ret))
+
 (defun kbd--key-conv-modifier (c)
   "Return the river-format modifier key corresponding to kbd-form C.
 If match not found, error."
@@ -70,6 +95,7 @@ If not found, return C."
     ("<return>" "Return")
     ("RET" "Return")
     ("SPC" "Space")
+    ("<escape>" "Escape")
     ("<left>" "Left")
     ("<right>" "Right")
     ("<up>" "Up")
@@ -84,7 +110,30 @@ If not found, return C."
     ("<XF86MonBrightnessUp>" "XF86MonBrightnessUp")
     ("<XF86MonBrightnessDown>" "XF86MonBrightnessDown")
     ("<XF86AudioPlay>" "XF86AudioPlay")
-    ("`" "grave")
+    ("<print>" "Print")
+    ("<f12>" "F12")
+    ("<f11>" "F11")
+    ("<f10>" "F10")
+    ("<f9>" "F9")
+    ("<f8>" "F8")
+    ("<f7>" "F7")
+    ("<f6>" "F6")
+    ("<f5>" "F5")
+    ("<f4>" "F4")
+    ("<f3>" "F3")
+    ("<f2>" "F2")
+    ("<f1>" "F1")
+    ("$" "dollar")
+    ("&" "ampersand")
+    ("[" "bracketleft")
+    ("{" "braceleft")
+    ("}" "braceright")
+    ("(" "parenleft")
+    ("=" "equal")
+    ("*" "asterisk")
+    (")" "parenright")
+    ("+" "plus")
+    ("]" "bracketright")
     ;; is not a special key, use 'c' without changing
     (_ c)))
 
@@ -120,49 +169,56 @@ If not found, return C."
 
 ;;; Main functions
 
-(defun shell-run (command)
-  "Simlpy run a shell command."
-  (message "LOG: %s" command)
-  ;; (start-process-shell-command "shell cmd for river"
-  ;;       		       nil
-  ;;       		       (format "%s" command))
-  (shell-command (format "%s" command))
-  ;; t
-  )
+;; (defun shell-run (command)
+;;   "Simlpy run a shell command."
+;;   (message "LOG: %s" command)
+;;   ;; (start-process-shell-command "shell cmd for river"
+;;   ;;       		       nil
+;;   ;;       		       (format "%s" command))
+;;   (shell-command (format "%s" command))
+;;   ;; t
+;;   )
 
-(defun river-run (commands)
+(defun river-run (commands &optional cmd-prefix)
   "Run the riverctl command.
 COMMANDS is a single list of arguments."
-  (let* ((commands ; make all elements into strings
-          (mapcar (lambda (x)
-                    (if (stringp x)
-                        ;; escape string doublequote
-                        (format "%S" x)
-                      ;; doublequote symbol
-                      (symbol-name x)))
-                  commands))
+  (if (nlistp commands)
+      (setq commands (list commands)))
+  (let* ((commands ;; make all elements into strings                     
+          (mapcar (lambda (x) (format "%S" x)) commands))
          (commands-string
           (mapconcat 'identity commands " "))
-         (river-full-cmd (format "riverctl %s" commands-string))
+         (river-full-cmd (cond ((not cmd-prefix)
+                                (format "riverctl %s" commands-string))
+                               ((stringp cmd-prefix)
+                                (format "%s %s" cmd-prefix commands-string))
+                               (t (error "invalid second arg to `river-run'"))))
          (river-output)
          (river-exit-code)
-         (tmp))
+         (raw-out))
     (cl-flet ((log-to-buffer
                 '(lambda (x) (bufr-message "*river-log*" x))))
       ;; log the command being run
       (log-to-buffer (concat "> " river-full-cmd))
       (message "LOG: %s" river-full-cmd)
-      ;; run command
-      (message "DEBUG: %S" commands)
-      (setq tmp (with-temp-buffer 
-                  (list (apply 'call-process "riverctl" nil (current-buffer) nil
-                               commands)
-                        (buffer-string))))
+      ;; run command (returns "$exit-code $output")
+      (setq raw-out (shell-command-to-string
+                     (format "out=$(%s 2>&1)  ; echo \"$? $out\"" river-full-cmd)))
       ;; log output and exit code
-      (setq river-exit-code (nth 0 tmp))
-      (setq river-output (nth 1 tmp))
-      (when river-output
-        (log-to-buffer (concat " (" (substring river-output 0 -1) ")"))))))
+      (setq river-exit-code (string-to-number
+                             (replace-regexp-in-string
+                              "^\\([0-9]+\\)[[:space:]].*" "\\1" raw-out)))
+      (setq river-output
+            (let ((orig (replace-regexp-in-string
+                         "^[0-9]+[[:space:]]\\(.*\\)" "\\1" raw-out)))
+              (if (not (equal "" orig))
+                  (substring orig 0 -1)
+                orig)))
+      (if (equal 0 river-exit-code)
+          (unless (equal "" river-output)
+            (log-to-buffer (concat " (" river-output ")")))
+        (message "ERROR: %s" river-output)
+        (log-to-buffer (concat "ERROR: " river-output))))))
 
 (defun river-set-modifier (var visible formal)
   "Updates modifier key name in output config.
@@ -202,96 +258,84 @@ second arg."
 				       (lst-to-str-maybe val)))))))
 
 (defmacro river-spawn (&rest command)
-  "Run \"riverctl spawn\" with every elem of list COMMAND."
+  "Run \"riverctl spawn\" with every elem of list COMMAND.
+Each elem must be a string."
   `(progn
      ,@(mapcar (lambda (cmd)
-		 `(river-run ,(format "spawn \"%s\"" cmd)))
+		 `(river-run ,(cons 'spawn cmd)))
 	       command)))
 
 (defvar river-set--accumilator nil
   "Variable utilized in `river-set--convert' to build commands.")
 
 (defun river-set--convert (root traversed)
-  ;; recurse
-  ;; dolist through elemets of root,
-  ;;  if element is a list, recurse (update root and traversed)
-  ;;  if element is nlistp, accumilate (with traversed + element)
-  ;; (message "recurse 1, root: %s, traversed: %s" root traversed)
+  "Recursive function for macro `river-set'.
+This function will recursively search through the original list and its 
+sublists. When it reaches a list with no sublists, it will push a list of 
+the traversed path of elements (variable TRAVERSED) into 
+`river-set--accumilator'. ROOT is the parent list and will be updated for 
+every recursion down into the list.
+
+If the current element is not a list and the last-traversed element is 
+'kbd, the current element must be a kbd-format string. Convert this into 
+its corresponding keybind in shell-form with function `kbd-to-shell',
+append to TRAVERSED, and remove the kbd element from the traversed list."
   (let ((sublist-found nil))
     ;; iter through root elements
     (dolist (elem root)
-      ;; (message "dolist, elem: %s" elem)
       (if (nlistp elem)
           ;; item case
           (progn
-            ;; regular case (not a kbd string)
-            (if (not (equal 'kbd (car (last traversed))))
-                (setq traversed (append traversed (list elem)))
-              ;; kbd string case!
-              (message "KBD CASE, traversed: %s" traversed)
-              (setq elem (mapcar 'intern (split-string (kbd-to-shell elem) " ")))
-              (setq traversed (append (butlast traversed) elem))))
-        ;; recurse case
-        (setq sublist-found t)
-        (river-set--convert elem traversed)))
+            ;; types of item case?
+            (cond ((and (equal 'kbd (car (last traversed)))
+                        (stringp elem))
+                   ;; kbd string case
+                   (progn
+                     (setq elem (mapcar 'intern (split-string (kbd-to-shell elem) " ")))
+                     (setq traversed (append (butlast traversed) elem))))
+                  (t
+                   ;; regular item elem case
+                   (progn
+                     (setq traversed (append traversed (list elem))))))
+            
+            ;; (if (and (equal 'kbd (car (last traversed)))
+            ;;          (stringp elem))
+            ;;     ;; kbd string case
+            ;;     (progn
+            ;;       ;; (message "elem should be kbd str: %s" elem)
+            ;;       (setq elem (mapcar 'intern (split-string (kbd-to-shell elem) " ")))
+            ;;       (setq traversed (append (butlast traversed) elem)))
+            ;;   ;; regular item elem case
+            ;;   (progn
+            ;;     (setq traversed (append traversed (list elem)))))
+            
+            ;; (if (not (equal 'kbd (car (last traversed))))
+            ;;     (setq traversed (append traversed (list elem)))
+            ;;   ;; kbd string case!
+            ;;   (setq elem (mapcar 'intern (split-string (kbd-to-shell elem) " ")))
+            ;;   (setq traversed (append (butlast traversed) elem)))
+            )
+        ;; elem is list, recurse case
+        (progn
+          (setq sublist-found t)
+          (river-set--convert elem traversed))))
     ;; tail case, accumilate
     (unless sublist-found
-      ;; (message "val of traversed at push: %s" traversed)
       (push traversed river-set--accumilator))))
-
-;; (defun river-set--process (body new)
-;;   "Process the setting of keybinds for `river-set'
-;; Recursively go down BODY, pushing results to `river-set--temp-list'."
-;;   (when-let ((fst (if body (pop body))))
-;;     ;; (message "DEBUG: fst: %s, new: %s, body: %s" fst new body)
-;;     (if (listp fst)
-;; 	(river-set--process fst new)
-;;       ;; fst is an atom
-;;       (progn
-;; 	;; convert kbd into shell fmt (will skip if stringp nil)
-;; 	(when (and (stringp fst)
-;; 		   (equal 'kbd (car new)))
-;;           (setq fst (intern (kbd-to-shell fst)))
-;; 	  ;; remove "kbd" from list
-;; 	  (setq new (cdr new)))
-;; 	;; escape strings
-;; 	(if (stringp fst)
-;; 	    (setq fst (prin1-to-string fst)))
-;; 	(push fst new)
-;; 	(unless body
-;; 	  (push (lst-to-str-maybe (reverse new)) river-set--temp-list))))
-;;     (river-set--process body new))
-;;   ;; reverse list after complete
-;;   ;; (nreverse river-set--temp-list)
-;;   (setq river-set--temp-list (reverse river-set--temp-list)))
-
-;; (defmacro river-set (&rest commands)
-;;   "Constructs and runs commands from all nested arguments.
-;; For example:
-;; (river-set (map (normal (kbd (\"s-Q\" exit)
-;;                              (\"s-R\" spawn \"~/.config/river/init-elisp\")
-;;                 (locked (kbd (\"XF86AudioMute spawn 
-;;                                               \"pactl-vol-mute.sh\")))))))"
-;;   `(progn
-;;      ,@(let ((ret nil))
-;; 	 ;; (nreverse commands)
-;; 	 ;; (message "DEBUG: river-set commands: %s" commands)
-;; 	 (setq river-set--temp-list nil)
-;; 	 (river-set--process commands nil)
-;; 	 (setq ret
-;; 	       (mapcar (lambda (cmd)
-;; 			 `(river-run ,(format "%s" cmd)))
-;; 		       (reverse river-set--temp-list)))
-;; 	 (setq river-set--temp-list nil)
-;; 	 ret)))
 
 (defmacro river-set (&rest commands)
   "Constructs and runs commands from all nested arguments.
-For example:
+The variable COMMANDS is a list of commands that will be processed by the
+function `river-run'. 
+This macro runs the recursive function `river-set--convert' to process 
+COMMANDS.
+Example input:
 (river-set (map (normal (kbd (\"s-Q\" exit)
                              (\"s-R\" spawn \"~/.config/river/init-elisp\")
                 (locked (kbd (\"XF86AudioMute spawn 
                                               \"pactl-vol-mute.sh\")))))))"
+  ;; (declare (indent (lambda (a b) 11)))
+  (declare (indent defun))
   `(progn
      ,@(let (ret)
          (setq river-set--accumilator nil)
@@ -300,7 +344,7 @@ For example:
          ;; set ret to river-set--accumilator so can reset value
          (setq ret (mapcar (lambda (cmd)
                              `(river-run ,(macroexpand `(quote ,cmd))))
-                           river-set--accumilator))
+                           (reverse river-set--accumilator)))
          (setq river-set--accumilator nil)
          ret)))
 
@@ -318,25 +362,109 @@ For example:
 (defmacro river-normal (&rest commands)
   (macroexpand `(river-set (map ,(cons 'normal commands)))))
 
+;; in river-set, if elem is :normal, convert into '(map ,mode kbd)
+
+(defun keymap-shorthand (x)
+  (when-let ((sym-as-str (and (symbolp x)
+                              (symbol-name x)))
+             (found-keymap? (string-match "^:[[:ascii:]]+" sym-as-str))
+             (mode (intern (replace-regexp-in-string "^:\\([[:ascii:]]+\\)" "\\1"
+                                                     sym-as-str))))
+    mode))
+
 (defmacro river-n-bind (&rest commands)
   (macroexpand `(river-set (map (normal ,(cons 'kbd commands))))))
 
 (defmacro river-pointer-n-bind (&rest commands)
   (macroexpand `(river-set (map-pointer (normal ,(cons 'kbd commands))))))
 
+(defmacro river-bind (&rest commands)
+  (let ((new-commands nil)
+        (curr nil))
+    ;; iter through list
+    (while (setq curr (and commands (pop commands)))
+      (if-let ((mode (keymap-shorthand curr)))
+          ;; if curr is :keymap, capture till next :keymap or end
+          (let (sub-list)
+            (while (and commands
+                        (not (keymap-shorthand (car-safe commands)))
+                        (setq curr (pop commands)))
+              (setq sub-list (append sub-list (list curr))))
+            (setq new-commands (append new-commands (list `(map ,mode kbd ,sub-list)))))
+        ;; curr is anything else case
+        (progn
+          (setq new-commands (append new-commands (list curr))))))
+    ;; (message "river-bind to-run: %S" new-commands)
+    (macroexpand `(river-set ,new-commands))))
+
+(defmacro river-keymap (&rest commands)
+  (declare (indent 1))
+  (let ((ret-macros nil)
+        (mode (keymap-shorthand (pop commands))))
+    (unless mode
+      (error "first arg must be keymap/mode (e.g. \":normal\""))
+    ;; iter through parent list
+    (while-let ((loop? (and commands (listp commands)))
+                (curr-lst (pop commands)))
+      ;; iter through sublist: '(:opt (binds...))
+      (if-let ((option (keymap-shorthand (pop curr-lst))))
+          (while-let ((loop? (and curr-lst (listp curr-lst)))
+                      (curr-item (pop curr-lst)))
+            ;; (message "DEBUG: mode: %S, curr-lst: %S, option: %S, curr-item: %S" mode curr-lst option curr-item)
+            ;; process based on option type
+            (cond ((eq option 'bind)
+                   (push (macroexpand `(river-set (map (,mode kbd ,curr-item)
+                                                       (-release ,mode kbd ,(car curr-item)
+                                                                 enter-mode normal))))
+                         ret-macros))
+                  ((eq option 'press)
+                   (push (macroexpand `(river-set (map ,mode kbd ,curr-item)))
+                         ret-macros))
+                  ((eq option 'release)
+                   (push (macroexpand `(river-set (map -release ,mode kbd ,curr-item)))
+                         ret-macros))
+                  ((eq option 'exit-to)
+                   (when-let ((sub-mode (keymap-shorthand curr-item))
+                              (bind-list (and curr-lst (pop curr-lst))))
+                     (mapcar (lambda (b)
+                               (push (macroexpand
+                                      `(river-set (map ,mode kbd
+                                                       ,b enter-mode ,sub-mode)))
+                                     ret-macros))
+                             bind-list)))
+                  ((eq option 'enter-from)
+                   (when-let ((sub-mode (keymap-shorthand curr-item))
+                              (bind-list (and curr-lst (pop curr-lst))))
+                     (mapcar (lambda (b)
+                               (push (macroexpand
+                                      `(river-set (map ,sub-mode kbd
+                                                       ,b enter-mode ,mode)))
+                                     ret-macros))
+                             bind-list)))))
+        (progn
+          (error "sublist %s must start with format :option" curr-lst))))
+    ;; rev list and merge into one progn list
+    (cons 'progn
+          (mapcan (lambda (p)
+                    (cdr p))
+                  (reverse ret-macros)))))
+
 ;; keymaps
 
-(defmacro river-declare-keymap (keymap &rest commands)
-  (macroexpand `(river-set declare-mode ,keymap))
-  `(progn
-     ,(macroexpand `(river-set (map (,keymap ,(cons 'kbd commands)))))
-     ,(macroexpand `(river-set (map (-release
-				     ,keymap ,(cons 'kbd
-						    (mapcar (lambda (x)
-							      (list (car x)
-								    'enter-mode
-								    'normal))
-							    commands))))))))
+;; (defmacro river-declare-keymap (keymap &rest commands)
+;;   (macroexpand `(river-set declare-mode ,keymap))
+;;   `(progn
+;;      ,(macroexpand `(river-set (map (,keymap ,(cons 'kbd commands)))))
+;;      ,(macroexpand `(river-set (map (-release
+;; 				     ,keymap ,(cons 'kbd
+;; 						    (mapcar (lambda (x)
+;; 							      (list (car x)
+;; 								    'enter-mode
+;; 								    'normal))
+;; 							    commands))))))))
+
+(defmacro river-declare-keymap (keymap)
+  (eval `(river-set declare-mode ,(keymap-shorthand keymap))))
 
 (defmacro river-n-bind-keymap (&rest commands)
   (macroexpand
@@ -346,4 +474,7 @@ For example:
                                                    'enter-mode
                                                    (cdr x)))
                                            commands)))))))
+
+
+
 
