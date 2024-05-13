@@ -6,5 +6,5 @@ muted=$(pactl get-sink-mute @DEFAULT_SINK@ | awk '{print $2}')
 if [[ "$muted" == "yes" ]]; then
 	echo "muted"
 else
-	echo "vol:$volume"
+	echo "$volume"
 fi

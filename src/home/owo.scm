@@ -16,6 +16,10 @@
 (home-environment
  ;; packages
  (packages (append
+            (specifications->packages
+             '("font-awesome"
+               "font-dejavu"
+               "font-tamzen"))
             ;; renoise+depends only
             my/renoise-packages))
  ;; services

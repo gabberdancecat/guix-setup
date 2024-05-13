@@ -10,10 +10,16 @@ awesome_brands: &awesome_brands Font Awesome 6 Brands:pixelsize=16
 
 std_underline: &std_underline {underline: { size: 2, color: ff0000ff}}
 
+hack: &hack Hack Nerd Font:pixelsize=13
+tamzen: &tamzen Tamzen-16
+# bg_default: &bg_default {stack: [{background: {color: 81A1C1ff}}, {underline: {size: 4, color: D8DEE9ff}}]}
+bg_default: &bg_default {stack: [{background: {color: 7a378bff}}, {underline: {size: 4, color: e066ffff}}]}
+
 # This is THE bar configuration
 bar:
   height: 26
-  location: top
+  # location: top
+  location: bottom
   spacing: 5
   margin: 7
 
@@ -26,87 +32,55 @@ bar:
   border:
     width: 1
     color: 999999cc
-    margin: 5
+    margin: 1
     top-margin: 0
 
   left:
-    - i3:
-        anchors: # Not used (directly) by f00bar; used here to avoid duplication
-          - string: &i3_common {margin: 5, on-click: "swaymsg --quiet workspace {name}"}
-          - string: &default {<<: *i3_common, text: "? {name}"}
-          - string: &main    {<<: *i3_common, text: , font: *awesome}
-          - string: &surfing {<<: *i3_common, text: , font: *awesome_brands}
-          - string: &misc    {<<: *i3_common, text: , font: *awesome}
-          - string: &mail    {<<: *i3_common, text: , font: *awesome}
-          - string: &music   {<<: *i3_common, text: , font: *awesome}
-          - focused: &focused
-              deco: {stack: [background: {color: ffa0a04c}, <<: *std_underline]}
-          - invisible: &invisible {foreground: ffffff55}
-          - urgent: &urgent
-              foreground: 000000ff
-              deco: {stack: [background: {color: bc2b3fff}, <<: *std_underline]}
-          - map: &i3_mode
-              default:
-                - string:
-                    margin: 5
-                    text: "{mode}"
-                    deco: {background: {color: cc421dff}}
-                - empty: {right-margin: 7}
+    - river:
+        anchors:
+          - base: &river_base
+              left-margin: 11
+              right-margin: 11
+              default: {string: {text: , font: *hack}}
               conditions:
-                mode == default: {empty: {}}
-        content:
-          "":
-            map:
-              conditions:
-                state == focused:   {string: {<<: [*default, *focused]}}
-                state == unfocused: {string: {<<: *default}}
-                state == invisible: {string: {<<: [*default, *invisible]}}
-                state == urgent:    {string: {<<: [*default, *urgent]}}
-          main:
-            map:
-              conditions:
-                state == focused:   {string: {<<: [*main, *focused]}}
-                state == unfocused: {string: {<<: *main}}
-                state == invisible: {string: {<<: [*main, *invisible]}}
-                state == urgent:    {string: {<<: [*main, *urgent]}}
-          surfing:
-            map:
-              conditions:
-                state == focused: {string: {<<: [*surfing, *focused]}}
-                state == unfocused: {string: {<<: *surfing}}
-                state == invisible: {string: {<<: [*surfing, *invisible]}}
-                state == urgent:    {string: {<<: [*surfing, *urgent]}}
-          misc:
-            map:
-              conditions:
-                state == focused: {string: {<<: [*misc, *focused]}}
-                state == unfocused: {string: {<<: *misc}}
-                state == invisible: {string: {<<: [*misc, *invisible]}}
-                state == urgent:    {string: {<<: [*misc, *urgent]}}
-
-          mail:
-            map:
-              conditions:
-                state == focused: {string: {<<: [*mail, *focused]}}
-                state == unfocused: {string: {<<: *mail}}
-                state == invisible: {string: {<<: [*mail, *invisible]}}
-                state == urgent:    {string: {<<: [*mail, *urgent]}}
-          music:
-            map:
-              conditions:
-                state == focused: {string: {<<: [*music, *focused]}}
-                state == unfocused: {string: {<<: *music}}
-                state == invisible: {string: {<<: [*music, *invisible]}}
-                state == urgent:    {string: {<<: [*music, *urgent]}}
-
-    - foreign-toplevel:
+                id == 1: {string: {text: , font: *hack}}
+                id == 2: {string: {text: , font: *hack}}
+                id == 3: {string: {text: , font: *hack}}
+                id == 4: {string: {text: , font: *hack}}
+                id == 5: {string: {text: , font: *hack}}
+                id == 6: {string: {text: , font: *hack}}
+                id == 10: {string: {text: "scratchpad", font: *hack}}
         content:
           map:
+            on-click:
+              left: sh -c "riverctl set-focused-tags $((1 << ({id} - 1)))"
+              right: sh -c "riverctl toggle-focused-tags $((1 << ({id} -1)))"
+              middle: sh -c "riverctl toggle-view-tags $((1 << ({id} -1)))"
             conditions:
-              ~activated: {empty: {}}
-              activated:
-                - string: {text: "{app-id}", foreground: ffa0a0ff}
-                - string: {text: ": {title}"}
+              state == urgent:
+                map:
+                  <<: *river_base
+                  deco: {background: {color: D08770ff}}
+              state == focused:
+                map:
+                  <<: *river_base
+                  deco: *bg_default
+              state == visible && ~occupied:
+                map:
+                  <<: *river_base
+              state == visible && occupied:
+                map:
+                  <<: *river_base
+                  deco: *bg_default
+              state == unfocused:
+                map:
+                  <<: *river_base
+              state == invisible && ~occupied: {empty: {}}
+              state == invisible && occupied:
+                map:
+                  <<: *river_base
+                  # deco: {underline: {size: 3, color: ea6962ff}}
+    
   center:
     - mpd:
         host: /run/mpd/socket
@@ -275,15 +249,15 @@ bar:
                       - string: {text:  , foreground: 00ff00ff, font: *awesome}
                 - string: {text: "{capacity}%"}
     - clock:
-        time-format: "%H:%M %Z"
+        time-format: "%H:%M"
         content:
-          - string: {text: , font: *awesome}
+          - string: {text: , font: *awesome}
           - string: {text: "{date}", right-margin: 5}
           - string: {text: , font: *awesome}
           - string: {text: "{time}"}
     - label:
         content:
           string:
-            on-click: systemctl poweroff
+            on-click: loginctl hibernate
             text: 
             font: *awesome

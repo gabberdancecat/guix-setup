@@ -49,16 +49,24 @@ mkfifo "$FIFO"
 #5b88bd
 #64819b
 #7996a8
+#804d91
+#815091 ; good
+#604f66 ; damp 
+#77498c
+#554151 ; huh
+#964C7B
 
-col1="#803846"
+col1="#964C7B"
 
 while cat "$FIFO"; do :; done | sandbar \
-	-font "monospace:size=16" \
+	-font "TamzenForPowerline-16" \
 	-active-fg-color "#eeeeee" \
 	-active-bg-color "$col1" \
 	-inactive-fg-color "#dddddd" \
-	-title-fg-color "#dddddd" \
-	-title-bg-color "$col1"
+	-title-fg-color "#eeeeee" \
+	-title-bg-color "$col1" \
+	-vertical-padding 3 \
+	-bottom
 	# -inactive-bg-color "#000000" \
 	# -urgent-fg-color "#000000" \
 	# -urgent-bg-color "#cc241d" \

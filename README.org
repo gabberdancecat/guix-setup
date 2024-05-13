@@ -38,19 +38,28 @@ make snapshotting and store integrity-checking system, daily, or at least very f
   - [X] restart to check.
   - [X] delete slot 2
 - [X] move dotfiles to nya guix repo
+- [ ] prepare org mode for new semester (statistics)
+- [ ] change sandbar to where current pink is grey and pink is text, inversion.
+- [ ] patch TamzenForPowerline font using special arguments... make sure not to overwrite existing... experiment!!! also add patched to github repo.
+- [ ] update fontconfig to include all profiles' share dir
 - [ ] bar
   - [ ] use darker color title-bg and white title-fg, better.
   - [ ] wifi indicator on statusbar
   - [ ] yambar instead?
+- [ ] write guix packages
+  - [ ] rust flow package
+  - [ ] python bemenu script, using nix upstream definition.
+- [ ] read other's river configs and hack more the shit out of!!!
+- [ ] new emacs features
+  - [ ] rss - phundrak, 
 - [ ] auto guix upkeep script (use fzf!!!!!):
   - [ ] verify store integrity
   - [ ] btrfs snapshotting with snapper
   - [ ] make sure guix default profile is being updated, not just the extra profiles (rewrite update script?).
+- [ ] keyfile encryption boot skip
+  - [ ] Create persist subvol from chroot, reconfigure, if work, try adding keyfile in /persist/key-file.cpio, hope it works.
+  - [ ] test if zstd format works, only in root subvol (also noatime? what does that even do?)
 - [ ] vpn shuffle through mullvad vpns, set all to don't autoconnect except one random, will update next wake from sleep
-- [ ] complete river config + taskbar
-- [ ] (NEXT WEEK) Create persist subvol from chroot, reconfigure, if work, try adding keyfile in /persist/key-file.cpio, hope it works.
-- [ ] test if zstd format works, only in root subvol (also noatime? what does that even do?)
-- [ ] create package definition for python bemenu script, using nix pkg definition.
 
 Long future:
 - improve and neaten arkenfox overrides into neater form

@@ -34,7 +34,7 @@
 
 (define my-wayland-env-vars
   '(;; wayland stuff
-    ("XDG_CURRENT_DESKTOP" . "sway")
+    ("XDG_CURRENT_DESKTOP" . "river")
     ("XDG_SESSION_TYPE" . "wayland")
     ("RTC_USE_PIPEWIRE" . "true")
     ("SDL_VIDEODRIVER" . "wayland")

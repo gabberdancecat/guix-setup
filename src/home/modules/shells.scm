@@ -28,7 +28,7 @@
     ("recompileurxvt" . "xrdb ~/.Xresources")))
 
 (define my-env-vars
-  '(;; ls fix print dots first
+  `(;; ls fix print dots first
     ("LC_COLLATE" . "C")
     ;; fix CC compilation
     ("CC" . "gcc")
@@ -36,7 +36,12 @@
     ("VISUAL" . "emacsclient")
     ("EDITOR" . "emacsclient")
     ;; add .bin and setuid programs to path
-    ("PATH" . "$HOME/.bin:/run/setuid-programs:$PATH")
+    ("PATH" . ,(string-append
+                "$HOME/.bin:"
+                "$HOME/.cargo/bin:"
+                "$HOME/.local/bin:"
+                "/run/setuid-programs:"
+                "$PATH"))
     ;; make flatpak apps visible
     ("XDG_DATA_DIRS" . "$XDG_DATA_DIRS:$HOME/.local/share/flatpak/exports/share")
     ;; FIX for stumpwm???

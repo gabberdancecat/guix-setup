@@ -23,9 +23,9 @@
 (river-set ;; env
            (spawn "dbus-update-activation-environment SEATD_SOCK DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=river SDL_VIDEODRIVER=wayland MOZ_ENABLE_WAYLAND=1")
            ;; Color
-           (background-color 0x946a90)
-           (border-color-focused 0x1e9c8f)
-           (border-color-unfocused 0x040a0a)
+           (background-color 0x9370db) ;; #9370db
+           (border-color-focused 0x946a90) ;; #946a90
+           (border-color-unfocused 0x040a0a) ;; #040a0a
            ;; Keyboard 
            (keyboard-layout -variant "dvp," -options "grp:sclk_toggle,ctrl:nocaps" "us,us")
            (set-repeat 80 210)
@@ -58,8 +58,8 @@
             ;; bump into focused view
             ("s-M-RET" zoom)
             ;; adjust ratio
-            ("s-M-h" send-layout-cmd rivertile "main-ratio +.05")
-            ("s-M-s" send-layout-cmd rivertile "main-ratio -.05")
+            ("s-M-b" send-layout-cmd rivertile "main-ratio -.05")
+            ("s-M-m" send-layout-cmd rivertile "main-ratio +.05")
             ;; change count in master and stack
             ("s-C-n" send-layout-cmd rivertile "main-count +1")
             ("s-C-t" send-layout-cmd rivertile "main-count -1")
@@ -109,15 +109,15 @@
 ;;; Tags
 
 (river-bind :normal
-            ("s-M-b" spawn "cycle-focused-tags previous 9")
-            ("s-M-m" spawn "cycle-focused-tags next 9"))
+            ("s-<tab>" spawn "flow toggle-tags 4")
+            ("s-M-h" spawn "flow cycle-tags previous")
+            ("s-M-s" spawn "flow cycle-tags next"))
 
 ;; numbers row tag commands
 (cl-flet ((commands (x tag)
             (setq x (num-to-kbd-real-dvp x))
-            ;; (message "current tag: %s" x)
             (eval `(river-bind :normal
-                               (,(format "s-%s" x) set-focused-tags ,tag)
+                               (,(format "s-%s" x) spawn ,(format "flow toggle-tags %s" tag))
                                (,(format "s-S-%s" x) set-view-tags ,tag)
                                (,(format "s-C-%s" x) toggle-focused ,tag)
                                (,(format "s-S-C-%s" x) toggle-view-tags ,tag)))))
@@ -197,6 +197,10 @@ $HOME/.config/river/bar"))
 ;; sandbar status
 (river-set (spawn "pkill -f '^sh.*\\.config/river/status'
 $HOME/.config/river/status"))
+
+;; yambar
+;; (river-set (spawn "killall yambar
+;; yambar -c ~/.config/yambar/laptop.yml"))
 
 ;; waybar
 ;; (river-set (spawn "(($(pgrep -cx waybar) > 0)) && killall waybar;

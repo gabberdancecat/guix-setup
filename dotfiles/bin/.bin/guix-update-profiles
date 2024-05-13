@@ -62,10 +62,10 @@ for arg in $args; do
 done
 
 ## Check firefox version after update and ask to update if version has changed
-FirefoxVersion="125.0.2"
+FirefoxVersion="125.0.3"
 NewVersion="$(firefox --version)"
 matches="$(echo '$NewVersion' | grep -c '$FirefoxVersion')"
-if (( "$matches" = 1 )); then
+if (( "$matches" == 1 )); then
     exit 0
 else
     echo "Firefox updated!"

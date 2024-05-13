@@ -95,6 +95,7 @@ If not found, return C."
     ("<return>" "Return")
     ("RET" "Return")
     ("SPC" "Space")
+    ("<tab>" "Tab")
     ("<escape>" "Escape")
     ("<left>" "Left")
     ("<right>" "Right")
@@ -199,7 +200,7 @@ COMMANDS is a single list of arguments."
     (cl-flet ((log-to-buffer
                 '(lambda (x) (bufr-message "*river-log*" x))))
       ;; log the command being run
-      (log-to-buffer (concat "> " river-full-cmd))
+      (log-to-buffer (concat "> " river-full-cmd " <"))
       (message "LOG: %s" river-full-cmd)
       ;; run command (returns "$exit-code $output")
       (setq raw-out (shell-command-to-string
@@ -214,11 +215,19 @@ COMMANDS is a single list of arguments."
               (if (not (equal "" orig))
                   (substring orig 0 -1)
                 orig)))
-      (if (equal 0 river-exit-code)
-          (unless (equal "" river-output)
-            (log-to-buffer (concat " (" river-output ")")))
-        (message "ERROR: %s" river-output)
-        (log-to-buffer (concat "ERROR: " river-output))))))
+      (if (not (equal 0 river-exit-code))
+          (progn
+            (message "ERROR: %s" river-output)
+            (log-to-buffer (concat "ERROR: " river-output)))
+        (unless (equal "" river-output)
+          (message (concat " (" river-output ")"))
+          (log-to-buffer (concat " (" river-output ")"))))
+      ;; (if (equal 0 river-exit-code)
+      ;;     (unless (equal "" river-output)
+      ;;       (log-to-buffer (concat " (" river-output ")")))
+      ;;   (message "ERROR: %s" river-output)
+      ;;   (log-to-buffer (concat "ERROR: " river-output)))
+      )))
 
 (defun river-set-modifier (var visible formal)
   "Updates modifier key name in output config.

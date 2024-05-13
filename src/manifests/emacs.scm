@@ -26,8 +26,8 @@
    "xfontsel" ; rem from regular profile (also broken?) (install in system?)
    "font-tamzen" ; nice (dylex but not bold)
    "font-spleen" ; bold robotic
-   "font-unscii" ; nice
-   "font-gnu-unifont" ; only unicode?
+   ;; "font-unscii" ; nice ; takes priority over fontawesome?
+   ;; "font-gnu-unifont" ; only unicode? ; doesn't work well with emacs?
    ;; other
    "ncurses" ; for eterm
    "fd" ; for dirvish
