@@ -9,6 +9,28 @@
 ;; ` - everything down is a template; in the output, unchanged.
 ;; , - eval all shit below NOW. BEFORE output. (subexp)
 ;; ,@ - eval all shit below NOW, AND splice list to make same level as above. (listexp)
+;;
+;; save log of every command ran, run prev with keybind?
+;;
+;; Order:
+;; 1: personal config
+;; 2: code
+;; 3: website
+;; 4:
+;; 5: tools
+;; 6: 
+;; 7: 
+;; 8: 
+;; 9: draw
+;;
+;; for keymap keywords :enter-from and :exit-to, do
+;; (:enter-from
+;;  (:normal "s-s")
+;;  (:main "s"))
+;; ^loop through all options instead of just the first arg.
+;; - make this a general logic used by other functions/macros?
+;; when rewriting it all eventually?
+
 
 ;; Load lib file:
 (load "$HOME/.config/river/init-elisp-lib.el")
@@ -43,12 +65,13 @@
 
 (river-bind :normal
             ("s-RET" spawn "alacritty")
-            ("s-M-c" spawn "emacsclient -a '' -c"))
+            ("s-c" spawn "emacsclient -a '' -c"))
 
 ;;; Windows
 
 (river-bind :normal
             ("s-M-d" close)
+            ;; ("s-f" toggle-fullscreen)
             ;; change focus
             ("s-n" focus-view next)
             ("s-t" focus-view previous)
@@ -82,8 +105,11 @@
 
 (river-set ;; start floating
            (float-filter-add app-id float)
+           (float-filter-add title "Extension: (NoScript) - NoScript Settings — Nightly")
            ;; use client-side decorations
-           (csd-filter-add app-id "gedit"))
+           (csd-filter-add app-id "gedit")
+           ;; warp cursor
+           (set-cursor-warp on-focus-change))
 
 ;;; Floating controls
 
@@ -109,7 +135,8 @@
 ;;; Tags
 
 (river-bind :normal
-            ("s-<tab>" spawn "flow toggle-tags 4")
+            ("s-<tab>" focus-previous-tags) ; TODO: implement actual toggling!
+            ("s-M-r" focus-previous-tags)
             ("s-M-h" spawn "flow cycle-tags previous")
             ("s-M-s" spawn "flow cycle-tags next"))
 
@@ -118,9 +145,9 @@
             (setq x (num-to-kbd-real-dvp x))
             (eval `(river-bind :normal
                                (,(format "s-%s" x) spawn ,(format "flow toggle-tags %s" tag))
-                               (,(format "s-S-%s" x) set-view-tags ,tag)
-                               (,(format "s-C-%s" x) toggle-focused ,tag)
-                               (,(format "s-S-C-%s" x) toggle-view-tags ,tag)))))
+                               (,(format "s-S-%s" x) set-view-tags ,tag) ; send to tag
+                               (,(format "s-M-%s" x) toggle-focused-tags ,tag) ; toggle current tag
+                               (,(format "s-M-C-%s" x) toggle-view-tags ,tag))))) ; toggle tag
   (cl-loop for x from 1 to 9
            do (let ((tag (ash 1 (1- x))))
                 (commands x tag))))
@@ -206,6 +233,16 @@ $HOME/.config/river/status"))
 ;; (river-set (spawn "(($(pgrep -cx waybar) > 0)) && killall waybar;
 ;; waybar -c $HOME/.config/waybar/config -s $HOME/.config/waybar/style.css"))
 
+;; swayidle
+(river-set (spawn "
+swayidle -w
+timeout 900"))
+;; # exec swayidle -w \
+;; #   timeout 900 $lock \
+;; #   timeout 960 'swaymsg "output * dpms off"' \
+;; # 	resume 'swaymsg "output * dpms on"' \
+;; #   before-sleep $lock
+
 ;; TODO^^^
 
 ;;; Applications
@@ -241,7 +278,7 @@ font-name \"Iosevka Aile 11\""))
    ("g" spawn "emacsclient -a '' -c")
    ("n" spawn "$HOME/code/in-use/rofi-network-manager/rofi-network-manager.sh"))
   (:exit-to :normal
-   ("C-g" "<escape>" "RET"))
+   ("C-g" "<escape>" "RET" "s-g"))
   (:enter-from :normal
    ("s-g")))
 
@@ -250,6 +287,7 @@ font-name \"Iosevka Aile 11\""))
 (river-keymap :apps
   (:bind
    ("f" spawn "firefox")
+   ("l" spawn "flatpak run io.gitlab.librewolf-community")
    ("p" spawn "firejail keepassxc")
    ("d" spawn "flatpak run dev.vencord.Vesktop")
    ("s" spawn "flatpak run com.spotify.Client")
@@ -257,9 +295,32 @@ font-name \"Iosevka Aile 11\""))
    ("e" spawn "emacsclient -a '' -c")
    ("r" spawn "firejail pw-jack renoise"))
   (:exit-to :normal
-   ("C-g" "<escape>" "RET"))
+   ("C-g" "<escape>" "RET" "s-g"))
   (:enter-from :main
    ("a")))
+
+(river-declare-keymap :set-focused-tags)
+
+(eval
+ `(river-keymap :set-focused-tags
+    ,(cons ':bind
+           (let ((pairs '(("a" . "1")
+                          ("o" . "2")
+                          ("e" . "4")
+                          ("u" . "8")
+                          ("i" . "16")
+                          ("d" . "32")
+                          ("h" . "64")
+                          ("t" . "128")
+                          ("n" . "256"))))
+             (cl-loop for c in (mapcar 'car pairs)
+                      for n in (mapcar 'cdr pairs)
+                      collect `(,c spawn ,(concat "flow toggle-tags " n)))))
+    (:enter-from :normal
+                 ("s-s"))
+    (:exit-to :normal
+              ("C-g" "<escape>" "RET" "s-g"))))
+
 
 ;;; Layouts
 

@@ -101,6 +101,7 @@ If not found, return C."
     ("<right>" "Right")
     ("<up>" "Up")
     ("<down>" "Down")
+    ("/" "Slash")
     ("<mouse-left>" "BTN_LEFT")
     ("<mouse-right>" "BTN_RIGHT")
     ("<mouse-up>" "BTN_UP")
@@ -407,7 +408,8 @@ Example input:
     (macroexpand `(river-set ,new-commands))))
 
 (defmacro river-keymap (&rest commands)
-  (declare (indent 1))
+  (declare (indent defun))
+  (message "DEBUG: commands: %S" commands)
   (let ((ret-macros nil)
         (mode (keymap-shorthand (pop commands))))
     (unless mode
@@ -422,9 +424,19 @@ Example input:
             ;; (message "DEBUG: mode: %S, curr-lst: %S, option: %S, curr-item: %S" mode curr-lst option curr-item)
             ;; process based on option type
             (cond ((eq option 'bind)
-                   (push (macroexpand `(river-set (map (,mode kbd ,curr-item)
-                                                       (-release ,mode kbd ,(car curr-item)
-                                                                 enter-mode normal))))
+                   (message "curr-item: %S" curr-item)
+                   (push (let ((regular `(,mode kbd ,curr-item))
+                               (release `(-release
+                                          ,mode kbd ,(car curr-item) enter-mode normal)))
+                           (message "DEBUG: reg: %S, rel: %S" regular release)
+                           (macroexpand `(river-set (map ,regular
+                                                         ,release))))
+                         ;; (macroexpand `(river-set (map ,(mapcar (lambda (x)
+                         ;;                                          `((,mode kbd ,x)
+                         ;;                                            (-release
+                         ;;                                             ,mode kbd ,(nth 0 x)
+                         ;;                                             enter-mode normal)))
+                         ;;                                        curr-item))))
                          ret-macros))
                   ((eq option 'press)
                    (push (macroexpand `(river-set (map ,mode kbd ,curr-item)))

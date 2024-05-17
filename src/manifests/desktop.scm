@@ -26,7 +26,9 @@
    "yambar-wayland"
    "sandbar"
    "swaybg"
-   "rust-wl-clipboard-rs" ; wl-clip
+   "rust-wl-clipboard-rs" ; wl-clip?
+   "wob"
+   "wl-color-picker"
 
    ;; Wayland utils --
    "xorg-server-xwayland"

@@ -4,6 +4,7 @@
              (gnu home services desktop) ; dbus-service
              (gnu home services shells) ; wayland home-bash-extension
              (gnu home services gnupg) ; gpg-agent-service
+             (gnu home services fontutils) ; fontconfig-service
              (gnu home services) ; home-files-service-type
              (gnu packages gnupg) ; gnupg, pinentry-rofi
              (gnu packages) ; specification->package
@@ -15,7 +16,7 @@
 (export my/desktop-service
         my-pipewire-service
         my-wayland-service
-        ;; my-fontconfig-service
+        my-fontconfig-service
         my-gpg-agent-service
         my-nix-service)
 
@@ -58,7 +59,17 @@
 
 ;; fontconfig
 
-;; WIP
+(define my-fontconfig-service
+  (list
+   (simple-service 'additional-fonts-service
+                   home-fontconfig-service-type
+                   (list "~/.nix-profile/share/fonts"
+                         "~/.guix-extra-profiles/desktop/share/fonts"
+                         "~/.guix-extra-profiles/emacs/share/fonts"
+                         '(alias
+                           (family "monospace")
+                           (prefer
+                            (family "Liberation Mono")))))))
 
 ;; gpg-agent
 
@@ -104,7 +115,7 @@
 (define my/desktop-service
   (append my-pipewire-service
           my-wayland-service
-          ;; my-fontconfig-service
+          my-fontconfig-service
           my-nix-service
           my-gpg-agent-service
           ))

@@ -40,8 +40,12 @@ make snapshotting and store integrity-checking system, daily, or at least very f
 - [X] move dotfiles to nya guix repo
 - [ ] prepare org mode for new semester (statistics)
 - [ ] change sandbar to where current pink is grey and pink is text, inversion.
-- [ ] patch TamzenForPowerline font using special arguments... make sure not to overwrite existing... experiment!!! also add patched to github repo.
-- [ ] update fontconfig to include all profiles' share dir
+- [ ] fonts
+  - [ ] patch TamzenForPowerline font using special arguments... make sure not to overwrite existing... experiment!!! also add patched to github repo.
+  - [ ] patch TamzenForPowerline all ttf fonts, use as fallback for taskbar.
+  - [ ] explore other fonts, like profont and proggy (prepatched nerd fonts available for convenience).
+  - [ ] update fontconfig to include all profiles' share dir
+  - [ ] leggie and other neat bitmap fonts
 - [ ] bar
   - [ ] use darker color title-bg and white title-fg, better.
   - [ ] wifi indicator on statusbar
@@ -49,6 +53,8 @@ make snapshotting and store integrity-checking system, daily, or at least very f
 - [ ] write guix packages
   - [ ] rust flow package
   - [ ] python bemenu script, using nix upstream definition.
+  - [ ] various riverwm packages
+  - [ ] publish onto official guix repo!
 - [ ] read other's river configs and hack more the shit out of!!!
 - [ ] new emacs features
   - [ ] rss - phundrak, 
@@ -57,6 +63,7 @@ make snapshotting and store integrity-checking system, daily, or at least very f
   - [ ] btrfs snapshotting with snapper
   - [ ] make sure guix default profile is being updated, not just the extra profiles (rewrite update script?).
 - [ ] keyfile encryption boot skip
+  - [ ] create guix iso image with wm and emacs n minimal home manager config!
   - [ ] Create persist subvol from chroot, reconfigure, if work, try adding keyfile in /persist/key-file.cpio, hope it works.
   - [ ] test if zstd format works, only in root subvol (also noatime? what does that even do?)
 - [ ] vpn shuffle through mullvad vpns, set all to don't autoconnect except one random, will update next wake from sleep

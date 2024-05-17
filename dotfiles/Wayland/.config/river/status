@@ -71,7 +71,7 @@ while true; do
 		# [ $((sec % 15)) -eq 0 ] && cpu
 		# [ $((sec % 15)) -eq 0 ] && disk
 		[ $((sec % 30)) -eq 0 ] && bat
-		[ $((sec % 5)) -eq 0 ] && vol
+		[ $((sec % 3)) -eq 0 ] && vol
 		[ $((sec % 5)) -eq 0 ] && datetime
 
 		[ $((sec % 5)) -eq 0 ] && display

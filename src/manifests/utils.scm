@@ -30,6 +30,7 @@
    "mpdscribble"
 
    ;; dev --
+   "pkg-config"
    "rust-cargo" ; ?
    "rust" ; ?
    "rust-analyzer"
@@ -41,6 +42,7 @@
    "clang" ; needed for company backend emacs
    "gprolog" ; prolog interpreter
    "glibc" ; adding here bc also in root profile
+   "zig"
 
    ;; network --
    "iptables"

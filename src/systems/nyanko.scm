@@ -120,13 +120,13 @@ EndSection
   (cond (ri/use-wayland
          ;; delete some from base services, dont return
          (set! %my-base-services
-           (modify-services %my-base-services
-             ;; greetd-service-type provides "greetd" PAM service
-             (delete login-service-type)
-             ;; and can be used in place of mingetty-service-type
-             (delete mingetty-service-type)
-             ;; delete default fonts
-             (delete console-font-service-type)))
+               (modify-services %my-base-services
+                 ;; greetd-service-type provides "greetd" PAM service
+                 (delete login-service-type)
+                 ;; and can be used in place of mingetty-service-type
+                 (delete mingetty-service-type)
+                 ;; delete default fonts
+                 (delete console-font-service-type)))
          ;; return these new services
          (list
           ;; use custom fonts
@@ -149,7 +149,14 @@ EndSection
                        (terminal-switch #t))
                       ;; Set up remaining TTYs for terminal use
                       (greetd-terminal-configuration (terminal-vt "2"))
-                      (greetd-terminal-configuration (terminal-vt "3"))))))))
+                      (greetd-terminal-configuration (terminal-vt "3"))))))
+          ;; swaylock
+          (service screen-locker-service-type
+                   (screen-locker-configuration
+                    (name "slock")
+                    (program (file-append slock "/bin/slock"))
+                    (using-pam? #t)
+                    (using-setuid? #t)))))
         ;; NOT wayland:
         (else
          (list
@@ -165,8 +172,8 @@ EndSection
           ;; screen lock
           (service screen-locker-service-type
                    (screen-locker-configuration
-                    (name "slock")
-                    (program (file-append slock "/bin/slock"))
+                    (name "swaylock")
+                    (program (file-append slock "/bin/swaylock"))
                     (using-pam? #t)
                     (using-setuid? #t)))))))
 
