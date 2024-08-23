@@ -1,0 +1,11 @@
+#!/bin/bash
+
+alias ctf="source $HOME/.bin/ctf.sh"
+alias save="ctf save"
+alias finish="ctf finish"
+alias grepflag="ctf grepflag"
+
+alias prelude="emacs --init-directory ~/.config/prelude"
+alias esper="emacs --init-directory ~/.config/esper"
+
+alias rn="firejail pw-jack renoise --scripting-dev"

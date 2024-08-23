@@ -33,6 +33,7 @@
   #:use-module (gnu packages xdisorg) ; xscreensaver
   #:use-module (gnu packages glib) ; xdg-dbus-proxy
   #:use-module (gnu packages gnome) ; network-manager-openvpn
+  #:use-module (gnu packages networking) ; wireshark
   ;; misc
   #:use-module (srfi srfi-1)
   )
@@ -198,8 +199,12 @@ EndSection
             (libvirt-configuration
              (unix-sock-group "libvirt")
              (tls-port "16555")))
+   (service virtlog-service-type
+            (virtlog-configuration
+             (max-clients 1000)))
    ;; docker service
    (service docker-service-type)
+   (service containerd-service-type)
 
    ;; -- package management -------
    ;; nix service type
@@ -240,7 +245,25 @@ EndSection
    ;; (service bluetooth-service-type
    ;;          (bluetooth-configuration
    ;;           (privacy 'network/on)))
-
+   (service nftables-service-type
+            (nftables-configuration
+             (ruleset
+              #~(define nfslsk
+                  (nftables-make-ruleset
+                   (nftables-table
+                    (name "filter")
+                    (nftables-chain
+                     (name "input")
+                     (type filter)
+                     (hook input)
+                     (priority 0)
+                     (policy accept)
+                     ;; allow incoming TCP traffic on port 2234
+                     (nftables-rule
+                      (ip protocol tcp)
+                      (tcp dport 2234)
+                      (accept)))))))))
+   
    ;; -- system services -------
    ;; polkit (dont exactly know what this does)
    (service polkit-service-type)       ; unbound variable???
@@ -266,6 +289,10 @@ EndSection
              (schedule "0 22 * * 4")))
    ;; upower, power consumption monitor?
    (service upower-service-type)
+
+   ;; -- appimages (doesn't work) -----
+   (extra-special-file "/lib64/ld-linux-x86-64.so.2"
+                       (file-append glibc "/lib/ld-linux-x86-64.so.2"))
 
    ;; -- garbage collection -----
    (simple-service 'system-cron-jobs
@@ -312,7 +339,8 @@ EndSection
     (supplementary-groups '("wheel" ; sudo
                             "audio" "video"
                             "netdev" ; network devices
-                            "kvm" "docker"
+                            "kvm" "libvirt" "docker"
+                            "wireshark" ; wireshark w/o sudo (not needed?)
                             "realtime"))) ; music
    %base-user-accounts))
 
@@ -320,8 +348,9 @@ EndSection
 
 ;; TODO: define all things necessary for realtime audio up and grouped.
 (define %my-groups
-  (cons (user-group (system? #t) (name "realtime")) ; for realtime audio
-        %base-groups))
+  (cons* (user-group (system? #t) (name "realtime")) ; for realtime audio
+         (user-group (system? #t) (name "wireshark")) ; wireshark (not needed?)
+         %base-groups))
 
 ;;; --- Hostname: ----
 
@@ -335,16 +364,21 @@ EndSection
 	'("vim" "git" "stow"
           "emacs"
           "emacs-exwm" "emacs-desktop-environment"
-          "sbcl" "stumpwm-with-slynk" "stumpwm:lib" ; stumpwm
+          "sbcl" "stumpwm-with-slynk"
+          ;; "stumpwm:lib" ;; deleted
           "slock" "xss-lock"
           "firejail" "xdg-dbus-proxy"
           "wireguard-tools" ; ?
+          "wireshark"
           "jmtpfs"
           "intel-media-driver-nonfree" ; nonguix intel drivers
           ;; "glibc" ; don't need, for dynamic linker hack
           "font-terminus" ; for wayland greetd
           "libva-utils" ; ?
           "gvfs" ; user mounts?
+          ;; flatpak
+          "xdg-desktop-portal"
+          "xdg-desktop-portal-gtk"
           ))
    %base-packages))
 
@@ -352,9 +386,11 @@ EndSection
 
 ;; add firejail
 (define %my-setuid-programs
-  (append (list (setuid-program (program (file-append firejail "/bin/firejail")))
-		(setuid-program (program (file-append xscreensaver "/bin/xscreensaver"))))
-	  %setuid-programs))
+  (cons* (setuid-program (program (file-append firejail "/bin/firejail")))
+	 ;; (setuid-program (program (file-append xscreensaver "/bin/xscreensaver")))
+	 (setuid-program (program (file-append wireshark "/bin/dumpcap"))
+                         (group "wireshark"))
+	 %setuid-programs))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Main system configuration:

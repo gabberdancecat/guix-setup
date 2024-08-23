@@ -7,7 +7,7 @@
    ;; "emacs"
    "emacs-pgtk"
    ;; vterm
-   "emacs-vterm"
+   "emacs-vterm" ; needed tf?
    "cmake"
    "make"
    "gcc-toolchain"

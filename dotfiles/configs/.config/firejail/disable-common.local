@@ -1,2 +1,3 @@
 blacklist ${HOME}/Documents/secure
 blacklist ${HOME}/School/school/Important-docs
+blacklist ${HOME}/.backups

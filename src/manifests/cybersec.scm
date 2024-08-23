@@ -7,7 +7,7 @@
 
 (specifications->manifest
  '(
-   "wireshark"
+   ;; "wireshark" ; moved to system profile
    "qbittorrent"
    "python"
    "remmina"
@@ -20,4 +20,7 @@
    "perl-image-exiftool"
    "netcat"
    "fuse" ;; for appimage
+   "openvpn"
+   "nmap"
+   "samba" ; smbclient
    ))

@@ -35,11 +35,12 @@
    "xdg-desktop-portal-wlr"
    "qtwayland"
    "xlsclients" ; list xwayland clients
+   "wf-recorder"
 
    ;; Stumpwm --
    ;; either:
    ;; - stumpwm:lib and sbcl in same profile
-   "stumpwm:lib" ; doesn't work if system-installed...?
+   ;; "stumpwm:lib" ; doesn't work if system-installed...? ;; Deleted package
    ;; "sbcl-slynk"
    "stumpish"	  ; stumpwm interactive shell for stumpwm-mode
    "sbcl-clx-xembed"		; stumptray depd
@@ -50,7 +51,9 @@
 
    ;; Applications --
    "firefox"
+   "librewolf"
    "qutebrowser"
+   "telegram-desktop"
    "keepassxc"
    "calibre"
    ;; "syncthing"
@@ -64,6 +67,10 @@
    "mupdf" ; keybinds: S-w + - j k h l , . m t [0-9]m [0-9]t / n N [0-9]g c S-h
    "okular"			; pdf reader
    "cmus"
+   "anki"
+   "qemu"
+   "virt-manager"
+   "bridge-utils"
    
    ;; Desktop misc --
    "network-manager-applet" ; original

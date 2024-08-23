@@ -43,6 +43,7 @@
    "gprolog" ; prolog interpreter
    "glibc" ; adding here bc also in root profile
    "zig"
+   "guile-hall"
 
    ;; network --
    "iptables"
@@ -57,13 +58,22 @@
    ;; "xdot" ; ? speech-to-text?
    "gtk+:bin" ; gtk-launch
    "espeak-ng"
-   
+   "wl-clipboard"
+
+   ;; eww dependencies --
+   "gtk+"
+   "libdbusmenu"
+   "gtk-layer-shell"
+
    ;; fun --
    "hyfetch"
    "uwufetch"
    "sl"
    "cowsay"
    "btop"
+
+   ;; renoise
+   ;; "mpg123"
 
    ;; System --
    "dbus" ; do i need this? (command to search for which profiles this is in?)

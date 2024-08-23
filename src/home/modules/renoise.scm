@@ -10,6 +10,8 @@
 
 (export my/renoise-packages)
 
+;;;;;;;;;;;;; Disabled
+
 ;;; set renoise version and path here:
 
 (define renoise-version "3.4.3")
@@ -44,4 +46,8 @@
       "dbus"
       "alsa-utils"
       "openbox"
-      "fluxbox"))))
+      "fluxbox"
+      "mpg123"
+      "libquicktime"
+      "rubberband"
+      ))))

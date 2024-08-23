@@ -4,7 +4,7 @@
              (src home modules desktop) ; wayland env+theme, pipewire, gpg, fontconfig, nix
              ;; (src home modules system) ; channels
              (src home modules setup) ; dotfiles
-             (src home modules renoise) ; renoise(packages)
+             ;; (src home modules renoise) ; renoise(packages)
              ;; depend
              (gnu home)
              (gnu packages)
@@ -21,7 +21,8 @@
                "font-dejavu"
                "font-tamzen"))
             ;; renoise+depends only
-            my/renoise-packages))
+            ;; my/renoise-packages
+            ))
  ;; services
  (services (append
             ;; (pipewire+wayland+fontconfig+gpg+nix)

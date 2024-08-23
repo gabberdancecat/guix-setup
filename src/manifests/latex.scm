@@ -19,7 +19,8 @@
    "texlive-collection-langenglish"
    "texlive-collection-latex"
    "texlive-collection-mathscience"
-   "texlive-collection-pictures"
+   ;; "texlive-collection-pictures"
+   
    ;; texlive-collection-xetex
    ;; texlive-collection-plaingeneric
    ;; texlive-collection-metapost
@@ -49,5 +50,5 @@
    ))
 
 ;; disable the above with this below
-(specifications->manifest
- '("rubber"))
+;; (specifications->manifest
+;;  '("rubber"))

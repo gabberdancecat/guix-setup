@@ -10,9 +10,7 @@ flatpak install --or-update --user \
       com.spotify.Client \
       org.prismlauncher.PrismLauncher \
       sh.ppy.osu \
-      fm.reaper.Reaper \
-      io.gitlab.librewolf-community \
-      dev.vencord.Vesktop
+      fm.reaper.Reaper
 # us.zoom.Zoom 
 # org.keepassxc.KeePassXC # broken, better to use raw firefox?
 # flatpak update (already covered... also doesn't exit after command is done...)

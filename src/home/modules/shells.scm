@@ -19,6 +19,7 @@
     ("rm" . "rm -i")
     ("ts" . "trash")
     ("b" . "cd ..")
+    ("p" . "cd -")
     ("grep" . "grep --color=auto")
     ;; util
     ("clipboard" . "xclip -sel clip")

@@ -16,6 +16,7 @@
         # gh # github-cli
         # ghidra-bin # hacking
         # mysql-workbench # python backend
+	vesktop
       ];
       pathsToLink = [ "/share/man" "/share/doc" "/bin" ];
       extraOutputsToInstall = [ "man" "doc" ];

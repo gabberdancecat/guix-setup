@@ -24,49 +24,85 @@ make snapshotting and store integrity-checking system, daily, or at least very f
 
 .guix-profile is never updated, only .guix-extra-profiles. edit the script to ensure that the default profile is being upgraded as well!
 
+To merge single files into another branch: [[https://jasonrudolph.com/blog/2009/02/25/git-tip-how-to-merge-specific-files-from-another-branch/][link]]
+
 ** TODO Now
 
-- [X] Restore firefox bookmarks and add new ones from other laptop
-- [X] save new nyanko.scm
-  - [X] FIX GIT GPG ACCESS
-- [X] create modules for stow dotfiles
-- [X] create script for volume-up key, check if current volume is <= 100, if yes, allow inc script arg amount, check val again, if over 100, set back to 100
-- [X] faster grub decrypt:
-  - [X] make key slot 0 the new primary one, with the preferred password, with iterations 1000.
-  - [X] restart to check.
-  - [X] make key slot 1 the old pass, with iterations 1000.
-  - [X] restart to check.
-  - [X] delete slot 2
-- [X] move dotfiles to nya guix repo
-- [ ] prepare org mode for new semester (statistics)
-- [ ] change sandbar to where current pink is grey and pink is text, inversion.
-- [ ] fonts
-  - [ ] patch TamzenForPowerline font using special arguments... make sure not to overwrite existing... experiment!!! also add patched to github repo.
-  - [ ] patch TamzenForPowerline all ttf fonts, use as fallback for taskbar.
-  - [ ] explore other fonts, like profont and proggy (prepatched nerd fonts available for convenience).
-  - [ ] update fontconfig to include all profiles' share dir
-  - [ ] leggie and other neat bitmap fonts
-- [ ] bar
-  - [ ] use darker color title-bg and white title-fg, better.
-  - [ ] wifi indicator on statusbar
-  - [ ] yambar instead?
-- [ ] write guix packages
-  - [ ] rust flow package
-  - [ ] python bemenu script, using nix upstream definition.
-  - [ ] various riverwm packages
-  - [ ] publish onto official guix repo!
-- [ ] read other's river configs and hack more the shit out of!!!
-- [ ] new emacs features
-  - [ ] rss - phundrak, 
-- [ ] auto guix upkeep script (use fzf!!!!!):
-  - [ ] verify store integrity
-  - [ ] btrfs snapshotting with snapper
-  - [ ] make sure guix default profile is being updated, not just the extra profiles (rewrite update script?).
-- [ ] keyfile encryption boot skip
+Instead of tackling all at once, choose one for the day, and knock out all at once. Check things off one by one, and it'll be all taken out in 2~3 weeks?
+
++ org
+  - [ ] latex fragments, fragtog, completion.
+    [[https://www.reddit.com/r/emacs/comments/o2g7a3/take_math_notes_in_emacs_org_mode/][reddit - take math notes in org]]
+    [[https://github.com/io12/org-fragtog?tab=readme-ov-file][github - org-fragtog]]
+    [[https://orgmode.org/manual/Previewing-LaTeX-fragments.html][gnu org manual - latex fragment previewing]]
+    [[https://github.com/Nyoho/.emacs.d/blob/41b1932304e33c93e6bc316c068d6b5d635ed910/config/50-org.el#L400-L431][example org latex yasauctex setup]]
+  - [ ] literate calc mode for math notes [[https://github.com/sulami/literate-calc-mode.el?tab=readme-ov-file][repo]]
+  - [ ] org-roam (easy searching everything! all notes!)
+
++ desktop
+  - [ ] sandbar customization: slightly darker bg, slightly whiter fg...
+  - [ ] wifi indicator (?maybe find a pre-made script for statusbar?)
+  - [ ] script to toggle disable-while-typing (much easier in guile?)
+    [[https://codeberg.org/river/river/src/branch/master/doc/riverctl.1.scd][riverctl docs, commands]]
+  - [ ] go through other's river configs to learn
+  - [ ] write river lisp config
+    [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Multi_002dfile-Packages.html][loading dependency files for elisp?]]
+  - [ ] river new argument to toggle opening new window at top of stack or one below.
+
++ fonts
+  - [ ] install and test leggie, profont, gohufont-nerd,
+    [[https://github.com/wikkyk/leggie][font - leggie]]
+    [[https://tobiasjung.name/profont/index.php?fs=18&pf=on][font - profont]]
+  - [ ] patch tamzen nerd fonts using script, test on statusbar.
+    [[https://github.com/ryanoasis/nerd-fonts?tab=readme-ov-file#font-patcher][nerd patcher usage]]
+
++ fonts (emacs)
+  - [ ] proper emacs symbols fonts
+    [[https://www.shimmy1996.com/en/posts/2018-06-24-fun-with-fonts-in-emacs/][custom ultimate fontset tutorial]]
+
++ guix
+  - [ ] write packages:
+    sliver https://sliver.sh/docs?name=Compile+from+Source
+    python bemenu [[https://github.com/firecat53/networkmanager-dmenu/tree/main][proj repo]]
+    wk [[https://github.com/3L0C/wk][proj repo]]
+  - [ ] publish onto official repos
+  - [ ] lem pkgbuild
+
++ emacs
+  - [ ] workspaces with butler
+    [[https://github.com/alphapapa/bufler.el][github repo - bufler]]
+  - [ ] rss:
+    read docs for fancier workflows
+    new repos im maintaining
+  - [ ] configure lsp:
+    [[https://stackoverflow.com/questions/69934/set-4-space-indent-in-emacs-in-text-mode][indentation and tab width]]
+    read through docs, lots to learn, valuable
+  - [ ] shape into an emacs distribution
+
++ cyber
+  - [ ] pwn, now
+  - [ ] build rz-ghidra using instructions and add as plugin
+  - [ ] write a guix pkg-build for rz-ghidra
+  - [X] create throwaway google phone number for next ctf
+
++ system
+  - [ ] make script wrapper to dl every song from a playlist (goes hard) on soundcloud
+  - [ ] read geiser docs
+  - [ ] write scripts in guile [[https://www.gnu.org/software/guile/manual/html_node/The-Top-of-a-Script-File.html][docs]]
+    [[https://gitlab.com/a-sassmannshausen/guile-hall][guile-hall docs]]
+  - [ ] guix upkeep script (guile?)
+    verify store integrity, btrfs snapshots!, etc
+
++ misc
+  - [ ] buy coffe mug from amazon
+  - [ ] explore deep naked flames vids
+
+   
++ [ ] keyfile encryption boot skip
   - [ ] create guix iso image with wm and emacs n minimal home manager config!
   - [ ] Create persist subvol from chroot, reconfigure, if work, try adding keyfile in /persist/key-file.cpio, hope it works.
   - [ ] test if zstd format works, only in root subvol (also noatime? what does that even do?)
-- [ ] vpn shuffle through mullvad vpns, set all to don't autoconnect except one random, will update next wake from sleep
++ [ ] vpn shuffle through mullvad vpns, set all to don't autoconnect except one random, will update next wake from sleep
 
 Long future:
 - improve and neaten arkenfox overrides into neater form
@@ -75,4 +111,6 @@ Long future:
 - personal website with photos, org mode?
 - sign all commits in emacs repo?
 - create music dir (bandcamp lolecore), have all local music on there, rsync to phone easily (in the future, homelab and stream?).
+- make noise music generator in Scheme or something? copy from shizcow, reimplement.
+- work on kernel configurator emacs lisp
 

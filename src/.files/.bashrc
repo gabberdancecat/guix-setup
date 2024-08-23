@@ -1,4 +1,7 @@
 
+# make bash append to history after every time
+PROMPT_COMMAND="history -a"
+
 # vterm integration
 vterm_printf() {
     if [ -n "$TMUX" ] && ([ "${TERM%%-*}" = "tmux" ] || [ "${TERM%%-*}" = "screen" ]); then
@@ -15,3 +18,7 @@ vterm_printf() {
 # if command -v tmux &> /dev/null && [ -n "$PS1" ] && [[ ! "$TERM" =~ screen ]] && [[ ! "$TERM" =~ tmux ]] && [ -z "$TMUX" ]; then
 #   exec tmux
 # fi
+
+if [ -f "$HOME/.bash_extra" ]; then
+    source "$HOME/.bash_extra"
+fi
