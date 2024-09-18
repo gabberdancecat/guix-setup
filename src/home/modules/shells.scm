@@ -53,7 +53,7 @@
 
 ;;     ))
 
-(define my/bash-service
+(define-public my/bash-service
   (list
    (service home-bash-service-type
 	    ;; (home-bash-configuration
@@ -70,7 +70,7 @@
             ;;  )
             )))
 
-(define my/zsh-service
+(define-public my/zsh-service
   (list
    (service home-zsh-service-type
             ;; (home-zsh-configuration

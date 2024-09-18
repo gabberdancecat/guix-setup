@@ -59,6 +59,7 @@ unset PULSE_CLIENTCONFIG
 #     fi
 # fi
 
+# renoise fix bug
 if [ -d "$HOME/.guix-extra-profiles/renoise/renoise/lib" ]; then
     export LD_LIBRARY_PATH="$HOME/.guix-extra-profiles/renoise/renoise/lib:$LD_LIBRARY_PATH"
 fi

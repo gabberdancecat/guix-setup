@@ -1,6 +1,6 @@
 (define-module (src home owo))
 
-(use-modules ;; (src home modules shells) ; bash, aliases
+(use-modules (src home modules shells) ; bash, aliases
              (src home modules desktop) ; wayland env+theme, pipewire, gpg, fontconfig, nix
              ;; (src home modules system) ; channels
              (src home modules setup) ; dotfiles

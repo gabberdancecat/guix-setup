@@ -51,12 +51,12 @@
 ;;     ;; (also combine config a bit more
 ;;     ("GTK_THEME" . "Matcha-dark-azul")))
 
-(define my-wayland-service
-  (list
-   (simple-service 'wayland-env
-                   home-bash-service-type
-                   (home-bash-extension
-                    (environment-variables my-wayland-env-vars)))))
+;; (define my-wayland-service
+;;   (list
+;;    (simple-service 'wayland-env
+;;                    home-bash-service-type
+;;                    (home-bash-extension
+;;                     (environment-variables my-wayland-env-vars)))))
 
 ;; fontconfig
 

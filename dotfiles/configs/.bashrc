@@ -25,7 +25,7 @@ fi
 # Source the system-wide file.
 [ -f /etc/bashrc ] && source /etc/bashrc
 
-# PS1='\u@\h \w${GUIX_ENVIRONMENT:+ [env]}\$ '
+PS1='\u@\h \w${GUIX_ENVIRONMENT:+ [env]}\$ '
 
 ##### Source: ######
 
@@ -34,9 +34,6 @@ if [ -f "$HOME/.aliasrc" ]; then
 fi
 
 ##### Customize: ######
-
-# make bash append to history after every time
-PROMPT_COMMAND="history -a"
 
 # vterm integration
 vterm_printf() {

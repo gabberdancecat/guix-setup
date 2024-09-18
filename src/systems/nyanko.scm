@@ -310,9 +310,7 @@ EndSection
    ;;
    ;; -- dev/testing ------
    ;; mysql for testing
-   (service mysql-service-type
-            (mysql-configuration
-             (mysql mysql)))
+   (service mysql-service-type)
    ))
 
 (define %my-services
@@ -344,7 +342,8 @@ EndSection
                             "netdev" ; network devices
                             "kvm" "libvirt" "docker"
                             "wireshark" ; wireshark w/o sudo (not needed?)
-                            "realtime"))) ; music
+                            "realtime")) ; music
+    (shell (file-append zsh "/bin/zsh")))
    %base-user-accounts))
 
 ;;; --- Groups: ----
