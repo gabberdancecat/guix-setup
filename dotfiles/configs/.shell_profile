@@ -1,0 +1,87 @@
+# -*- mode: sh -*-
+
+## .shell_profile
+
+## Sourced from .bash_profile and .zprofile
+
+
+# Merge search-paths from multiple profiles, the order matters.
+# eval "$(guix package --search-paths \
+# -p $HOME/.config/guix/current \
+# -p $HOME/.guix-profile \
+# -p /run/current-system/profile \
+# -p $HOME/.guix-extra-profiles/emacs \
+# -p $HOME/.guix-extra-profiles/desktop \
+# -p $HOME/.guix-extra-profiles/workstation \
+# )" 
+
+# # Load the default Guix profile
+# GUIX_PROFILE="$HOME/.guix-profile"
+# . "$GUIX_PROFILE/etc/profile"
+
+# # Necessary??
+# GUIX_PROFILE="$HOME/.config/guix/current"
+# . "$GUIX_PROFILE/etc/profile"
+
+# Load additional Guix profiles
+GUIX_EXTRA_PROFILES=$HOME/.guix-extra-profiles
+for i in $GUIX_EXTRA_PROFILES/*; do
+    profile=$i/$(basename "$i")
+    if [ -f "$profile"/etc/profile ]; then
+	GUIX_PROFILE="$profile"
+	. "$GUIX_PROFILE"/etc/profile
+    fi
+    unset profile
+done
+
+# Load Nix environment
+if [ -f /run/current-system/profile/etc/profile.d/nix.sh ]; then
+    source /run/current-system/profile/etc/profile.d/nix.sh
+fi
+
+# Load Nix my-packages profile environment
+if [ -d "${HOME}/.nix-profile/etc/profile.d" ]; then
+    for i in "${HOME}/.nix-profile/etc/profile.d/"*.sh; do
+	if [ -r "$i" ]; then
+	    source "$i"
+	fi
+    done
+fi
+
+# don't use system PulseAudio configuration
+unset PULSE_CONFIG
+unset PULSE_CLIENTCONFIG
+
+# autostart mullvad-daemon if not done so already
+# if [ "$(which mullvad-daemon ; echo $?)" -eq 0 ]; then # if mullvad-daemon exists
+#     if [ "$(pgrep -l mullvad-daemon | grep -c 'mullvad-daemon')" -eq 0 ]; then # if process doesn't exist
+# 	sudo mullvad-daemon &
+#     fi
+# fi
+
+if [ -d "$HOME/.guix-extra-profiles/renoise/renoise/lib" ]; then
+    export LD_LIBRARY_PATH="$HOME/.guix-extra-profiles/renoise/renoise/lib:$LD_LIBRARY_PATH"
+fi
+
+### Environment Variables: #####
+
+export LC_COLLATE="C"
+export CC="gcc" # fix CC compilation
+export VISUAL="emacsclient"
+export EDITOR="emacsclient"
+export PATH="$PATH:$HOME/.bin:$HOME/.cargo/bin:$HOME/.local/bin:/run/setuid-programs"
+export XDG_DATA_DIRS="$XDG_DATA_DIRS:$HOME/.local/share/flatpak/exports/share" # make flatpak apps visible
+export SBCL_HOME="$HOME/.guix-home/profile/lib/sbcl" # FIX for stumpwm???
+export DOTNET_CLI_TELEMETRY_OPTOUT="1" # no telemetry when compiling osu
+
+export XDG_CURRENT_DESKTOP="river"
+export XDG_SESSION_TYPE="wayland"
+export RTC_USE_PIPEWIRE="true"
+export SDL_VIDEODRIVER="wayland"
+export MOZ_ENABLE_WAYLAND="1"
+export CLUTTER_BACKEND="wayland"
+export ELM_ENGINE="wayland"
+export ECORE_EVAS_ENGINE="wayland"
+export QT_QPA_PLATFORM="wayland"
+export QT_QPA_PLATFORM="xcb"
+export GTK_THEME="Matcha-dark-azul"

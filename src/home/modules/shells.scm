@@ -29,29 +29,29 @@
 ;;     ("recursive-find" . "grep -rnw . -e")
 ;;     ("recompileurxvt" . "xrdb ~/.Xresources")))
 
-(define my-env-vars
-  `( ;; ls fix print dots first
-    ("LC_COLLATE" . "C")
-    ;; fix CC compilation
-    ("CC" . "gcc")
-    ;; Emacs is our editor
-    ("VISUAL" . "emacsclient")
-    ("EDITOR" . "emacsclient")
-    ;; add .bin and setuid programs to path
-    ("PATH" . ,(string-append
-                "$HOME/.bin:"
-                "$HOME/.cargo/bin:"
-                "$HOME/.local/bin:"
-                "/run/setuid-programs:"
-                "$PATH"))
-    ;; make flatpak apps visible
-    ("XDG_DATA_DIRS" . "$XDG_DATA_DIRS:$HOME/.local/share/flatpak/exports/share")
-    ;; FIX for stumpwm???
-    ;; ("SBCL_HOME" . "$HOME/.guix-home/profile/lib/sbcl")
-    ;; no telemetry when compiling osu
-    ("DOTNET_CLI_TELEMETRY_OPTOUT" . "1")
+;; (define my-env-vars
+;;   `( ;; ls fix print dots first
+;;     ("LC_COLLATE" . "C")
+;;     ;; fix CC compilation
+;;     ("CC" . "gcc")
+;;     ;; Emacs is our editor
+;;     ("VISUAL" . "emacsclient")
+;;     ("EDITOR" . "emacsclient")
+;;     ;; add .bin and setuid programs to path
+;;     ("PATH" . ,(string-append
+;;                 "$HOME/.bin:"
+;;                 "$HOME/.cargo/bin:"
+;;                 "$HOME/.local/bin:"
+;;                 "/run/setuid-programs:"
+;;                 "$PATH"))
+;;     ;; make flatpak apps visible
+;;     ("XDG_DATA_DIRS" . "$XDG_DATA_DIRS:$HOME/.local/share/flatpak/exports/share")
+;;     ;; FIX for stumpwm???
+;;     ;; ("SBCL_HOME" . "$HOME/.guix-home/profile/lib/sbcl")
+;;     ;; no telemetry when compiling osu
+;;     ("DOTNET_CLI_TELEMETRY_OPTOUT" . "1")
 
-    ))
+;;     ))
 
 (define my/bash-service
   (list
