@@ -1,65 +1,59 @@
 #!/usr/bin/env sh
 
+# riverctl input pointer-1267-12864-ELAN0412:00_04F3:3240_Touchpad disable-while-typing disabled
+
+input_device="pointer-1267-12864-ELAN0412:00_04F3:3240_Touchpad"
+
 die() { echo "Error: $@. Exiting..."; exit 1; }
 
-setRiverInput() {
-    riverctl 
+get_status() {
+    riverctl list-input-configs |
+	awk "/$input_device/{flag=1;next} /^$/{flag=0} flag{print}" |
+	grep "disable-while-typing" |
+	sed 's/.*: //'
 }
 
+set_status() {
+    [ $# -le 0 ] && die "set_status: not enough inputs"
 
-input_all_names="$(riverctl list-inputs | tr -s '\n')"
-input_all_names_NR="$(echo $input_all_names | wc -l)"
+    if [ $1 = 1 ]; then
+	echo "> enabling..."
+	riverctl input $input_device disable-while-typing enabled
+    elif [ $1 = 0 ]; then
+	echo "> disabling..."
+	riverctl input $input_device disable-while-typing disabled
+    else
+	die "set_status: invalid arg: $1"
+    fi
+}
 
-echo "$input_all_names"
-echo "$input_all_names_NR"
+toggle_status() {
+    status="$(get_status)"
+    if [ "$status" = 'enabled' ]; then
+	set_status 0
+    elif [ "$status" = 'disabled' ]; then
+	set_status 1
+    else
+	die "toggle_status: invalid status received: $status"
+    fi
+}
 
-for i in $(seq 1 $input_all_names_NR); do
-    if grep -q 
+main() {
+    echo "> Status: $(get_status)"
+    if [ $# = 0 ]; then
+	toggle_status
+    else
+	if [[ "$1" == @(enable|enabled|1) ]]; then
+	    set_status 1
+	elif [[ "$1" == @(disable|enabled|0) ]]; then
+	    set_status 0
+	else
+	    die "invalid input to command: $1"
+	fi
+    fi
+    echo "> Status: $(get_status)"
+    echo "> Done."
+}
 
-input_names="$(echo "$input_all_names" | \
-awk '{ \
-    for (i=1; i<=NR; i++) {
-    	tmp=match($0, /*configured:.true.*/) ; \
-	print tmp ; \
-	if(tmp) { print $i } ; \
-    } \
-}' $1 \
-)"
+main "$@"
 
-echo "$input_names"
-
-exit
-
-
-
-
-
-
-
-
-
-input_configs_raw="$(riverctl list-input-configs)"
-
-# get input name
-
-input_configs_name="$(echo "$input_configs_raw" | \
-head -n 1)"
-
-# get current status
-
-
-input_configs_search_num="$(echo "$input_configs_raw" | \
-grep -c 'disable-while-typing')"
-
-input_configs_status="$(echo "$input_configs_raw" | \
-perl -n -e '/^.*disable-while-typing:[[:space:]]*(.*)$/ && print $1')"
-
-echo $input_configs_status
-
-# set 
-
-# toggle if no args
-
-if [ $# = 0 ]; then
-    if [ "$input_configs_status" = "enabled" ]; then
-	

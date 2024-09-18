@@ -43,4 +43,5 @@
    "gmime"
    "xapian"
    "ninja"
+   "emacs-guix"
    ))

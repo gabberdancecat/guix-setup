@@ -52,46 +52,43 @@ die() { echo "> Error: $1."; exit 1; }
 
 while getopts ":c:i:o:r:d:smh" opt; do
     case $opt in
-	# No argument required:
-	s)
-	    if [ "$mode" = "multiple" ]; then
-		die "Conflicting options -m and -s"
-	    fi
-	    mode=single
-	    ;;
-	m)
-	    if [ "$mode" = "single" ]; then
-		die "Conflicting options -s and -m"
-	    fi
-	    mode=multiple
-	    ;;
-	h)
-	    print_usage
-	    ;;
-	# Argument required:
-	c)
-	    c_file=$OPTARG ;;
-	i)
-	    in=$OPTARG ;;
-	o)
-	    out=$OPTARG ;;
-	r)
-	    range=$OPTARG ;;
-	d)
-	    diff_opts=$OPTARG ;;
-	*)
-	    die "Invalid argument option, run with -h to view available" ;;
+        # No argument required:
+        s)
+            mode=single ;;
+        m)
+            [ "$mode" = "single" ] && die "Conflicting options -s and -m"
+	    mode=multiple ;;
+	v)
+	    [ "$mode" = "single" ] && die "Conflicting options -s and -v"
+	    [ "$mode" = "multiple" ] && die "Conflicting options -m and -v"
+	    mode=valgrind ;;
+        h)
+            print_usage ;;
+	
+        # Argument required:
+        c)
+            c_file=$OPTARG ;;
+        i)
+            in=$OPTARG ;;
+        o)
+            out=$OPTARG ;;
+        r)
+            range=$OPTARG ;;
+        d)
+            diff_opts=$OPTARG ;;
+        *)
+            die "Invalid argument option, run with -h to view available" ;;
     esac
 done
 
 # assume default mode if unspecified
 if [ -z $mode ]; then
     if [ -z $range ]; then
-	mode=single
-	echo "> Notice: using mode Single (-s) by default."
+        mode=single
+        echo "> Notice: using mode Single (-s) by default."
     else
-	mode=multiple
-	echo "> Notice: using mode Multiple (-m) because range specified."
+        mode=multiple
+        echo "> Notice: using mode Multiple (-m) because range specified."
     fi
 fi
 
@@ -109,7 +106,7 @@ if [ "$mode" = "single" ]; then
 fi
 if [ "$mode" = "multiple" ]; then
     if [ -z $range ]; then
-	die "Range not specified, use -r (RANGE)"
+        die "Range not specified, use -r (RANGE)"
     fi
     basename $in |grep -q "@" || die "cannot find '@' in filename"
     basename $out |grep -q "@" || die "cannot find '@' in filename"
@@ -140,16 +137,16 @@ if [ "$mode" = "multiple" ]; then
     beg=${range%-*} && end=${range#*-}
     # test cases
     for i in $(seq $beg $end); do
-	echo "# Case #$i"
-	
-	in_cur=$(dirname $in)/$(basename $in |tr '@' $i)
-	out_cur=$(dirname $in)/$(basename $out |tr '@' $i)
-	
-	exec_output=`./$exec < $in_cur`
-	case_output=`cat $out_cur`
+        echo "# Case #$i"
+        
+        in_cur=$(dirname $in)/$(basename $in |tr '@' $i)
+        out_cur=$(dirname $in)/$(basename $out |tr '@' $i)
+        
+        exec_output=`./$exec < $in_cur`
+        case_output=`cat $out_cur`
 
-	diff <(echo "$exec_output") <(echo "$case_output") --color
-	
-	echo "# Case #$i - end"
+        diff <(echo "$exec_output") <(echo "$case_output") --color
+        
+        echo "# Case #$i - end"
     done
 fi

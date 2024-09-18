@@ -44,6 +44,7 @@
    "glibc" ; adding here bc also in root profile
    "zig"
    "guile-hall"
+   "icedtea:jdk" ; java dev package
 
    ;; network --
    "iptables"

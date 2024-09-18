@@ -23,4 +23,6 @@
    "openvpn"
    "nmap"
    "samba" ; smbclient
+   ;; "pwntools"
+   "mysql"
    ))

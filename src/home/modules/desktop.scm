@@ -15,7 +15,7 @@
 
 (export my/desktop-service
         my-pipewire-service
-        my-wayland-service
+        ;; my-wayland-service
         my-fontconfig-service
         my-gpg-agent-service
         my-nix-service)
@@ -33,22 +33,23 @@
 
 ;; wayland
 
-(define my-wayland-env-vars
-  '(;; wayland stuff
-    ("XDG_CURRENT_DESKTOP" . "river")
-    ("XDG_SESSION_TYPE" . "wayland")
-    ("RTC_USE_PIPEWIRE" . "true")
-    ("SDL_VIDEODRIVER" . "wayland")
-    ("MOZ_ENABLE_WAYLAND" . "1")
-    ("CLUTTER_BACKEND" . "wayland")
-    ("ELM_ENGINE" . "wayland")
-    ("ECORE_EVAS_ENGINE" . "wayland")
-    ;; ("QT_QPA_PLATFORM" . "wayland") ; breaks qt apps
-    ("QT_QPA_PLATFORM" . "xcb")
-    ;; wayland theme
-    ;; TODO: move this to desktop, add theme to guix-home packages
-    ;; (also combine config a bit more
-    ("GTK_THEME" . "Matcha-dark-azul")))
+;;; DEPENDS ON BASH SERVICE
+;; (define my-wayland-env-vars
+;;   '(;; wayland stuff
+;;     ("XDG_CURRENT_DESKTOP" . "river")
+;;     ("XDG_SESSION_TYPE" . "wayland")
+;;     ("RTC_USE_PIPEWIRE" . "true")
+;;     ("SDL_VIDEODRIVER" . "wayland")
+;;     ("MOZ_ENABLE_WAYLAND" . "1")
+;;     ("CLUTTER_BACKEND" . "wayland")
+;;     ("ELM_ENGINE" . "wayland")
+;;     ("ECORE_EVAS_ENGINE" . "wayland")
+;;     ;; ("QT_QPA_PLATFORM" . "wayland") ; breaks qt apps
+;;     ("QT_QPA_PLATFORM" . "xcb")
+;;     ;; wayland theme
+;;     ;; TODO: move this to desktop, add theme to guix-home packages
+;;     ;; (also combine config a bit more
+;;     ("GTK_THEME" . "Matcha-dark-azul")))
 
 (define my-wayland-service
   (list
@@ -114,7 +115,7 @@
 
 (define my/desktop-service
   (append my-pipewire-service
-          my-wayland-service
+          ;; my-wayland-service
           my-fontconfig-service
           my-nix-service
           my-gpg-agent-service

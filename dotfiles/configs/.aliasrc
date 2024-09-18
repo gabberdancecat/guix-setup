@@ -1,0 +1,37 @@
+# -*- mode: sh -*-
+
+## .aliasrc
+
+# pivotal
+alias em="emacsclient"
+# general
+alias l="ls -p --color=auto"
+alias ls="ls -p --color=auto"
+alias la="ls -a"
+alias ll="ls -lh --color=auto"
+alias lla="ls -lah --color=auto"
+alias rm="rm -i"
+alias ts="trash"
+alias b="cd .."
+alias p="cd -"
+alias grep="grep --color=auto"
+alias ip='ip -color=auto'
+# util
+alias clipboard="xclip -sel clip"
+# misc
+alias iping="ping gnu.org"
+alias recursive-find="grep -rnw . -e"
+alias recompileurxvt="xrdb ~/.Xresources"
+# ctf
+alias ctf="source $HOME/.bin/ctf.sh"
+alias save="ctf save"
+alias finish="ctf finish"
+alias grepflag="ctf grepflag"
+# programs
+alias prelude="emacs --init-directory ~/.config/prelude"
+alias esper="emacs --init-directory ~/.config/esper"
+
+alias rn="firejail pw-jack renoise --scripting-dev"
+
+
+

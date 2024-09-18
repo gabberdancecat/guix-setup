@@ -34,6 +34,7 @@
   #:use-module (gnu packages glib) ; xdg-dbus-proxy
   #:use-module (gnu packages gnome) ; network-manager-openvpn
   #:use-module (gnu packages networking) ; wireshark
+  #:use-module (gnu packages databases) ; mysql-config
   ;; misc
   #:use-module (srfi srfi-1)
   )
@@ -245,24 +246,24 @@ EndSection
    ;; (service bluetooth-service-type
    ;;          (bluetooth-configuration
    ;;           (privacy 'network/on)))
-   (service nftables-service-type
-            (nftables-configuration
-             (ruleset
-              #~(define nfslsk
-                  (nftables-make-ruleset
-                   (nftables-table
-                    (name "filter")
-                    (nftables-chain
-                     (name "input")
-                     (type filter)
-                     (hook input)
-                     (priority 0)
-                     (policy accept)
-                     ;; allow incoming TCP traffic on port 2234
-                     (nftables-rule
-                      (ip protocol tcp)
-                      (tcp dport 2234)
-                      (accept)))))))))
+   ;; (service nftables-service-type
+   ;;          (nftables-configuration
+   ;;           (ruleset
+   ;;            #~(define nfslsk
+   ;;                (nftables-make-ruleset
+   ;;                 (nftables-table
+   ;;                  (name "filter")
+   ;;                  (nftables-chain
+   ;;                   (name "input")
+   ;;                   (type filter)
+   ;;                   (hook input)
+   ;;                   (priority 0)
+   ;;                   (policy accept)
+   ;;                   ;; allow incoming TCP traffic on port 2234
+   ;;                   (nftables-rule
+   ;;                    (ip protocol tcp)
+   ;;                    (tcp dport 2234)
+   ;;                    (accept)))))))))
    
    ;; -- system services -------
    ;; polkit (dont exactly know what this does)
@@ -309,7 +310,9 @@ EndSection
    ;;
    ;; -- dev/testing ------
    ;; mysql for testing
-   ;; (service mysql-service-type)
+   (service mysql-service-type
+            (mysql-configuration
+             (mysql mysql)))
    ))
 
 (define %my-services
@@ -372,6 +375,7 @@ EndSection
           "wireshark"
           "jmtpfs"
           "intel-media-driver-nonfree" ; nonguix intel drivers
+          "mysql" ; for mysql-service
           ;; "glibc" ; don't need, for dynamic linker hack
           "font-terminus" ; for wayland greetd
           "libva-utils" ; ?

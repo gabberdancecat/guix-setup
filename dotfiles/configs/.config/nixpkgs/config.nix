@@ -2,6 +2,7 @@
 # To update: nix-env -iA nixpkgs.myPackages
 # with import <nixpkgs> {}; {
 {
+  allowUnfree = true;
   packageOverrides = pkgs: with pkgs; {
     myPackages = pkgs.buildEnv {
       name = "my-packages";
@@ -17,6 +18,9 @@
         # ghidra-bin # hacking
         # mysql-workbench # python backend
 	vesktop
+	metasploit
+	exploitdb
+	villain
       ];
       pathsToLink = [ "/share/man" "/share/doc" "/bin" ];
       extraOutputsToInstall = [ "man" "doc" ];
