@@ -6,9 +6,14 @@
 
 ##### Source: ######
 
-if [ -f "$HOME/.aliasrc" ]; then
-    source "$HOME/.aliasrc"
-fi
+# Personal aliases
+if [ -f ~/.aliasrc ]; then source ~/.aliasrc; fi
+
+# temporary workaround
+# if [ -f "$ZDOTDIR/.zprofile" ]; then
+#     source "$ZDOTDIR/.zprofile"
+# fi
+
 
 ##### Customize: ######
 

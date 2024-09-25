@@ -21,6 +21,9 @@
 	metasploit
 	exploitdb
 	villain
+	(cutter.withPlugins (ps: with ps; [ rz-ghidra ]))
+	(rizin.withPlugins (ps: with ps; [ rz-ghidra ]))
+	pwndbg
       ];
       pathsToLink = [ "/share/man" "/share/doc" "/bin" ];
       extraOutputsToInstall = [ "man" "doc" ];

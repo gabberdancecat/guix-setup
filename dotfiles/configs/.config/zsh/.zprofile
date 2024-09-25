@@ -4,16 +4,9 @@
 
 # With Guix Home, /etc/profile will be sourced automatically.
 
-##### Below is suggested for Guix Home #####
 
-# Set up the system, user profile, and related variables.
-if [ -f /etc/profile ]; then source /etc/profile; fi
-
-# Set up the home environment profile.
-if [ -f ~/.profile ]; then source ~/.profile; fi
-
-# Load generic shell_profile
-if [ -f ~/.shell_profile ]; then source ~/.shell_profile; fi
+# MOST IMPORTANT: source .zshrc
+if [ -f $ZDOTDIR/.zshrc ]; then source $ZDOTDIR/.zshrc; fi
 
 # zshrc will be loaded automatically
 
