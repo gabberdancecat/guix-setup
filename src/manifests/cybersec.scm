@@ -25,4 +25,5 @@
    "samba" ; smbclient
    ;; "pwntools"
    "mysql"
+   "awscli"
    ))

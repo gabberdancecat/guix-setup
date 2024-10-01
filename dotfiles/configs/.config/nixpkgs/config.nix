@@ -24,6 +24,8 @@
 	(cutter.withPlugins (ps: with ps; [ rz-ghidra ]))
 	(rizin.withPlugins (ps: with ps; [ rz-ghidra ]))
 	pwndbg
+	redis
+	gobuster
       ];
       pathsToLink = [ "/share/man" "/share/doc" "/bin" ];
       extraOutputsToInstall = [ "man" "doc" ];
