@@ -30,7 +30,36 @@ To merge single files into another branch: [[https://jasonrudolph.com/blog/2009/
 
 Instead of tackling all at once, choose one for the day, and knock out all at once. Check things off one by one, and it'll be all taken out in 2~3 weeks?
 
-+ org
+- now:
+  - [ ] snapper backups
+  #+begin_src conf 
+    # Use a lockfile so only one btrbk instance can run at a time
+    lockfile                   /run/lock/btrbk.lock
+    # Use sudo if btrbk or lsbtr is run by regular user
+    backend_local_user         btrfs-progs-sudo
+    # 
+    snapshot_dir = /.snapshots
+    target_dir = /
+
+    volume /
+      target /media/backup/home_backups
+      snapshot_preserve 2 # keep only 2 snapshots
+      target_preserve 2   # only copy 2 snapshots to target
+      subvolume home
+
+    volume /home
+      subvolume /path/to/home
+      snapshot_preserve = 2         # Keep only 2 snapshots
+      target_preserve = 2           # Only copy 2 snapshots to external drive
+  #+end_src
+  - [ ] rewrite org-mode config
+  - [ ] sec+ sign up (due fri)
+  - [ ] mint .ova to qemu/kvm
+  - [ ] rewrite river config
+  - [X] lease complete (vry soon)
+    - now for parent's side
+
+- org
   - [ ] latex fragments, fragtog, completion.
     [[https://www.reddit.com/r/emacs/comments/o2g7a3/take_math_notes_in_emacs_org_mode/][reddit - take math notes in org]]
     [[https://github.com/io12/org-fragtog?tab=readme-ov-file][github - org-fragtog]]
@@ -39,7 +68,7 @@ Instead of tackling all at once, choose one for the day, and knock out all at on
   - [ ] literate calc mode for math notes [[https://github.com/sulami/literate-calc-mode.el?tab=readme-ov-file][repo]]
   - [ ] org-roam (easy searching everything! all notes!)
 
-+ desktop
+- desktop
   - [ ] sandbar customization: slightly darker bg, slightly whiter fg...
   - [ ] wifi indicator (?maybe find a pre-made script for statusbar?)
   - [ ] script to toggle disable-while-typing (much easier in guile?)
@@ -49,18 +78,18 @@ Instead of tackling all at once, choose one for the day, and knock out all at on
     [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Multi_002dfile-Packages.html][loading dependency files for elisp?]]
   - [ ] river new argument to toggle opening new window at top of stack or one below.
 
-+ fonts
+- fonts
   - [ ] install and test leggie, profont, gohufont-nerd,
     [[https://github.com/wikkyk/leggie][font - leggie]]
     [[https://tobiasjung.name/profont/index.php?fs=18&pf=on][font - profont]]
   - [ ] patch tamzen nerd fonts using script, test on statusbar.
     [[https://github.com/ryanoasis/nerd-fonts?tab=readme-ov-file#font-patcher][nerd patcher usage]]
 
-+ fonts (emacs)
+- fonts (emacs)
   - [ ] proper emacs symbols fonts
     [[https://www.shimmy1996.com/en/posts/2018-06-24-fun-with-fonts-in-emacs/][custom ultimate fontset tutorial]]
 
-+ guix
+- guix
   - [ ] write packages:
     sliver https://sliver.sh/docs?name=Compile+from+Source
     python bemenu [[https://github.com/firecat53/networkmanager-dmenu/tree/main][proj repo]]
@@ -68,7 +97,7 @@ Instead of tackling all at once, choose one for the day, and knock out all at on
   - [ ] publish onto official repos
   - [ ] lem pkgbuild
 
-+ emacs
+- emacs
   - [ ] workspaces with butler
     [[https://github.com/alphapapa/bufler.el][github repo - bufler]]
   - [ ] rss:
@@ -79,13 +108,13 @@ Instead of tackling all at once, choose one for the day, and knock out all at on
     read through docs, lots to learn, valuable
   - [ ] shape into an emacs distribution
 
-+ cyber
+- cyber
   - [ ] pwn, now
   - [ ] build rz-ghidra using instructions and add as plugin
   - [ ] write a guix pkg-build for rz-ghidra
   - [X] create throwaway google phone number for next ctf
 
-+ system
+- system
   - [ ] make script wrapper to dl every song from a playlist (goes hard) on soundcloud
   - [ ] read geiser docs
   - [ ] write scripts in guile [[https://www.gnu.org/software/guile/manual/html_node/The-Top-of-a-Script-File.html][docs]]
@@ -93,7 +122,7 @@ Instead of tackling all at once, choose one for the day, and knock out all at on
   - [ ] guix upkeep script (guile?)
     verify store integrity, btrfs snapshots!, etc
 
-+ misc
+- misc
   - [ ] buy coffe mug from amazon
   - [ ] explore deep naked flames vids
 

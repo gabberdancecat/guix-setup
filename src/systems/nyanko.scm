@@ -264,7 +264,7 @@ EndSection
    ;;                    (ip protocol tcp)
    ;;                    (tcp dport 2234)
    ;;                    (accept)))))))))
-   
+
    ;; -- system services -------
    ;; polkit (dont exactly know what this does)
    (service polkit-service-type)       ; unbound variable???
@@ -292,8 +292,8 @@ EndSection
    (service upower-service-type)
 
    ;; -- appimages (doesn't work) -----
-   (extra-special-file "/lib64/ld-linux-x86-64.so.2"
-                       (file-append glibc "/lib/ld-linux-x86-64.so.2"))
+   ;; (extra-special-file "/lib64/ld-linux-x86-64.so.2"
+   ;;                     (file-append glibc "/lib/ld-linux-x86-64.so.2"))
 
    ;; -- garbage collection -----
    (simple-service 'system-cron-jobs
@@ -380,7 +380,7 @@ EndSection
           "libva-utils" ; ?
           "gvfs" ; user mounts?
           ;; flatpak
-          "xdg-desktop-portal"
+          ;; "xdg-desktop-portal" ;; provided by xdg-desktop-portal-gtk, conflicts
           "xdg-desktop-portal-gtk"
           ))
    %base-packages))

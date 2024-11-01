@@ -14,8 +14,8 @@
    "ncftp"
    "ansible"
    "openconnect"
-   ;; "cutter"
-   ;; "rizin"
+   ;; "cutter" ; nixed
+   ;; "rizin" ; nixed
    "binwalk"
    "perl-image-exiftool"
    "netcat"
@@ -23,7 +23,7 @@
    "openvpn"
    "nmap"
    "samba" ; smbclient
-   ;; "pwntools"
    "mysql"
    "awscli"
+   "sshpass"
    ))

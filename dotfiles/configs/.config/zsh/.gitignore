@@ -1,2 +1,8 @@
-.histfile
-.zcompdump
+
+*
+
+!.zprofile
+!.zshrc
+!.zshrc.d/
+!.zshrc.d/**
+

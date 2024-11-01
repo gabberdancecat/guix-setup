@@ -10,7 +10,7 @@
 
    ;; Wayland --
    "cagebreak"
-   "river"
+   "river" ;; using nix ver for higher than 0.2.4
    "sway"
    "swayidle"
    "swaylock"
@@ -53,7 +53,7 @@
    "firefox"
    "librewolf"
    "qutebrowser"
-   "telegram-desktop"
+   ;; "telegram-desktop"
    "keepassxc"
    "calibre"
    ;; "syncthing"
@@ -71,6 +71,7 @@
    "qemu"
    "virt-manager"
    "bridge-utils"
+   "moc"
    
    ;; Desktop misc --
    "network-manager-applet" ; original
@@ -112,8 +113,8 @@
    
    ;; Flatpak --
    "flatpak"
-   "xdg-desktop-portal-gtk"	; for file manager
-   "xdg-desktop-portal"		; broken?
+   "xdg-desktop-portal-gtk" ;; for file manager
+   ;; "xdg-desktop-portal" ;; conflicts with xdg-desktop-portal-gtk for some reason
    "shared-mime-info" ; what's this do?
    "xdg-dbus-proxy" ; ?
 

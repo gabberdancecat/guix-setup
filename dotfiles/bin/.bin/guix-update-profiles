@@ -49,7 +49,8 @@ for arg in $args; do
 
     # create profile dir and install/update profile
     mkdir -p $profilePath
-    guix package --manifest=$manifestPath --profile="$profilePath/$profileName" $PROFILE_MANIFEST_PARAMS
+    guix package --manifest=$manifestPath --profile="$profilePath/$profileName" $PROFILE_MANIFEST_PARAMS ||
+	die "Failed to update $profileName"
 
     # source profile if necessary
     if (( $ToSource == 1 )); then

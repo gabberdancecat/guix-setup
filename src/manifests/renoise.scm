@@ -8,8 +8,8 @@
 
 ;;; transformed renoise package
 
-(define renoise-version "3.4.3")
-(define renoise-path "/home/nya/Music/Prod/misc/rns_343_linux_x86_64.tar.gz")
+(define renoise-version "3.4.4")
+(define renoise-path "/home/nya/Music/Prod/misc/rns_344_linux_x86_64.tar.gz")
 
 (define renoise-fullname
   (string-append "renoise@" renoise-version))
@@ -23,14 +23,14 @@
 
 (define renoise-transformed-package
   (transform-package-source
-   (specification->package "renoise@3.4.3")))
+   (specification->package "renoise@3.4.4")))
 
 ;;; returned manifest
 
 (packages->manifest
- (cons*
+ (append
   ;; transformed renoise package:
-  renoise-transformed-package
+  ;; (list renoise-transformed-package)
   ;; renoise manifest:
   (specifications->packages
    '( ;; renoise depends
@@ -48,6 +48,10 @@
      ;; "libquicktime" ; quicktime is only on mac...
      "rubberband"
      "carla" ; audio plugin host
+     ;; fix renoise segfault?
+     ;; "glib" ; nah
+     ;; "glibc" ;; nah
+     ;; "glibc-locales" ;; nah
      ))))
 
 

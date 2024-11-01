@@ -1,0 +1,34 @@
+
+## programs:
+
+# start bar
+exec_always "killall yambar; yambar"
+
+# start misc
+exec "mako --border-radius=2 --font='Deva Vu Sans 10' \
+--max-visible=5 --outer-margin=5 --margin=3 --background='#1c1f26' \
+--border-color='#89AAEB' --border-size=1 --default-timeout=7000"
+exec "wlsunset -S 10:00 -s 19:00 -t 3000 -T 6500"
+exec "swayidle -w timeout 900"
+
+## guile-swayer:
+
+# kill all runner instances first
+exec_always "pkill -f '/bin/sh.*guile-swayer-runner.sh'"
+
+# run the runner
+exec_always "sleep 0.2 && ~/.config/sway/config-guile-dir/guile-swayer-runner.sh"
+
+# set keyboard layout
+input type:keyboard {
+    xkb_layout us,us,us
+    xkb_variant dvp,colemak_dh,
+    xkb_options ctrl:nocaps,grp:sclk_toggle
+    repeat_delay 210
+    repeat_rate 80
+}
+
+# set touchpad
+input * {
+    tap enabled
+}

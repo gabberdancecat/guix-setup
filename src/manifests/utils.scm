@@ -45,6 +45,8 @@
    "zig"
    "guile-hall"
    "icedtea:jdk" ; java dev package
+   "cabal-install"
+   "ghc"
 
    ;; network --
    "iptables"
@@ -60,6 +62,8 @@
    "gtk+:bin" ; gtk-launch
    "espeak-ng"
    "wl-clipboard"
+   "btrbk"
+   "socat"
 
    ;; eww dependencies --
    "gtk+"
@@ -73,7 +77,6 @@
    "cowsay"
    "btop"
 
-   ;; renoise
    ;; "mpg123"
 
    ;; System --

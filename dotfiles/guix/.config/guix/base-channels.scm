@@ -20,6 +20,15 @@
           "d1256cf136ced2ed4a3736417fbced678bacb1f6"
           (openpgp-fingerprint
            "864D 7D40 2260 D1A5 E9B9  AC9B B703 FEDE 1CF1 30EA"))))
+       (channel
+        (name 'home-service-dwl-guile)
+        (url "https://github.com/engstrand-config/home-service-dwl-guile")
+        (branch "main")
+        (introduction
+         (make-channel-introduction
+          "314453a87634d67e914cfdf51d357638902dd9fe"
+          (openpgp-fingerprint
+           "C9BE B8A0 4458 FDDF 1268 1B39 029D 8EB7 7E18 D68C"))))
        %default-channels)
 
 ;; cons* appends channel to the end of %default-channels
