@@ -13,7 +13,7 @@ std_underline: &std_underline {underline: { size: 2, color: ff0000ff}}
 # This is THE bar configuration
 bar:
   height: 26
-  location: top
+  location: bottom
   spacing: 5
   margin: 7
 
@@ -33,7 +33,7 @@ bar:
     - i3:
         anchors: # Not used (directly) by f00bar; used here to avoid duplication
           - string: &i3_common {margin: 5, on-click: "swaymsg --quiet workspace {name}"}
-          - string: &default {<<: *i3_common, text: "? {name}"}
+          - string: &default {<<: *i3_common, text: "{name}"}
           - string: &main    {<<: *i3_common, text: , font: *awesome}
           - string: &surfing {<<: *i3_common, text: , font: *awesome_brands}
           - string: &misc    {<<: *i3_common, text: , font: *awesome}
@@ -107,36 +107,36 @@ bar:
               activated:
                 - string: {text: "{app-id}", foreground: ffa0a0ff}
                 - string: {text: ": {title}"}
-  center:
-    - mpd:
-        host: /run/mpd/socket
-        anchors:
-          list: &artist_album_title
-            spacing: 0
-            items:
-              - map:
-                  conditions:
-                    state == playing: {string: {text: "{artist}"}}
-                    state == paused: {string: {text: "{artist}", foreground: ffffff66}}
-              - string: {text: " | ", foreground: ffffff66}
-              - map:
-                  conditions:
-                    state == playing: {string: {text: "{album}"}}
-                    state == paused: {string: {text: "{album}", foreground: ffffff66}}
-              - string: {text: " | ", foreground: ffffff66}
-              - map:
-                  conditions:
-                    state == playing: {string: {text: "{title}", foreground: ffa0a0ff}}
-                    state == paused: {string: {text: "{title}", foreground: ffffff66}}
+  # center:
+    # - mpd:
+    #     host: /run/mpd/socket
+    #     anchors:
+    #       list: &artist_album_title
+    #         spacing: 0
+    #         items:
+    #           - map:
+    #               conditions:
+    #                 state == playing: {string: {text: "{artist}"}}
+    #                 state == paused: {string: {text: "{artist}", foreground: ffffff66}}
+    #           - string: {text: " | ", foreground: ffffff66}
+    #           - map:
+    #               conditions:
+    #                 state == playing: {string: {text: "{album}"}}
+    #                 state == paused: {string: {text: "{album}", foreground: ffffff66}}
+    #           - string: {text: " | ", foreground: ffffff66}
+    #           - map:
+    #               conditions:
+    #                 state == playing: {string: {text: "{title}", foreground: ffa0a0ff}}
+    #                 state == paused: {string: {text: "{title}", foreground: ffffff66}}
 
-        content:
-          map:
-            margin: 10
-            conditions:
-              state == offline: {string: {text: offline, foreground: ff0000ff}}
-              state == stopped: {string: {text: stopped}}
-              state == paused: {list: *artist_album_title}
-              state == playing: {list: *artist_album_title}
+    #     content:
+    #       map:
+    #         margin: 10
+    #         conditions:
+    #           state == offline: {string: {text: offline, foreground: ff0000ff}}
+    #           state == stopped: {string: {text: stopped}}
+    #           state == paused: {list: *artist_album_title}
+    #           state == playing: {list: *artist_album_title}
 
   right:
     - removables:
@@ -203,27 +203,42 @@ bar:
     #                       ipv4 == "":
     #                         - string: {text: , font: *awesome, foreground: ffffff66}
     #                         - string: {text: "{ssid} {dl-speed:mb}/{ul-speed:mb} Mb/s", foreground: ffffff66}
+    - alsa:
+        card: default
+        mixer: Master
+        content:
+          map:
+            conditions:
+              ~online: {string: {text: , font: *awesome, foreground: ff0000ff}}
+              online:
+                map:
+                  on-click: /bin/sh -c "amixer -q sset Speaker unmute && amixer -q sset Headphone unmute && amixer -q sset Master toggle"
+                  conditions:
+                    muted: {string: {text: , font: *awesome, foreground: ffffff66}}
+                    ~muted:
+                      ramp:
+                        tag: percent
+                        items:
+                          - string: {text: " {percent}%", font: *awesome}
+                          - string: {text: " {percent}%", font: *awesome}
+                          - string: {text: " {percent}%", font: *awesome}
     # - alsa:
-    #     card: hw:PCH
-    #     mixer: Master
-    #     content:
-    #       map:
-    #         conditions:
-    #           ~online: {string: {text: , font: *awesome, foreground: ff0000ff}}
-    #           online:
-    #             map:
-    #               on-click: /bin/sh -c "amixer -q sset Speaker unmute && amixer -q sset Headphone unmute && amixer -q sset Master toggle"
-    #               conditions:
-    #                 muted: {string: {text: , font: *awesome, foreground: ffffff66}}
-    #                 ~muted:
-    #                   ramp:
-    #                     tag: percent
-    #                     items:
-    #                       - string: {text: , font: *awesome}
-    #                       - string: {text: , font: *awesome}
-    #                       - string: {text: , font: *awesome}
+    #         card: PipeWire
+    #         mixer: Master
+    #         content: 
+    #             list:
+    #                 items:
+    #                     - string:
+    #                         text: "VOL "
+    #                         foreground: *status-indicator
+    #                     - string: 
+    #                         text: "{volume}"
+    #                     - string:
+    #                         text: " │ "
+    #                 on-click:
+    #                    left: pavucontrol
     - backlight:
-        name: intel_backlight
+        name: acpi_video0
         content: [ string: {text: , font: *awesome}, string: {text: "{percent}%"}]
     - battery:
         name: BAT0
@@ -275,15 +290,15 @@ bar:
                       - string: {text:  , foreground: 00ff00ff, font: *awesome}
                 - string: {text: "{capacity}%"}
     - clock:
-        time-format: "%H:%M %Z"
+        time-format: "%a %d %b %I:%M %P"
         content:
-          - string: {text: , font: *awesome}
-          - string: {text: "{date}", right-margin: 5}
+          # - string: {text: , font: *awesome}
+          # - string: {text: "{date}", right-margin: 5}
           - string: {text: , font: *awesome}
           - string: {text: "{time}"}
-    - label:
-        content:
-          string:
-            on-click: systemctl poweroff
-            text: 
-            font: *awesome
+    # - label:
+    #     content:
+    #       string:
+    #         on-click: systemctl poweroff
+    #         text: 
+    #         font: *awesome

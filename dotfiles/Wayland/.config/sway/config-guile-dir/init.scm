@@ -26,6 +26,8 @@
 
 ;;; Main:
 
+(load "Functions.scm")
+
 (load "keybinds.scm")
 
 (load "workspaces.scm")
@@ -36,11 +38,23 @@
 
 (load "my-which-key.scm")
 
+(load "behavior.scm")
+
 ;;; Misc (to-move):
 
+;; (exec "\
+;; swaymsg mode 'passthrough' {
+;;     bindsym Mod4+F11 mode 'default'
+;; }")
+;; (exec "swaymsg bindsym Mod4+F11 mode 'passthrough'")
 
-
-
+(exec "\
+for_window [class='Renoise'] {
+    input * {
+        xkb_layout 'us'
+        xkb_variant ''
+    }
+}")
 
 
 ;;; Finalize:
