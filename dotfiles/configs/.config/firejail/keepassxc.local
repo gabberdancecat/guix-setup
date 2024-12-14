@@ -15,3 +15,5 @@ noblacklist ${RUNUSER}/app
 dbus-user.talk org.freedesktop.Notifications
 #
 ##
+
+noblacklist ${HOME}/Private

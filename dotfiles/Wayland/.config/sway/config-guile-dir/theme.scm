@@ -14,7 +14,9 @@
 (define sapphire "#7dc4e4")
 (define blue "#8aadf4")
 (define lavender "#b7bdf8")
-(define text "#cad3f5")
+;; (define text "#cad3f5")
+(define text "#f2f5fc")
+;; (define text "#ffffff")
 (define subtext1 "#b8c0e0")
 (define subtext0 "#a5adcb")
 (define overlay2 "#939ab7")
@@ -29,15 +31,15 @@
 
 (sway-client-background base)
 
-(sway-client-focused-color mauve mauve crust
+(sway-client-focused-color mauve base text
                            #:indictor-color mauve
                            #:child-border-color mauve)
 
-(sway-client-focused-inactive-color overlay0 overlay0 text
+(sway-client-focused-inactive-color overlay0 surface0 text
                            #:indictor-color overlay0
                            #:child-border-color overlay0)
 
-(sway-client-unfocused-color overlay0 overlay0 text
+(sway-client-unfocused-color overlay0 surface1 text
                            #:indictor-color overlay0
                            #:child-border-color overlay0)
 

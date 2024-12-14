@@ -4,16 +4,15 @@
 ;; return a manifest to use by guix custom profile
 (specifications->manifest
  '("gimp"
-   "abiword"
+   ;; "abiword"
    "libreoffice"
-   "ardour"
-   "signal-desktop"
-   "ungoogled-chromium"
-   "godot"
+   ;; "ardour"
+   ;; "signal-desktop"
+   ;; "godot"
    "obs"
    "steam"
-   "nheko"
+   ;; "nheko"
    "minetest"
-   "monero-gui"
-   "lynx"
+   ;; "monero-gui"
+   ;; "lynx"
    ))

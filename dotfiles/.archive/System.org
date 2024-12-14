@@ -1,5 +1,4 @@
 #+title: System Configuration
-# #+auto_tangle: t
 #+startup: contents
 
 * Table of Contents :TOC:
@@ -1765,11 +1764,8 @@ based on:
 : umount /mnt
 
 # remount subvolumes and boot partition
-
-# TODO: ask discord if all these options for subvolumes is bad
-
 : mount -o noatime,compress=zstd,space_cache=v2,subvol=root /dev/mapper/enc /mnt
-# rewrite, broken in eshell
+
 : cd /mnt
 : mkdir -p home gnu data var/log .snapshots swap boot
 : mount -o noatime,compress=zstd,space_cache=v2,subvol=home /dev/mapper/enc home

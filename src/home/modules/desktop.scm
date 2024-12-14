@@ -11,6 +11,7 @@
              (gnu services) ; service
              (guix gexp) ; local-file
              (ice-9 pretty-print)
+             (ice-9 rdelim) ; read-line
              )
 
 (export my/desktop-service
@@ -87,7 +88,11 @@
              (default-cache-ttl 28800)
              (max-cache-ttl 28800)
              (default-cache-ttl-ssh 28800)
-             (max-cache-ttl-ssh 28800)))
+             (max-cache-ttl-ssh 28800)
+             (extra-content
+              (string-append
+               "default-key "
+               (read-line (open-input-file "/home/nya/.gpg-default-key"))))))
    ;; dbus is needed or else gpg ssh will error (OR NOT I GUESS)
    ;; (simple-service 'gpg-agent-dependencies
    ;;                 home-profile-service-type

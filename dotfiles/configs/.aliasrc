@@ -3,7 +3,7 @@
 ## .aliasrc
 
 # pivotal
-alias em="emacsclient"
+alias em="emacsclient -c -a ''"
 # general
 alias l="ls -p --color=auto"
 alias ls="ls -p --color=auto"

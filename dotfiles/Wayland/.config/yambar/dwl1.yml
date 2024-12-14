@@ -57,37 +57,40 @@ bar:
     
 
   left:
-    - i3:
-        anchors: # Not used (directly) by f00bar; used here to avoid duplication
-          - string: &i3_common {margin: 7, on-click: "swaymsg --quiet workspace {name}"}
-          - string: &default {<<: *i3_common, text: "{name}", foreground: ffffffff}
-          - focused: &focused
-              deco: {stack: [background: {color: *color-focused}]}  #ffa0a0
-              # deco: {stack: [foreground: {color: eeeeeeff}]}
-              # deco: {stack: [background: {color: *color-focused}, <<: *std_underline]}  #ffa0a0
-          - invisible: &invisible {foreground: *color-invisible}  #ffffff_ff
-          - urgent: &urgent
-              foreground: *color-urgent-text  #000000_ff
-              deco: {stack: [background: {color: *color-urgent}, <<: *std_underline]}  #bc2b3f
-          - map: &i3_mode
-              default:
-                - string:
-                    margin: 5
-                    text: "{mode}"
-                    deco: {background: {color: *color-i3-mode}}  #cc421d_ff
-                - empty: {right-margin: 7}
-              conditions:
-                mode == default: {empty: {}}
-        sort: native
-        strip-workspace-numbers: true
-        content:
-          "":
-            map:
-              conditions:
-                state == focused:   {string: {<<: [*default, *focused]}}
-                state == unfocused: {string: {<<: *default}}
-                state == invisible: {string: {<<: [*default, *invisible]}}
-                state == urgent:    {string: {<<: [*default, *urgent]}}
+    # - i3:
+    #     anchors: # Not used (directly) by f00bar; used here to avoid duplication
+    #       - string: &i3_common {margin: 7, on-click: "swaymsg --quiet workspace {name}"}
+    #       - string: &default {<<: *i3_common, text: "{name}", foreground: ffffffff}
+    #       - focused: &focused
+    #           deco: {stack: [background: {color: *color-focused}]}  #ffa0a0
+    #           # deco: {stack: [foreground: {color: eeeeeeff}]}
+    #           # deco: {stack: [background: {color: *color-focused}, <<: *std_underline]}  #ffa0a0
+    #       - invisible: &invisible {foreground: *color-invisible}  #ffffff_ff
+    #       - urgent: &urgent
+    #           foreground: *color-urgent-text  #000000_ff
+    #           deco: {stack: [background: {color: *color-urgent}, <<: *std_underline]}  #bc2b3f
+    #       - map: &i3_mode
+    #           default:
+    #             - string:
+    #                 margin: 5
+    #                 text: "{mode}"
+    #                 deco: {background: {color: *color-i3-mode}}  #cc421d_ff
+    #             - empty: {right-margin: 7}
+    #           conditions:
+    #             mode == default: {empty: {}}
+    #     sort: native
+    #     strip-workspace-numbers: true
+    #     content:
+    #       "":
+    #         map:
+    #           conditions:
+    #             state == focused:   {string: {<<: [*default, *focused]}}
+    #             state == unfocused: {string: {<<: *default}}
+    #             state == invisible: {string: {<<: [*default, *invisible]}}
+    #             state == urgent:    {string: {<<: [*default, *urgent]}}
+    - dwl:
+        number-of-tags: 9
+        dwl-info-filename
 
     - foreign-toplevel:
         content:

@@ -75,7 +75,7 @@ export XDG_DATA_DIRS="$XDG_DATA_DIRS:$HOME/.local/share/flatpak/exports/share" #
 export SBCL_HOME="$HOME/.guix-home/profile/lib/sbcl" # FIX for stumpwm???
 export DOTNET_CLI_TELEMETRY_OPTOUT="1" # no telemetry when compiling osu
 
-export XDG_CURRENT_DESKTOP="river"
+export XDG_CURRENT_DESKTOP="dwl"
 export XDG_SESSION_TYPE="wayland"
 export RTC_USE_PIPEWIRE="true"
 export SDL_VIDEODRIVER="wayland"
@@ -84,6 +84,6 @@ export CLUTTER_BACKEND="wayland"
 export ELM_ENGINE="wayland"
 export ECORE_EVAS_ENGINE="wayland"
 export QT_QPA_PLATFORM="wayland"
-export QT_QPA_PLATFORM="xcb"
+# export QT_QPA_PLATFORM="xcb" # breaks apps on dwl
 export GTK_THEME="Matcha-dark-azul"
-export QT_XCB_GL_INTEGRATION=none # fixes cutter "Could not initialize GLX"
+# export QT_XCB_GL_INTEGRATION=none # fixes cutter "Could not initialize GLX"

@@ -27,7 +27,7 @@
 
    ;; video/music --
    "yt-dlp"
-   "mpdscribble"
+   ;; "mpdscribble"
 
    ;; dev --
    "pkg-config"
@@ -37,13 +37,13 @@
    "rust-clippy"
    ;; "clang-toolchain" ; ? is gcc better ?
    "gcc-toolchain"
-   "xorg-server" ; Xephyr
+   ;; "xorg-server" ; Xephyr
    "valgrind"
    "clang" ; needed for company backend emacs
-   "gprolog" ; prolog interpreter
+   ;; "gprolog" ; prolog interpreter
    "glibc" ; adding here bc also in root profile
    "zig"
-   "guile-hall"
+   ;; "guile-hall"
    "icedtea:jdk" ; java dev package
    "cabal-install"
    "ghc"
@@ -53,7 +53,7 @@
    "gdb"
    "net-tools"
    "openssh" ; do i need this?
-   "glances"
+   "glances"  ; WOW, gives me info on everything abt the system
 
    ;; scripts --
    "rsync"
@@ -63,17 +63,17 @@
    "espeak-ng"
    "wl-clipboard"
    "btrbk"
-   "socat"
+   ;; "socat"
 
    ;; eww dependencies --
-   "gtk+"
-   "libdbusmenu"
-   "gtk-layer-shell"
+   ;; "gtk+"
+   ;; "libdbusmenu"
+   ;; "gtk-layer-shell"
 
    ;; fun --
    "hyfetch"
    "uwufetch"
-   "sl"
+   ;; "sl"
    "cowsay"
    "btop"
 

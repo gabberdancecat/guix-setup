@@ -1,8 +1,36 @@
 
-## programs:
+### Emergency: ###
+
+bindsym Mod4+Control+Shift+r reload
+bindsym Mod4+Return exec alacritty
+
+### Keyboard layout: ###
+
+# set keyboard layout
+input * {
+    xkb_layout us,us,us
+    xkb_variant ,dvp,colemak_dh
+    # xkb_options ctrl:nocaps,grp:sclk_toggle
+    # xkb_options ctrl:nocaps,grp:win_space_toggle
+    xkb_options ctrl:nocaps,grp:menu_toggle
+    # xkb_options ctrl:nocaps,grp:ctrl_f12_toggle
+    repeat_delay 200
+    repeat_rate 80
+    tap enabled  # touchpad tap
+}
+
+exec_always "swaymsg input '*' xkb_switch_layout 1"
+
+### Programs: ###
 
 # start bar
-exec_always "killall yambar; yambar"
+exec_always "killall yambar ; yambar"
+
+# start autotiling
+# exec_always "killall autotiling ; autotiling --limit 2"
+
+# start i3a dwm tiling
+exec "i3a-master-stack --stack=dwm --stack-size=45"
 
 # start misc
 exec "mako --border-radius=2 --font='Deva Vu Sans 10' \
@@ -18,24 +46,3 @@ exec_always "pkill -f '/bin/sh.*guile-swayer-runner.sh'"
 
 # run the runner
 exec_always "sleep 0.2 && ~/.config/sway/config-guile-dir/guile-swayer-runner.sh"
-
-# set keyboard layout
-input type:keyboard {
-    xkb_layout us,us,us
-    xkb_variant dvp,colemak_dh,
-    xkb_options ctrl:nocaps,grp:sclk_toggle
-    repeat_delay 210
-    repeat_rate 80
-}
-
-# set touchpad
-input * {
-    tap enabled
-}
-
-for_window [class='Renoise'] {
-    input type:keyboard {
-        xkb_layout us
-        xkb_variant ''
-    }
-}

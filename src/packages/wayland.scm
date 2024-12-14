@@ -12,6 +12,16 @@
              (gnu packages freedesktop)
              (gnu packages wm))
 
+(define-public dwl-custom-9999
+  (package
+    (inherit dwl)
+    (version "9999")
+    (name "dwl-custom")
+    (source
+     (local-file "/home/nya/code/in-use/dwl" #:recursive? #t))))
+
+;; dwl-custom-9999
+
 ;; (define-public river-0.2.5
 ;;   (package
 ;;     (name "river")

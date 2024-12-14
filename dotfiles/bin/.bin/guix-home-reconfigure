@@ -1,2 +1,3 @@
+#!/bin/sh
 
-guix home reconfigure ~/src/nya/src/home/owo.scm -L ~/src/nya
+guix home reconfigure ~/src/nya/src/home/owo.scm -L ~/src/nya $@

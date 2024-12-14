@@ -5,11 +5,12 @@
 (specifications->manifest
  '(
    ;; Emacs EXWM --
-   "emacs-exwm"
-   "emacs-desktop-environment"
+   ;; "emacs-exwm"
+   ;; "emacs-desktop-environment"
 
    ;; Wayland --
-   "cagebreak"
+   ;; "cagebreak"
+   ;; "dwl" "wlroots" "wayland-protocols"
    "river" ;; using nix ver for higher than 0.2.4
    "sway"
    "swayidle"
@@ -29,87 +30,92 @@
    "rust-wl-clipboard-rs" ; wl-clip?
    "wob"
    "wl-color-picker"
+   "python-i3ipc"
+   "wdisplays" ; easy wrandr
+   "wmenu" ; be-menu alternative
 
    ;; Wayland utils --
    "xorg-server-xwayland"
    "xdg-desktop-portal-wlr"
    "qtwayland"
    "xlsclients" ; list xwayland clients
-   "wf-recorder"
+   ;; "wf-recorder"
 
    ;; Stumpwm --
    ;; either:
    ;; - stumpwm:lib and sbcl in same profile
    ;; "stumpwm:lib" ; doesn't work if system-installed...? ;; Deleted package
    ;; "sbcl-slynk"
-   "stumpish"	  ; stumpwm interactive shell for stumpwm-mode
-   "sbcl-clx-xembed"		; stumptray depd
-   "snixembed"			; stumptray depd???
-   "sbcl" ; if using guix-home, must add to here even if in root profile (for some reason)
+   ;; "stumpish"	  ; stumpwm interactive shell for stumpwm-mode
+   ;; "sbcl-clx-xembed"		; stumptray depd
+   ;; "snixembed"			; stumptray depd???
+   ;; "sbcl" ; if using guix-home, must add to here even if in root profile (for some reason)
    ;; "stumpwm" ; already defined in root profile
-   "stumpwm-with-slynk"		; this package is broken 
+   ;; "stumpwm-with-slynk"		; this package is broken 
 
    ;; Applications --
    "firefox"
    "librewolf"
    "qutebrowser"
+   "ungoogled-chromium"
    ;; "telegram-desktop"
    "keepassxc"
    "calibre"
    ;; "syncthing"
-   "syncthing-gtk"
+   ;; "syncthing-gtk"
    "extremetuxracer"		; game
    "supertuxkart"		; game
    "kdeconnect" ; experiment in the future
-   "nicotine+"
+   ;; "nicotine+"
    "mpv"
    "vlc"
-   "mupdf" ; keybinds: S-w + - j k h l , . m t [0-9]m [0-9]t / n N [0-9]g c S-h
-   "okular"			; pdf reader
-   "cmus"
-   "anki"
+   ;; "mupdf" ; keybinds: S-w + - j k h l , . m t [0-9]m [0-9]t / n N [0-9]g c S-h
+   ;; "okular"			; pdf reader
+   ;; "cmus"
+   ;; "anki"
    "qemu"
    "virt-manager"
    "bridge-utils"
-   "moc"
+   "moc" ; mocp music player
+   "krita"
    
    ;; Desktop misc --
-   "network-manager-applet" ; original
-   "nm-tray"
-   "dunst"
+   ;; "network-manager-applet" ; original
+   ;; "nm-tray"
+   ;; "dunst"
    "libnotify" ; notify-send
    "rofi"
-   "sct"
+   ;; "sct"
    "feh"
    "brightnessctl"
    "scrot"
    "flameshot"
-   "picom"
-   "pasystray"
+   ;; "picom"
+   ;; "pasystray"
    "pavucontrol"
    "playerctl"
 
    ;; Desktop tools --
    ;; "yad" ; custom tray icons?
-   "numlockx"
+   ;; "numlockx"
    "xmodmap"
    "setxkbmap"
    "xdg-utils"
    "glib:bin"	; gsettings (put this outside the manifest)
-   "xclip"
+   ;; "xclip"
 
    ;; X utils --
-   "xinit"
-   "xev"
-   "xset"
-   "xsetroot"
-   "xrandr"
-   "arandr"
+   ;; "xinit"
+   ;; "xev"
+   ;; "xset"
+   ;; "xsetroot"
+   ;; "xrandr"
+   ;; "arandr"
    ;; "slock" ; moved to system profile
-   "xss-lock"
+   ;; "xss-lock"
    "libinput"
-   "xinput"			; ? test devices?
-   "xprop"
+   ;; "xinput"			; ? test devices?
+   ;; "xprop"
    
    ;; Flatpak --
    "flatpak"

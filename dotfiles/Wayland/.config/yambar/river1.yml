@@ -5,17 +5,15 @@
 ### Variables: 
 ## Fonts:
 awesome: &awesome Font Awesome 6 Free:style=solid:pixelsize=14
-tamzen: &tamzen TamzenForPowerline:pixelsize=16
+tamzen: &tamzen TamzenForPowerline:pixelsize=15
 awesome_brands: &awesome_brands Font Awesome 6 Brands:pixelsize=16
   
 ## Colors:
 fg: &fg ffffffff #ffffff_ff
-# bg: &bg 111111cc #111111_cc
-bg: &bg 00000000
+bg: &bg 111111cc #111111_cc
 color-border: &color-border 999999cc       #999999_cc   # yambar border
 # color-focused: &color-focused ffa0a04c     #ffa0a0_4c   # focused bg
-# color-focused: &color-focused 9b7ecf4c     #9b7ecf_4c   # focused bg
-color-focused: &color-focused 964c7bff     #   # focused bg
+color-focused: &color-focused 9b7ecf4c     #9b7ecf_4c   # focused bg
 # color-underline: &color-underline ff0000ff #ff0000_ff   # focused underline
 # color-underline: &color-underline e1a0f6ff #e1a0f6_ff   # focused underline
 color-underline: &color-underline c6a0f6ff #c6a0f6_ff   # focused underline
@@ -31,16 +29,16 @@ color-bat-green: &color-bat-green 00ff00ff #00ff00_ff   # green battery
 color-bat-low: &color-bat-low ffa600ff     #ffa600_ff   # low battery
 color-bat-crit: &color-bat-crit ff0000ff   #ff0000_ff   # crit battery
 
+bg_deco: &bg_deco {stack: [{background: {color: 81A1C1ff}}, {underline: {size: 4, color: D8DEE9ff}}]}
+
 ## Textures:
 std_underline: &std_underline {underline: { size: 2, color: *color-underline }}
 
 ### Yambar configuration:
 bar:
-
-  
-  height: 24 # def: 24
+  height: 24 # def: 26
   location: bottom
-  spacing: 5 # def: 5 (spacing between items)
+  spacing: 5 # def: 5
   margin: 0 # def: 4
 
   ## Default font
@@ -52,42 +50,162 @@ bar:
   border:
     width: 1
     color: *color-border
-    margin: 0 # def: 3
+    margin: 0
     top-margin: 0
-    
 
   left:
-    - i3:
-        anchors: # Not used (directly) by f00bar; used here to avoid duplication
-          - string: &i3_common {margin: 7, on-click: "swaymsg --quiet workspace {name}"}
-          - string: &default {<<: *i3_common, text: "{name}", foreground: ffffffff}
-          - focused: &focused
-              deco: {stack: [background: {color: *color-focused}]}  #ffa0a0
-              # deco: {stack: [foreground: {color: eeeeeeff}]}
-              # deco: {stack: [background: {color: *color-focused}, <<: *std_underline]}  #ffa0a0
-          - invisible: &invisible {foreground: *color-invisible}  #ffffff_ff
-          - urgent: &urgent
-              foreground: *color-urgent-text  #000000_ff
-              deco: {stack: [background: {color: *color-urgent}, <<: *std_underline]}  #bc2b3f
-          - map: &i3_mode
-              default:
-                - string:
+    # - river:
+    #     title: {string: { text: "| {layout} | {mode} | {title}" }}
+    #     content:
+    #       map:
+    #         on-click:
+    #           left: sh -c "riverctl set-focused-tags $((1 << ({id} - 1)))"
+    #           right: sh -c "riverctl toggle-focused-tags $((1 << ({id} -1)))"
+    #           middle: sh -c "riverctl toggle-view-tags $((1 << ({id} -1)))"
+    #         conditions:
+    #           state == urgent:
+    #             map:
+    #               # <<: *river_base
+    #               deco: {background: {color: D08770ff}}
+    #           state == focused:
+    #             map:
+    #               # <<: *river_base
+    #               deco: *bg_deco
+    #           state == visible && ~occupied:
+    #             map:
+    #               # <<: *river_base
+    #           state == visible && occupied:
+    #             map:
+    #               # <<: *river_base
+    #               deco: *bg_deco
+    #           state == unfocused:
+    #             map:
+    #               # <<: *river_base
+    #           state == invisible && ~occupied: {empty: {}}
+    #           state == invisible && occupied:
+    #             map:
+    #               # <<: *river_base
+    #               deco: {underline: {size: 3, color: ea6962ff}}
+
+
+
+              # ~occupied: {empty: {}}
+              # occupied:
+              #   string:
+              #     margin: 5
+              #     text: "{id}"
+    - river:
+        title: { string: { text: " | {layout} | {mode} |" }}
+          # empty: { right-margin: 7 }
+        anchors:
+          - base: &river_base
+              # left-margin: 10
+              # right-margin: 13
+              conditions:
+                ~occupied: {empty: {}}
+                occupied:
+                  string:
                     margin: 5
-                    text: "{mode}"
-                    deco: {background: {color: *color-i3-mode}}  #cc421d_ff
-                - empty: {right-margin: 7}
-              conditions:
-                mode == default: {empty: {}}
-        sort: native
-        strip-workspace-numbers: true
+                    text: "{id}"
         content:
-          "":
-            map:
-              conditions:
-                state == focused:   {string: {<<: [*default, *focused]}}
-                state == unfocused: {string: {<<: *default}}
-                state == invisible: {string: {<<: [*default, *invisible]}}
-                state == urgent:    {string: {<<: [*default, *urgent]}}
+          map:
+            on-click:
+              left: sh -c "riverctl set-focused-tags $((1 << ({id} - 1)))"
+              right: sh -c "riverctl toggle-focused-tags $((1 << ({id} -1)))"
+              middle: sh -c "riverctl toggle-view-tags $((1 << ({id} -1)))"
+            conditions:
+              state == urgent:
+                map:
+                  <<: *river_base
+                  deco: {background: {color: D08770ff}}
+              state == focused:
+                map:
+                  <<: *river_base
+                  deco: *bg_deco
+              state == visible && ~occupied:
+                map:
+                  <<: *river_base
+              state == visible && occupied:
+                map:
+                  <<: *river_base
+                  deco: *bg_deco
+              state == unfocused:
+                map:
+                  <<: *river_base
+              state == invisible && ~occupied: {empty: {}}
+              state == invisible && occupied:
+                map:
+                  <<: *river_base
+                  deco: {underline: {size: 3, color: ea6962ff}}
+                  
+    # - i3:
+    #     anchors: # Not used (directly) by f00bar; used here to avoid duplication
+    #       - string: &i3_common {margin: 5, on-click: "swaymsg --quiet workspace {name}"}
+    #       - string: &default {<<: *i3_common, text: "{name}"}
+    #       - string: &main    {<<: *i3_common, text: , font: *awesome}
+    #       - string: &surfing {<<: *i3_common, text: , font: *awesome_brands}
+    #       - string: &misc    {<<: *i3_common, text: , font: *awesome}
+    #       - string: &mail    {<<: *i3_common, text: , font: *awesome}
+    #       - string: &music   {<<: *i3_common, text: , font: *awesome}
+    #       - focused: &focused
+    #           deco: {stack: [background: {color: *color-focused}, <<: *std_underline]}  #ffa0a0
+    #       - invisible: &invisible {foreground: *color-invisible}  #ffffff_ff
+    #       - urgent: &urgent
+    #           foreground: *color-urgent-text  #000000_ff
+    #           deco: {stack: [background: {color: *color-urgent}, <<: *std_underline]}  #bc2b3f
+    #       - map: &i3_mode
+    #           default:
+    #             - string:
+    #                 margin: 5
+    #                 text: "{mode}"
+    #                 deco: {background: {color: *color-i3-mode}}  #cc421d_ff
+    #             - empty: {right-margin: 7}
+    #           conditions:
+    #             mode == default: {empty: {}}
+    #     content:
+    #       "":
+    #         map:
+    #           conditions:
+    #             state == focused:   {string: {<<: [*default, *focused]}}
+    #             state == unfocused: {string: {<<: *default}}
+    #             state == invisible: {string: {<<: [*default, *invisible]}}
+    #             state == urgent:    {string: {<<: [*default, *urgent]}}
+    #       main:
+    #         map:
+    #           conditions:
+    #             state == focused:   {string: {<<: [*main, *focused]}}
+    #             state == unfocused: {string: {<<: *main}}
+    #             state == invisible: {string: {<<: [*main, *invisible]}}
+    #             state == urgent:    {string: {<<: [*main, *urgent]}}
+    #       surfing:
+    #         map:
+    #           conditions:
+    #             state == focused: {string: {<<: [*surfing, *focused]}}
+    #             state == unfocused: {string: {<<: *surfing}}
+    #             state == invisible: {string: {<<: [*surfing, *invisible]}}
+    #             state == urgent:    {string: {<<: [*surfing, *urgent]}}
+    #       misc:
+    #         map:
+    #           conditions:
+    #             state == focused: {string: {<<: [*misc, *focused]}}
+    #             state == unfocused: {string: {<<: *misc}}
+    #             state == invisible: {string: {<<: [*misc, *invisible]}}
+    #             state == urgent:    {string: {<<: [*misc, *urgent]}}
+
+    #       mail:
+    #         map:
+    #           conditions:
+    #             state == focused: {string: {<<: [*mail, *focused]}}
+    #             state == unfocused: {string: {<<: *mail}}
+    #             state == invisible: {string: {<<: [*mail, *invisible]}}
+    #             state == urgent:    {string: {<<: [*mail, *urgent]}}
+    #       music:
+    #         map:
+    #           conditions:
+    #             state == focused: {string: {<<: [*music, *focused]}}
+    #             state == unfocused: {string: {<<: *music}}
+    #             state == invisible: {string: {<<: [*music, *invisible]}}
+    #             state == urgent:    {string: {<<: [*music, *urgent]}}
 
     - foreign-toplevel:
         content:
@@ -95,10 +213,8 @@ bar:
             conditions:
               ~activated: {empty: {}}
               activated:
-                - string: {text: "{app-id}", foreground: f2b1d9ff}
+                - string: {text: "{app-id}", foreground: *color-app-id}
                 - string: {text: ": {title}"}
-
-                  
   # center:
     # - mpd:
     #     host: /run/mpd/socket
@@ -120,6 +236,7 @@ bar:
     #               conditions:
     #                 state == playing: {string: {text: "{title}", foreground: ffa0a0ff}}
     #                 state == paused: {string: {text: "{title}", foreground: ffffff66}}
+
     #     content:
     #       map:
     #         margin: 10
@@ -129,9 +246,7 @@ bar:
     #           state == paused: {list: *artist_album_title}
     #           state == playing: {list: *artist_album_title}
 
-    
   right:
-    
     - removables:
         anchors:
           drive: &drive { text: , font: *awesome}
@@ -156,31 +271,26 @@ bar:
                     optical:
                       - string: {<<: *optical, deco: *std_underline}
                       - string: {text: "{label}"}
-
-    - network:
-        poll-interval: 1000
-        content:
-          map:
-            default: {empty: {}}
-            conditions:
-              name == wlp0s20f3:
-                map:
-                  default: {string: {text: , font: *awesome, foreground: ffffff66}}
-                  # default: {empty: {}}
-                  conditions:
-                    state == down: {string: {text: , font: *awesome, foreground: ff0000ff}}
-                    state == up:
-                      map:
-                        default:
-                          - empty: {}
-                          # - string: {text: , font: *awesome}
-                          # - string: {text: "{ssid} {dl-speed:mb}/{ul-speed:mb} Mb/s"}
-
-                        conditions:
-                          ipv4 == "":
-                            - string: {text: 4, font: *awesome, foreground: ffffff66}
-                            # - string: {text: "{ssid} {dl-speed:mb}/{ul-speed:mb} Mb/s", foreground: ffffff66}
-
+    # - xkb:
+    #     content:
+    #       string: {text: "{symbol}"}
+    # - sway-xkb:
+    #     identifiers: [1:1:AT_Translated_Set_2_keyboard]
+    #     content:
+    #       list:
+    #         items:
+    #           - string: {text: , font: *awesome}
+    #           - map:
+    #               default:
+    #                 {string: {text: "{layout}"}}
+    #               conditions:
+    #                 layout == "English (programmer Dvorak)":
+    #                   {string: {text: "Dvp"}}
+    #                 layout == "English (Colemak-DH)":
+    #                   {string: {text: "colemak-dh"}}
+    #                 layout == "English (US)":
+    #                   {string: {text: "Qwerty"}}
+                
     # - network:
     #     content:
     #       map:
@@ -195,24 +305,27 @@ bar:
     #                     default: {string: {text: , font: *awesome, foreground: ffffff66}}
     #                     conditions:
     #                       state == up && ipv4 != "": {string: {text: , font: *awesome}}
-    - sway-xkb:
-        identifiers: [1:1:AT_Translated_Set_2_keyboard]
-        content:
-          list:
-            items:
-              - string: {text: , font: *awesome}
-              - map:
-                  default:
-                    {string: {text: "{layout}"}}
-                  conditions:
-                    layout == "English (programmer Dvorak)":
-                      {string: {text: "Dvp"}}
-                    layout == "English (Colemak-DH)":
-                      {string: {text: "colemak-dh"}}
-                    layout == "English (US)":
-                      {string: {text: "Qwerty"}}
+    # - network:
+    #     poll-interval: 1000
+    #     content:
+    #       map:
+    #         default: {empty: {}}
+    #         conditions:
+    #           name == wlp2s0:
+    #             map:
+    #               default: {string: {text: , font: *awesome, foreground: ffffff66}}
+    #               conditions:
+    #                 state == down: {string: {text: , font: *awesome, foreground: ff0000ff}}
+    #                 state == up:
+    #                   map:
+    #                     default:
+    #                       - string: {text: , font: *awesome}
+    #                       - string: {text: "{ssid} {dl-speed:mb}/{ul-speed:mb} Mb/s"}
 
-                
+    #                     conditions:
+    #                       ipv4 == "":
+    #                         - string: {text: , font: *awesome, foreground: ffffff66}
+    #                         - string: {text: "{ssid} {dl-speed:mb}/{ul-speed:mb} Mb/s", foreground: ffffff66}
     - alsa:
         card: default
         mixer: Master
@@ -222,14 +335,14 @@ bar:
               ~online: {string: {text: "alsa:offline", font: *awesome, foreground: *color-error}}
               online:
                 map:
-                  on-click: pavucontrol
+                  on-click: /bin/sh -c "pactl set-sink-mute @DEFAULT_SINK@ toggle"
                   conditions:
-                    muted: {string: {text: "muted({percent})", foreground: *color-muted}}
-                    # muted:
-                    #   list: 
-                    #     items:
-                    #       # - string: {text: , font: *awesome, foreground: *color-muted}
-                    #       - string: {text: "muted({percent})", foreground: *color-muted}
+                    # muted: {string: {text: "{percent}", font: *awesome, foreground: *color-muted}}
+                    muted:
+                      list: 
+                        items:
+                          # - string: {text: , font: *awesome, foreground: *color-muted}
+                          - string: {text: "muted({percent})", foreground: *color-muted}
                     ~muted: # ^ consider making it just muted(per%)
                       list:
                         items:
@@ -258,7 +371,6 @@ bar:
     - backlight:
         name: acpi_video0
         content: [ string: {text: , font: *awesome}, string: {text: "{percent}%"}]
-
     - battery:
         name: BAT0
         poll-interval: 30000
@@ -308,14 +420,13 @@ bar:
                       - string: {text:  , foreground: *color-bat-green, font: *awesome}
                       - string: {text:  , foreground: *color-bat-green, font: *awesome}
                 - string: {text: "{capacity}%"}
-
     - clock:
         time-format: "%a %d %b %I:%M %P"
         content:
           # - string: {text: , font: *awesome}
           # - string: {text: "{date}", right-margin: 5}
           - string: {text: , font: *awesome}
-          - string: {text: "{time}", right-margin: 7}
+          - string: {text: "{time}", right-margin: 5}
     # - label:
     #     content:
     #       string:

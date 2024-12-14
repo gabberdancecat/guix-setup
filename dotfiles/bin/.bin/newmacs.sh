@@ -1,3 +1,3 @@
 #!/bin/sh
 
-emacs --init-directory ~/.newmacs.d/ $@
+emacs --init-directory ~/.config/newmacs $@

@@ -5,6 +5,8 @@
              ;; (src home modules system) ; channels
              (src home modules setup) ; dotfiles
              ;; (src home modules renoise) ; renoise(packages)
+             ;; (src home modules dwl-config) ; dotfiles
+             (src packages dwl) ; dwl-custom
              ;; depend
              (gnu home)
              (gnu packages)
@@ -20,6 +22,9 @@
              '("font-awesome"
                "font-dejavu"
                "font-tamzen"))
+            (list dwl-custom
+                  slstatus-custom
+                  dwlb-custom)
             ;; renoise+depends only
             ;; my/renoise-packages
             ))
@@ -32,6 +37,7 @@
             ;; my/zsh-service
             ;; dotfiles
             ;; my/setup-service
+            ;; my/dwl-service
             )))
 
 ;; Ideas:

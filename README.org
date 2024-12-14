@@ -52,12 +52,9 @@ Instead of tackling all at once, choose one for the day, and knock out all at on
       snapshot_preserve = 2         # Keep only 2 snapshots
       target_preserve = 2           # Only copy 2 snapshots to external drive
   #+end_src
-  - [ ] rewrite org-mode config
-  - [ ] sec+ sign up (due fri)
-  - [ ] mint .ova to qemu/kvm
-  - [ ] rewrite river config
-  - [X] lease complete (vry soon)
-    - now for parent's side
+  - [ ] rewrite emacs + org-mode config
+  - [ ] nixos (https://youtu.be/nLwbNhSxLd4) <- description has so much stuff
+  - [ ] soundcloud isolated electron app (issue is hardened browser)
 
 - org
   - [ ] latex fragments, fragtog, completion.

@@ -6,13 +6,14 @@
 (sway-output "*" "bg ~/Pictures/Random-images/glt-landscape2.png fill")
 
 ;; borders
-(sway-default-gaps SWAY-GAPS-OPTION-INNER 10)
+(sway-gaps SWAY-GAPS-OPTION-INNER SWAY-GAPS-WORKSPACE-ALL SWAY-GAPS-TYPE-SET 9)
+(sway-default-gaps SWAY-GAPS-OPTION-INNER 9)
 (sway-default-border-style SWAY-BORDER-STYLE-PIXEL #:n 2)
 
 ;; titlebar
 (sway-title-format "%title")
-(sway-titlebar-border-thickness 0)
-(sway-titlebar-padding 8 3) ; horizontal, vertical
+(sway-titlebar-border-thickness 2)
+(sway-titlebar-padding 8 4) ; horizontal, vertical
 
 ;; workspace
 (sway-workspace-layout SWAY-LAYOUT-TABBED) ; default layout for empty workspace
@@ -29,6 +30,11 @@
 (exec "gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark'")
 (exec "gsettings set org.gnome.desktop.interface font-name 'Iosevka Aile 11'")
 
-;; misc
+;; fonts
 (sway-font "Adobe Helvetica 10")
+;; (sway-font "Terminus Regular")
+;; (sway-font "Iosevka 10")
+;; (sway-font "Tamzen6x12r:style=Regular")
+
+;; misc
 ;; (sway-show-marks SWAY-SHOW-MARKS-NO)

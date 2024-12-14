@@ -115,7 +115,8 @@ EndSection
    (modify-services %base-services
      (sysctl-service-type
       config => (sysctl-configuration
-                 (settings (append '(("vm.swappiness" . "1"))
+                 (settings (append '(("vm.swappiness" . "1")
+                                     ("vm.max_map_count" . "1048576"))
                                    %default-sysctl-settings)))))))
 
 (define %my-session-services

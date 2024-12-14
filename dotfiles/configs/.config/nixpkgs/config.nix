@@ -48,7 +48,9 @@ in {
 	openssl
 	renoise344
 	# riverWrapper
-	hyprland
+	autotiling
+	i3a
+	anki
       ];
       pathsToLink = [ "/share/man" "/share/doc" "/bin" ];
       extraOutputsToInstall = [ "man" "doc" ];

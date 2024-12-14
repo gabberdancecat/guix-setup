@@ -48,14 +48,6 @@
 ;; }")
 ;; (exec "swaymsg bindsym Mod4+F11 mode 'passthrough'")
 
-(exec "\
-for_window [class='Renoise'] {
-    input * {
-        xkb_layout 'us'
-        xkb_variant ''
-    }
-}")
-
 
 ;;; Finalize:
 

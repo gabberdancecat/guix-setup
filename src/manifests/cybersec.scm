@@ -8,22 +8,22 @@
 (specifications->manifest
  '(
    ;; "wireshark" ; moved to system profile
-   "qbittorrent"
+   ;; "qbittorrent"
    "python"
-   "remmina"
+   ;; "remmina"
    "ncftp"
    "ansible"
-   "openconnect"
+   ;; "openconnect"
    ;; "cutter" ; nixed
    ;; "rizin" ; nixed
-   "binwalk"
-   "perl-image-exiftool"
+   ;; "binwalk"
+   ;; "perl-image-exiftool"
    "netcat"
-   "fuse" ;; for appimage
+   ;; "fuse" ;; for appimage ?????
    "openvpn"
    "nmap"
-   "samba" ; smbclient
+   ;; "samba" ; smbclient
    "mysql"
-   "awscli"
+   ;; "awscli"
    "sshpass"
    ))
