@@ -214,7 +214,7 @@ EndSection
    
    ;; -- desktop -------
    ;; mpd basic setup
-   (service mpd-service-type)          ; doesn't work, didnt pull depend?
+   ;; (service mpd-service-type)          ; doesn't work, didnt pull depend?
    ;; auto mount usb devices
    (service udisks-service-type)
 
